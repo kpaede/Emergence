@@ -31,7 +31,8 @@
     "test:inquiry-history": "node scripts/inquiry-history-native-check.mjs",
     "test:synopsis": "node scripts/synopsis-native-check.mjs",
     "test:workspace": "node scripts/workspace-native-check.mjs",
-    "test:research": "node scripts/research-native-check.mjs"
+    "test:research": "node scripts/research-native-check.mjs",
+    "test:native-views": "node scripts/native-views-check.mjs"
   },
   "keywords": [],
   "license": "0-BSD",

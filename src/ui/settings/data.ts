@@ -12,9 +12,6 @@ export function dataSettings(ctx: SettingsContext): void {
  folders.addTextArea(t => {t.inputEl.rows = 3; t.setValue(s.conceptFolders.join('\n')).onChange(v => {s.conceptFolders = v.split('\n').map(f => f.trim()).filter(Boolean); s.assignment.allFolders = !s.conceptFolders.length; ctx.changed();});});
  new Setting(host).setName('Zielfilter über Frontmatter').addDropdown(d => d.addOptions({none: 'Keine Einschränkung', breadcrumbs: 'Mindestens ein Breadcrumbs-Feld', custom: 'Eigene Frontmatter-Schlüssel'}).setValue(s.assignment.propertyFilter).onChange(v => {s.assignment.propertyFilter = v as typeof s.assignment.propertyFilter; ctx.changed(); ctx.refresh();}));
  if (s.assignment.propertyFilter === 'custom') new Setting(host).setName('Frontmatter-Schlüssel').setDesc('Kommagetrennt; mindestens einer der Schlüssel muss vorhanden sein.').addText(t => t.setValue(s.assignment.properties.join(', ')).onChange(v => {s.assignment.properties = v.split(',').map(p => p.trim()).filter(Boolean); ctx.changed();}));
- const display = disclosure(host, 'Anzeigegrenzen für große Graphen');
- for (const [key, label] of [['maxGraphNodes', 'Maximal sichtbare Knoten'], ['maxGraphEdges', 'Maximal sichtbare Beziehungen'], ['graphHeight', 'Maximale Graphhöhe in Pixeln']] as const)
-  new Setting(display).setName(label).addText(t => {t.inputEl.type = 'number'; t.setValue(String(s[key])).onChange(v => {s[key] = Number(v); ctx.changed();});});
  new Setting(host).setName('Konfiguration übertragen').setHeading();
  new Setting(host).setName('Konfiguration exportieren').setDesc('Modelleinstellungen, Feldregeln, Profile und Vorlagen. Keine Notizkörper.').addButton(b => b.setButtonText('Exportieren').onClick(() => download('emergence-konfiguration.json', JSON.stringify(s, null, 2))));
  const importer = disclosure(host, 'Konfiguration importieren'); let json = '';

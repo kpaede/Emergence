@@ -7,15 +7,15 @@ async function check() {
  if(c.abort||c.applyingIdea)throw Error('Eine Benutzeraktion läuft.');
  const wait=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
  const until=async predicate=>{for(let i=0;i<160;i++){if(predicate())return;await wait(50);}throw Error('UI timeout');};
- const original={tab:v.tab,state:JSON.parse(JSON.stringify(v.state)),focus:p.focusPath,mode:p.mode,follow:p.follow,explore:p.explore,searchItem:p.searchItem,active:c.activePath,
+ const original={tab:v.tab,state:JSON.parse(JSON.stringify(v.state)),focus:p.focusPath,follow:p.follow,explore:p.explore,active:c.activePath,
   leaves:new Set(app.workspace.getLeavesOfType('markdown')),files:app.vault.getFiles().length,settings:JSON.stringify(c.settings()),history:JSON.stringify(c.inquiryHistory)};
  const report={};const assert=(name,condition)=>{report[name]=!!condition;if(!condition)throw Error(name);};
  let probe,off;
  try {
-  assert('fourTabs',JSON.stringify([...v.contentEl.querySelectorAll('[role=tab]')].map(b=>b.textContent))===JSON.stringify(['Suche','Graph','Analyse','Recherche']));
-  assert('searchIconFirst',!!v.contentEl.querySelector('[role=tab]:first-child .svg-icon'));
+  assert('fourTabs',JSON.stringify([...v.contentEl.querySelectorAll('.em-tabs > [role=tab]')].map(b=>b.textContent))===JSON.stringify(['Graph','Feldideen','Recherche','Suche']));
+  assert('labelledSearchLast',!!v.contentEl.querySelector('[role=tab]:last-child[aria-label=Suche] .lucide-search'));
   assert('searchRemovedFromGraph',!v.panels.get('graph').querySelector('input[type=search]'));
-  v.switchTab('graph');p.mode='structure';p.modeSelect.value='structure';p.explore=false;p.exploreBox.checked=false;p.follow=true;p.focus(c.activePath);p.renderContext();
+  v.switchTab('graph');p.explore=false;p.exploreBox.checked=false;p.follow=true;p.focus(c.activePath);p.renderStructure();
   p.explore=true;p.exploreBox.checked=true;const focusLink=v.contentEl.querySelector('.em-syn-focus a');assert('activeNoteLinkPresent',!!focusLink);
   focusLink.dispatchEvent(new MouseEvent('auxclick',{button:1,bubbles:true,cancelable:true}));
   await until(()=>app.workspace.getLeavesOfType('markdown').some(l=>!original.leaves.has(l)&&!!l.view.file));
@@ -42,7 +42,7 @@ async function check() {
   await until(()=>app.workspace.getLeavesOfType('markdown').some(l=>!original.leaves.has(l)&&!!l.view.file));
   assert('searchMiddleClickNewTab',true);for(const leaf of app.workspace.getLeavesOfType('markdown'))if(!original.leaves.has(leaf))leaf.detach();
   const libraryLink=v.contentEl.querySelector('.em-library-results [data-zotlit-item]');
-  assert('realLibrarySearch',!!libraryLink);
+  assert('realLibrarySearch',!!libraryLink);await until(()=>!!v.contentEl.querySelector('.em-library-results [data-zotlit-formatted]'));assert('searchUsesZotlitCsl',true);
   const itemKey=libraryLink.dataset.zotlitItem;
   libraryLink.click();await until(()=>app.workspace.getLeavesOfType('zotlit-library').some(l=>l.view.selected?.key===itemKey));
   assert('literatureOpensSelectedLibraryItem',true);
@@ -50,7 +50,7 @@ async function check() {
   libraryLink.dispatchEvent(new MouseEvent('auxclick',{button:1,bubbles:true,cancelable:true}));await wait(50);
   assert('literatureMiddleClickNoExtraTab',app.workspace.getLeavesOfType('zotlit-library').length===countBefore);
   v.state.search.mode='explore';libraryLink.click();await wait(200);
-  assert('literatureExploreGraph',v.tab==='graph'&&p.explore&&!!p.focusPath&&p.cy.nodes().length>0&&c.activePath===original.active);
+  assert('bibliographicEntryAlwaysOpensLibrary',app.workspace.getLeavesOfType('zotlit-library').some(l=>l.view.selected?.key===itemKey));
   // Test inquiry controls using a separate controller; no real note reads or writes.
   probe=new c.constructor(app,()=>JSON.parse(original.settings),async()=>{},[],async()=>{});probe.activePath=original.active;probe.graph.snapshot=c.graph.snapshot;
   const requests=[];let continued=false;
@@ -71,7 +71,7 @@ async function check() {
   off?.();probe?.dispose();v.controller=c;
   for(const leaf of app.workspace.getLeavesOfType('markdown'))if(!original.leaves.has(leaf))leaf.detach();
   const main=[...original.leaves].find(l=>l.view.file?.path===original.active);if(main)app.workspace.setActiveLeaf(main,{focus:false});
-  c.activePath=original.active;v.state=original.state;p.searchItem=original.searchItem;p.mode=original.mode;p.modeSelect.value=original.mode;p.focusPath=original.focus;p.follow=original.follow;p.followBox.checked=p.follow;p.explore=original.explore;p.exploreBox.checked=p.explore;p.closeDetails();p.renderContext();v.switchTab(original.tab);c.notify();
+  c.activePath=original.active;v.state=original.state;p.focusPath=original.focus;p.follow=original.follow;p.explore=original.explore;p.exploreBox.checked=p.explore;p.details.hidden=true;p.renderStructure();v.switchTab(original.tab);c.notify();
  }
 }
 evaluate(`(()=>{window.__emWorkspaceCheck={done:false};(${check.toString()})().then(report=>window.__emWorkspaceCheck={done:true,report}).catch(e=>window.__emWorkspaceCheck={done:true,failure:String(e),stack:e.stack});return true;})()`);

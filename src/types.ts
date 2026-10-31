@@ -3,8 +3,9 @@ export interface Concept {
  id: string; title: string; aliases: string[]; tags: string[]; type: string; exists: boolean;
  mtime: number; size: number;
  properties?: string[];
- citation?: {citekey: string; state: 'missing' | 'ambiguous' | 'noteless'; indexedKey?: string};
+ citation?: {citekey: string; state: 'missing' | 'ambiguous' | 'noteless'; indexedKey?: string; reference?: LiteratureReference};
 }
+export interface LiteratureReference {title?: string; detail?: string; citekey?: string; indexedKey?: string; state?: 'missing' | 'ambiguous' | 'noteless'}
 export type RelationClass = 'unknown' | 'taxonomic' | 'mereological' | 'causal' | 'associative' | 'sequential';
 export interface RelationRule {
  label: string; description: string; class: RelationClass; hierarchical: boolean;
@@ -13,6 +14,7 @@ export interface RelationRule {
  targetProperty: string; eligibleNodeTypes: string[]; provenance: 'user' | 'unknown';
 }
 export interface Edge {
+ reference?: LiteratureReference;
  id: string; source: string; target: string; layer: 'breadcrumbs' | 'obsidian' | 'zotlit';
  field: string; explicit: boolean; provenance: string;
  occurrences: {kind: 'body' | 'frontmatter' | 'aggregate'; property?: string; line?: number}[];

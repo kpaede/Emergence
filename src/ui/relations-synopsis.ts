@@ -1,6 +1,7 @@
 import type {GraphSnapshot, Settings} from '../types';
 import {SynopsisGraph,synopsisDepths} from '../graph/synopsis';
 import {synopsisLabels,type SynopsisDepth,type SynopsisEntry,type SynopsisRelation} from '../graph/synopsis-types';
+import {literatureReference} from './literature-reference';
 import {synopsisNote,type SynopsisLinkActions} from './synopsis-note';
 import {iconButton} from './panel';
 import {SynopsisGeometry} from './synopsis-geometry';
@@ -54,11 +55,14 @@ export class RelationsSynopsis {
    const section=makeSection(relation,parent),list=section.createEl('ul',{cls:relation==='narrower'?'em-syn-children':relation==='similar'||relation==='friction'?'em-syn-lateral-items':'em-syn-register',attr:{'data-syn-list':relation}});
    const entries=model.entries(focus,relation,depths[relation]);
    const returns=model.returns(relation);if(returns)list.setAttribute('aria-description',`${returns} Rückverweise nicht erneut als neue Schritte angezeigt.`);
-   if(relation==='literature')for(const citation of model.citationReferences(focus)){const row=section.createDiv({cls:'em-syn-citation',attr:{'data-syn-citekey':citation.citekey}});const link=row.createEl('a',{text:`@${citation.citekey}`,cls:'internal-link',attr:{href:'#','aria-label':`@${citation.citekey} in ZotLit Library öffnen`}});link.onclick=event=>{event.preventDefault();this.actions.literature?.({citekey:citation.citekey});};link.onauxclick=event=>{if(event.button===1)event.preventDefault();};row.createSpan({text:'Keine Literaturnotiz verknüpft',cls:'em-syn-meta'});}
+   if(relation==='literature')for(const citation of model.citationReferences(focus)){const row=section.createDiv({cls:'em-syn-citation',attr:{'data-syn-citekey':citation.citekey??''}});literatureReference(row,citation,{open:()=>this.actions.literature?.(citation),format:()=>this.settings().citekeyFormat??'brackets',bibliography:this.actions.bibliography?reference=>this.actions.bibliography!(reference,focus):undefined});}
    if(!entries.length)return;
    const work:{entry:SynopsisEntry;list:HTMLElement;side:'left'|'right';parent?:HTMLAnchorElement;visualDepth:number}[]=entries.map((entry,index)=>({entry,list,visualDepth:0,side:relation==='friction'||relation==='narrower'&&index%2===0?'right':'left'}));
    for(let index=0;index<work.length;index++){
-    const {entry,list,side,parent,visualDepth}=work[index]!,li=list.createEl('li',{attr:{'data-syn-step':String(entry.step)}});const actions=relation==='literature'&&snapshot.edges.some(e=>e.layer==='zotlit'&&e.target===entry.note.id)&&this.actions.literature?{...this.actions,activate:(_note:import('../graph/synopsis-types').SynopsisNote,event:MouseEvent)=>{if(event.button!==1)this.actions.literature?.({path:entry.note.path});}}:this.actions;const link=synopsisNote(li,entry.note,actions);
+    const {entry,list,side,parent,visualDepth}=work[index]!,li=list.createEl('li',{attr:{'data-syn-step':String(entry.step)}});const actions=relation==='literature'&&snapshot.edges.some(e=>e.layer==='zotlit'&&e.target===entry.note.id)&&this.actions.literature?{...this.actions,activate:(_note:import('../graph/synopsis-types').SynopsisNote,event:MouseEvent)=>{if(event.button!==1)this.actions.literature?.({path:entry.note.path});}}:this.actions;const reference=relation==='literature'?model.reference(entry.note.id):undefined;
+    let link:HTMLAnchorElement;
+    if(reference){const row=literatureReference(li,{...reference,title:reference.title??entry.note.title},{open:()=>this.actions.literature?.({...reference,path:entry.note.path}),format:()=>this.settings().citekeyFormat??'brackets',bibliography:this.actions.bibliography?reference=>this.actions.bibliography!(reference,focus):undefined});link=row.querySelector<HTMLAnchorElement>('a')!;link.addClass('em-syn-note');link.dataset.emNote=entry.note.id;link.id='em-syn-note-'+crypto.randomUUID();}
+    else link=synopsisNote(li,entry.note,actions);
     if(parent){link.dataset.synParent=parent.id;link.dataset.synSide=side;link.dataset.synRelation=relation;}
     if(entry.step>3)li.createSpan({text:`Schritt ${entry.step}`,cls:'em-syn-step-meta'});
     link.setAttribute('aria-description',`${synopsisLabels[relation]}, Schritt ${entry.step}${parent?`, über ${parent.textContent}`:''}${entry.repeated?', Rückverweis oder bereits erreichbare Notiz':''}`);

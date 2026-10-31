@@ -1,5 +1,5 @@
 import {fieldRelations, type FieldRelations} from './field-relations';
-import type {GraphSnapshot, Settings} from '../types';
+import type {GraphSnapshot, Settings, LiteratureReference} from '../types';
 import {defaultSynopsisDepths, synopsisRelations, type AncestorPath, type SynopsisDepth, type SynopsisEntry, type SynopsisNote, type SynopsisRelation} from './synopsis-types';
 
 export function synopsisDepths(settings: Settings): Record<SynopsisRelation, SynopsisDepth> {
@@ -27,7 +27,8 @@ export class SynopsisGraph {
  readonly unassignedFields: string[];
  readonly fieldRelations: FieldRelations;
  private returnCounts=new Map<SynopsisRelation,number>();
- private virtualCitations = new Map<string, {citekey:string;state:string}[]>();
+ private virtualCitations = new Map<string, LiteratureReference[]>();
+ private references = new Map<string,LiteratureReference>();
  constructor(readonly snapshot: GraphSnapshot, settings: Settings) {
   this.fields = synopsisFields(snapshot, settings);
   for (const relation of synopsisRelations) this.adjacency.set(relation, new Map());
@@ -46,8 +47,8 @@ export class SynopsisGraph {
   for (const edge of snapshot.edges) {
    if (!edge.explicit) continue;
    if (edge.layer === 'zotlit') {
-    if (this.notes.has(edge.target)) add('literature', edge.source, edge.target);
-    else {const citation=concepts.get(edge.target)?.citation;if(citation)this.virtualCitations.set(edge.source,[...this.virtualCitations.get(edge.source)??[],{citekey:citation.citekey,state:citation.state}]);}
+    if (this.notes.has(edge.target)){add('literature', edge.source, edge.target);if(edge.reference)this.references.set(edge.target,edge.reference);}
+    else {const citation=concepts.get(edge.target)?.citation;if(citation)this.virtualCitations.set(edge.source,[...this.virtualCitations.get(edge.source)??[],citation.reference??{citekey:citation.citekey,state:citation.state,indexedKey:citation.indexedKey}]);}
    }
    if (edge.layer === 'obsidian'&&!citationPairs.has(JSON.stringify([edge.source,edge.target]))) add('links', edge.source, edge.target);
    if (edge.layer !== 'breadcrumbs') continue;
@@ -79,7 +80,8 @@ export class SynopsisGraph {
  }
  fieldNeighbors(id:string,field:string):SynopsisNote[]{return [...this.fieldRelations.get(field)?.get(id)??[]].flatMap(id=>this.notes.has(id)?[this.notes.get(id)!]:[]);}
  returns(relation:SynopsisRelation):number{return this.returnCounts.get(relation)??0;}
- citationReferences(id:string):ReadonlyArray<{citekey:string;state:string}>{return this.virtualCitations.get(id)??[];}
+ reference(id:string):LiteratureReference|undefined{return this.references.get(id);}
+ citationReferences(id:string):ReadonlyArray<LiteratureReference>{return this.virtualCitations.get(id)??[];}
  citationNotice(id: string): number {return this.citationReferences(id).length;}
  /** Lazy, iterative branch-local traversal retains every parent path without freezing the UI. */
  *ancestorPaths(focus: string, depth: SynopsisDepth): Generator<AncestorPath> {

@@ -1,8 +1,9 @@
-import {citekeyButton} from './citekey';
+import {formatZotlitReference} from '../graph/zotlit-bibliography';
+import {literatureReference} from './literature-reference';
 import {Keymap} from 'obsidian';
 import type {EmergenceController} from '../controller';
 import {ConceptRegistry} from '../graph/registry';
-import {openZotlitLibrary, searchZotlitLibrary, type ZotlitSearchHit} from '../graph/zotlit';
+import {openZotlitLibrary, searchZotlitLibrary} from '../graph/zotlit';
 import {errorMessage} from '../util';
 import {openSynopsisNote} from './graph-navigation';
 import {input, button} from './helpers';
@@ -12,11 +13,11 @@ import {synopsisNote} from './synopsis-note';
 export class SearchPanel {
  private results!: HTMLElement; private library!: HTMLElement; private version = -1; private limit = 30;
  private timer?: number; private request?: AbortController; private generation = 0; private lastQuery = '';
- constructor(private controller: EmergenceController, private host: HTMLElement, private state: () => PanelState['search'], private explore: (path: string) => void, private exploreItem: (item: ZotlitSearchHit) => void) {}
+ constructor(private controller: EmergenceController, private host: HTMLElement, private state: () => PanelState['search'], private explore: (path: string) => void) {}
  mount(): void {
   const search = input(this.host, 'Notizen und Zotero suchen', this.state().query, value => {this.state().query = value; this.limit = 30; this.draw();}) as HTMLInputElement;
   search.type = 'search'; search.placeholder = 'Begriff, Titel, Alias oder Citekey …';
-  const choices = this.host.createDiv({cls: 'em-search-modes', attr: {role: 'radiogroup', 'aria-label': 'Aktion bei Auswahl'}}), name = crypto.randomUUID();
+  const choices = this.host.createDiv({cls: 'em-search-modes', attr: {role: 'radiogroup', 'aria-label': 'Aktion bei Notizauswahl'}}), name = crypto.randomUUID();
   for (const [mode, text] of [['open', 'Öffnen'], ['explore', 'Erkunden']] as const) {
    const row = choices.createEl('label', {cls: 'em-check-row'}), box = row.createEl('input', {type: 'radio', attr: {name, value: mode}});
    box.checked = this.state().mode === mode; row.appendText(text); box.onchange = () => {if (box.checked) this.state().mode = mode;};
@@ -66,10 +67,8 @@ export class SearchPanel {
     if (generation !== this.generation || request.signal.aborted) return;
     status.setText(hits.length ? `${hits.length}${hits.length === limit ? '+' : ''} Treffer` : 'Keine passenden Literaturangaben.');
     for (const item of hits) {
-     const row = this.library.createDiv({cls: 'em-search-hit'}), link = row.createEl('a', {text: item.title, cls: 'internal-link', attr: {href:'#', 'data-zotlit-item':item.indexedKey}});
-     link.onclick = event => {event.preventDefault(); if(this.state().mode === 'explore')this.exploreItem(item);else void this.controller.run(() => openZotlitLibrary(this.controller.app, {indexedKey:item.indexedKey}));};
-     link.onauxclick = event => {if(event.button === 1)event.preventDefault();};
-     const detail=row.createDiv({cls:'em-path'}); if(item.detail)detail.appendText(item.detail+' ');if(item.citekey)citekeyButton(detail,item.citekey,()=>this.controller.settings().citekeyFormat??'brackets');
+     const row = this.library.createDiv({cls:'em-search-hit'});
+     literatureReference(row,item,{open:()=>{void this.controller.run(()=>openZotlitLibrary(this.controller.app,{indexedKey:item.indexedKey}));},format:()=>this.controller.settings().citekeyFormat??'brackets',bibliography:reference=>formatZotlitReference(this.controller.app,this.controller.activePath,reference)});
     }
     if(hits.length === limit)button(this.library,'Weitere Literatur',()=>this.findLibrary(query,limit + 30));
    }).catch(error => {if (generation === this.generation && !request.signal.aborted) status.setText(errorMessage(error));});

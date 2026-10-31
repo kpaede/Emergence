@@ -1,10 +1,12 @@
 import type {App} from 'obsidian';
-import type {Concept, Edge, GraphSnapshot} from '../types';
+import {bibliographicReference,type BibliographicItem} from './bibliography';
+import type {Concept, Edge, GraphSnapshot, LiteratureReference} from '../types';
 import {assert} from '../util';
 
 export interface CitationOccurrence {kind: string; raw: string; position?: {start: {line: number}}}
 export type Resolution = {kind: 'missing' | 'ambiguous'} | {kind: 'unique'; item: {indexedKey: string}};
 interface CitationInput {
+ items?: ReadonlyMap<string,BibliographicItem>;
  occurrences: ReadonlyMap<string, readonly CitationOccurrence[]>;
  resolutions: ReadonlyMap<string, Resolution>;
  notes: ReadonlyMap<string, readonly string[]>;
@@ -15,29 +17,33 @@ interface CitationInput {
 /** Consume ZotLit's admitted citation facts; never parse or read note bodies here. */
 export function citationGraph(input: CitationInput): {nodes: Concept[]; edges: Edge[]} {
  const nodes = new Map<string, Concept>(), edges = new Map<string, Edge>();
- const literature = new Set([...input.notes.values()].flat());
+ const literature = new Set([...input.notes.values()].flat()), noteItems = new Map<string,string[]>();
+ for(const [key,paths]of input.notes)for(const path of paths)noteItems.set(path,[...noteItems.get(path)??[],key]);
  for (const [source, occurrences] of input.occurrences) {
   if (!input.paths.has(source)) continue;
   for (const occurrence of occurrences) {
-   let target: string | undefined;
+   let target: string | undefined,reference:LiteratureReference|undefined;
    if (occurrence.kind === 'citekey') {
     const resolution = input.resolutions.get(occurrence.raw) ?? {kind: 'missing'};
+    const item=resolution.kind==='unique'?input.items?.get(resolution.item.indexedKey):undefined;
+    reference=item?bibliographicReference(item,occurrence.raw):{citekey:occurrence.raw,...(resolution.kind==='unique'?{indexedKey:resolution.item.indexedKey}:{}),state:resolution.kind==='unique'?'noteless':resolution.kind};
     const notes = resolution.kind === 'unique' ? (input.notes.get(resolution.item.indexedKey) ?? []).filter(path => input.paths.has(path)) : [];
     target = notes.find(path => input.resolvedLinks[source]?.[path]) ?? notes[0];
     if (!target) {
      target = `zotlit:work:${encodeURIComponent(occurrence.raw)}`;
-     nodes.set(target, {id: target, title: `@${occurrence.raw}`, aliases: [], tags: [], type: 'cited-work', exists: false, mtime: 0, size: 0,
-      citation: {citekey: occurrence.raw, state: resolution.kind === 'unique' ? 'noteless' : resolution.kind,
+     nodes.set(target, {id: target, title: reference.title??`@${occurrence.raw}`, aliases: [], tags: [], type: 'cited-work', exists: false, mtime: 0, size: 0,
+      citation: {reference,citekey: occurrence.raw, state: resolution.kind === 'unique' ? 'noteless' : resolution.kind,
        ...(resolution.kind === 'unique' ? {indexedKey: resolution.item.indexedKey} : {})}});
     }
    } else if (occurrence.kind === 'wikilink') {
     const path = input.resolveLink(occurrence.raw, source);
-    if (path && literature.has(path) && input.paths.has(path)) target = path;
+    if (path && literature.has(path) && input.paths.has(path)){target = path;const keys=noteItems.get(path)??[],item=keys.length===1?input.items?.get(keys[0]!):undefined;if(item)reference=bibliographicReference(item);}
    }
    if (!target || target === source) continue;
    const id = `zotlit:${JSON.stringify([source, target])}`;
    let edge = edges.get(id);
    if (!edge) {edge = {id, source, target, layer: 'zotlit', field: 'zitiert', explicit: true, provenance: 'ZotLit Citation Index', occurrences: []}; edges.set(id, edge);}
+   if(reference)edge.reference=reference;
    const line = occurrence.position?.start.line;
    if (!edge.occurrences.some(o => o.line === line)) edge.occurrences.push({kind: 'body', ...(line === undefined ? {} : {line})});
   }
@@ -45,7 +51,7 @@ export function citationGraph(input: CitationInput): {nodes: Concept[]; edges: E
  return {nodes: [...nodes.values()], edges: [...edges.values()]};
 }
 
-interface LibrarySearchRow {item: {indexedKey: string; fields: {title?: string; citationKey?: string; date?: string}; baseFields?: {title?: string}; creators: {firstName: string | null; lastName: string | null}[]}; library: {name: string | null} | null}
+interface LibrarySearchRow {item: BibliographicItem; library: {name: string | null} | null}
 interface LibrarySearch {search(query: string, options: {limit: number; libraries: readonly unknown[]}): Promise<readonly LibrarySearchRow[]>; close?(): void}
 
 /** ZotLit 2.2 exposes an escape-hatch services getter, not a stable public plugin API. */
@@ -53,10 +59,12 @@ interface Services {
  bridge: {runSync<T>(effect: unknown): T; runPromise<T>(effect: unknown, options?: {signal: AbortSignal}): Promise<T>; subscribe(stream: unknown, changed: () => void): () => void; closed(): boolean};
  citationIndex: {current: unknown; events: unknown; citationsByPath(syntaxes: string[]): unknown};
  citationLookup: {changes: unknown; read(request: {citekeys: string[]}): unknown};
+ settings?:{changes:unknown};profile?:{changes:unknown};
  noteIndex: {changes: unknown; getIndexedItemKeys: unknown; getNotesByItemKey(key: string): unknown};
  citekeyEditor?: {openCitekey(key: string, pane: string): unknown};
  showInLibrary?: {show(indexedKey: string): unknown};
  libraryScope?: {state: unknown};
+ zoteroReads?:{reads:{ItemsByIndexedKeys(input:{indexedKeys:string[]}):unknown}};
  itemLookup?: LibrarySearch & {openSession?(): LibrarySearch};
 }
 function services(app: App): Services | undefined {
@@ -106,10 +114,7 @@ export async function searchZotlitLibrary(app: App, query: string, limit: number
  try {hits = await session.search(query, {limit, libraries: scope.all.available});}
  finally {signal.removeEventListener('abort', close); close();}
  if (signal.aborted) return [];
- return hits.map(({item, library}) => ({indexedKey: item.indexedKey, title: item.fields.title ?? item.baseFields?.title ?? item.indexedKey, citekey: item.fields.citationKey ?? '',
-  detail: [item.creators.slice(0, 2).map(c => [c.firstName, c.lastName].filter(Boolean).join(' ')).join(', '), item.fields.date?.match(/\b\d{4}\b/u)?.[0] ?? item.fields.date, library?.name].filter(Boolean).join(' · '),
-  notes: s.bridge.runSync<readonly {path: string}[]>(s.noteIndex.getNotesByItemKey(item.indexedKey)).map(note => note.path),
- }));
+ return hits.map(({item,library})=>{const reference=bibliographicReference(item);return {indexedKey:item.indexedKey,title:reference.title??item.indexedKey,citekey:reference.citekey??'',detail:library?.name??'',notes:s.bridge.runSync<readonly {path:string}[]>(s.noteIndex.getNotesByItemKey(item.indexedKey)).map(note=>note.path)};});
 }
 export class ZotlitGraphAdapter {
  data = {nodes: [] as Concept[], edges: [] as Edge[]};
@@ -128,7 +133,7 @@ export class ZotlitGraphAdapter {
    this.unbind(); this.bound = s; this.lastRefresh = 0;
    if (!s) {this.data = {nodes: [], edges: []}; this.state = {status: 'unavailable', message: 'ZotLit-Zitatindex nicht verfügbar.', edges: 0}; return;}
    this.state = {status: 'loading', message: 'ZotLit-Zitatindex wird verbunden …', edges: 0};
-   try {for (const stream of [s.citationIndex.events, s.citationLookup.changes, s.noteIndex.changes]) this.stops.push(s.bridge.subscribe(stream, () => this.schedule()));}
+   try {for (const stream of [s.citationIndex.events, s.citationLookup.changes, s.noteIndex.changes,...(s.settings?[s.settings.changes]:[]),...(s.profile?[s.profile.changes]:[])]) this.stops.push(s.bridge.subscribe(stream, () => this.schedule()));}
    catch {this.unbind(); this.bound = undefined; this.state = {status: 'error', message: 'ZotLit-Schnittstelle nicht kompatibel.', edges: 0}; return;}
   }
   if (s && Date.now() - this.lastRefresh > 30000 && !this.abort) void this.refresh(s);
@@ -148,8 +153,15 @@ export class ZotlitGraphAdapter {
    if (abort.signal.aborted || s !== this.bound || this.disposed) return;
    const notes = new Map<string, string[]>();
    for (const key of s.bridge.runSync<string[]>(s.noteIndex.getIndexedItemKeys)) notes.set(key, s.bridge.runSync<{path: string}[]>(s.noteIndex.getNotesByItemKey(key)).map(file => file.path));
+   const resolutions=new Map(keys.map(key=>[key,answer!.resolve(key)])),wanted=new Set<string>();
+   for(const resolution of resolutions.values())if(resolution.kind==='unique')wanted.add(resolution.item.indexedKey);
+   const noteItems=new Map([...notes].flatMap(([key,paths])=>paths.map(path=>[path,key] as const)));
+   for(const [source,rows]of occurrences)for(const row of rows)if(row.kind==='wikilink'){const path=this.app.metadataCache.getFirstLinkpathDest(row.raw,source)?.path,key=path?noteItems.get(path):undefined;if(key)wanted.add(key);}
+   let items:ReadonlyMap<string,BibliographicItem>=new Map();
+   if(wanted.size&&s.zoteroReads?.reads.ItemsByIndexedKeys)try{items=await s.bridge.runPromise(s.zoteroReads.reads.ItemsByIndexedKeys({indexedKeys:[...wanted]}),{signal:abort.signal});}catch{ /* Keep citation identities when metadata is temporarily unavailable. */ }
+   if(abort.signal.aborted||s!==this.bound||this.disposed)return;
    const coverage = s.bridge.runSync<{coverage: string}>(s.citationIndex.current);
-   this.data = citationGraph({occurrences, resolutions: new Map(keys.map(key => [key, answer!.resolve(key)])), notes,
+   this.data = citationGraph({occurrences, resolutions, items, notes,
     paths: new Set(this.app.vault.getFiles().map(file => file.path)), resolvedLinks: this.app.metadataCache.resolvedLinks,
     resolveLink: (link, source) => this.app.metadataCache.getFirstLinkpathDest(link, source)?.path});
    this.state = {status: coverage.coverage === 'complete' ? 'ready' : 'loading', message: coverage.coverage === 'complete' ? 'ZotLit-Zitatindex verbunden.' : 'ZotLit-Zitatindex wird noch aufgebaut.', edges: this.data.edges.length};

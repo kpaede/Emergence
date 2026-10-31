@@ -9,13 +9,14 @@ import {errorMessage} from '../util';
 import {DisclosureState} from './disclosure-state';
 
 export const VIEW_TYPE = 'emergence-workspace';
-const tabs: {id: Tab; label: string; full: string}[] = [
- {id: 'search', label: 'Suche', full: 'Notizen suchen und öffnen oder erkunden'},
- {id: 'graph', label: 'Graph', full: 'Wissensgraph'}, {id: 'analysis', label: 'Analyse', full: 'Notiz klassifizieren'},
- {id: 'inquiry', label: 'Recherche', full: 'Freier Prompt'},
+const tabs: {id: Tab; label: string; full: string; icon: string}[] = [
+ {id:'graph',label:'Graph',full:'Relationssynopse und native Ansichten',icon:'network'},
+ {id:'analysis',label:'Feldideen',full:'Breadcrumbs-Feldideen',icon:'text-search'},
+ {id:'inquiry',label:'Recherche',full:'Beispiele und Kunstwerke recherchieren',icon:'list-plus'},
+ {id:'search',label:'Suche',full:'Notizen und Zotero durchsuchen',icon:'search'},
 ];
 export class EmergenceView extends ItemView {
- private tab: Tab = 'search';
+ private tab: Tab = 'graph';
  private searchPanel?: SearchPanel;
  private graphPanel?: GraphPanel;
  private panels = new Map<Tab, HTMLElement>();
@@ -44,9 +45,9 @@ export class EmergenceView extends ItemView {
   line.append(statusBox);
   const nav = header.createDiv({cls: 'em-tabs', attr: {role: 'tablist', 'aria-label': 'Emergence-Ansichten'}});
   const body = this.contentEl.createDiv({cls: 'em-body'});
-  for (const {id, label, full} of tabs) {
-   const button = nav.createEl('button', {text: label, attr: {role: 'tab', id: `${this.tabId}-${id}`, 'aria-controls': `${this.tabId}-panel-${id}`, title: full, type: 'button'}});
-   if (id === 'search') setIcon(button.createSpan({cls: 'em-tab-icon', attr: {'aria-hidden': 'true'}}), 'search');
+  for (const {id, label, full, icon} of tabs) {
+   const button = nav.createEl('button', {text: label, attr: {role: 'tab', id: `${this.tabId}-${id}`, 'aria-controls': `${this.tabId}-panel-${id}`, title: full, 'aria-label':id==='search'?'Suche':label, type: 'button'}});
+   setIcon(button.createSpan({cls: 'em-tab-icon', attr: {'aria-hidden': 'true'}}), icon);
    button.onclick = () => this.switchTab(id);
    button.onkeydown = event => {
     const index = tabs.findIndex(t => t.id === id);
@@ -56,8 +57,9 @@ export class EmergenceView extends ItemView {
    this.nav.set(id, button);
    this.panels.set(id, body.createDiv({cls: `em-panel em-panel-${id}`, attr: {role: 'tabpanel', id: `${this.tabId}-panel-${id}`, 'aria-labelledby': `${this.tabId}-${id}`, tabindex: '0'}}));
   }
-  this.graphPanel = new GraphPanel(this.controller, this.panels.get('graph')!, () => this.switchTab('analysis')); this.graphPanel.mount();
-  this.searchPanel = new SearchPanel(this.controller, this.panels.get('search')!, () => this.state.search, path => {this.switchTab('graph'); this.graphPanel?.exploreNote(path);}, item => {this.switchTab('graph'); this.graphPanel?.exploreItem(item);}); this.searchPanel.mount();
+  this.graphPanel = new GraphPanel(this.controller, this.panels.get('graph')!, this.leaf); this.graphPanel.mount();
+  this.searchPanel = new SearchPanel(this.controller, this.panels.get('search')!, () => this.state.search, path => {this.switchTab('graph'); this.graphPanel?.exploreNote(path);}); this.searchPanel.mount();
+  this.registerEvent(this.app.workspace.on('layout-change',()=>this.graphPanel?.update()));
   const doc = this.contentEl.ownerDocument, win = doc.defaultView ?? window;
   this.registerDomEvent(this.contentEl, 'pointerdown', () => {this.interactionHeld = true;}, {capture: true});
   this.registerDomEvent(this.contentEl, 'keydown', event => {
@@ -74,7 +76,7 @@ export class EmergenceView extends ItemView {
   this.registerDomEvent(this.contentEl, 'change', release, {capture: true});
   this.registerDomEvent(win, 'blur', release);
   this.register(() => {if (this.updateFrame !== undefined) win.cancelAnimationFrame(this.updateFrame);});
-  this.unsubscribe = this.controller.subscribe(() => this.update()); this.switchTab('search');
+  this.unsubscribe = this.controller.subscribe(() => this.update()); this.switchTab('graph');
  }
  switchTab(tab: Tab): void {
   if (!this.panels.has(tab)) tab = 'analysis';
@@ -127,5 +129,5 @@ export class EmergenceView extends ItemView {
  }
  onResize(): void {this.graphPanel?.resize();}
  refreshTheme(): void {this.graphPanel?.refreshTheme();}
- async onClose(): Promise<void> {this.unsubscribe?.(); this.searchPanel?.destroy(); this.graphPanel?.destroy(); this.controller.writer.invalidate(); this.contentEl.empty();}
+ async onClose(): Promise<void> {this.unsubscribe?.(); this.searchPanel?.destroy(); await this.graphPanel?.destroy(); this.controller.writer.invalidate(); this.contentEl.empty();}
 }

@@ -1,68 +1,69 @@
-# Navigation, Library-Suche und Relationsreihenfolge
+# Aktueller Prüfstand
 
-Stand: 31. Oktober 2026. Emergence 0.1.0, Entwicklungsstand; keine Release-Veröffentlichung.
+Stand: 31. Oktober 2026. Emergence 0.1.0, Desktop-Entwicklungsstand; keine Release-Veröffentlichung.
 
-## Umgesetzt
+## Oberfläche und Originalansichten
 
-- Hauptnavigation: **Suche**, **Graph**, **Analyse**, **Recherche**. Die Suche steht mit Lupensymbol an erster Stelle. Begriffsregister und separater Prüfen-Tab sind entfernt; bestehende Vorschläge bleiben in der Analyse prüfbar.
-- Globale Suche über Markdown-Titel, Aliase und Tags sowie ZotLits tatsächliche Item-Suche. Die Zotero-Suche übergibt ausdrücklich alle verfügbaren Libraries einschließlich Gruppen, unabhängig von Ordnern, aktiven Sammlungen und ZotLits gespeicherter Library-Auswahl. Die Suchsitzung wird bei überholten Eingaben geschlossen; späte Ergebnisse ersetzen keine neuere Suche.
-- Öffnen/Erkunden in der Suche, bestehender Erkunden-Schalter im Graphen. Zotero-Treffer ohne Literaturnotiz lassen sich als tatsächlicher Literaturdatensatz im freien Netz betrachten; es wird keine Markdown-Datei erfunden oder angelegt.
-- ZotLit-Klicks verwenden dessen eigene `showInLibrary.show(indexedKey)`-Aktion. Bei Literatur-Notizen wird der vorhandene Note Index verwendet; bei Citekeys die vorhandene Citation Lookup-Auflösung. Mehrdeutige oder fehlende Zuordnungen werden gemeldet. Keine automatische Literatur-Notizerstellung.
-- Mittelklick auf Notizlinks öffnet einen neuen Tab: Synopse, Suche, Pfade und freies Netz. Ein expliziter Mittelklick hat Vorrang vor dem Erkunden-Modus. Literaturangaben bleiben von dieser Zusatzaktion ausgenommen.
-- Synopse verwendet die Linkreihenfolge des vorhandenen Frontmatters einschließlich numerischer Listenpositionen, qualifizierter Pfade, Aliase und noch fehlender Ziele. Direkt gespeicherte Beziehungen stehen vor ausschließlich abgeleiteten Gegenrichtungen. Kein neues Frontmatter-Feld und keine gespeicherten Sortierdaten.
-- Linien für tiefe, umbrochene Beschriftungen berücksichtigen alle Textfragmente, damit eine lange erste Zeile nicht durch einen an der letzten Zeile berechneten Anschluss geschnitten wird.
-- Recherche-Ausgabe hat ein vom Klassifikationslimit getrenntes Budget, das in den verfügbaren Kontext passt. Keine Kürzung der gewählten Notiz. Nur abgeschlossene HTTP-Antworten mit `done_reason: length` und nichtleerem Text dürfen als gekürzte Forschungsantwort angezeigt werden. Unvollständige strukturierte Analysen bleiben gesperrt.
-- **Antwort fortsetzen** verwendet genau die ausgewählte Frage, ihren bisherigen Antworttext und ihren ursprünglichen Kontext. Es wird kein anderer Sitzungsverlauf automatisch angehängt. Fortsetzungen bleiben reine Anzeige und schreiben keine Notizen.
-- README beschreibt persönlichen Projektcharakter, Voraussetzungen, Installation, vier Arbeitsbereiche, Datenflüsse und Grenzen.
+Die Hauptnavigation lautet **Graph** (network), **Feldideen** (text-search), **Recherche** (list-plus), **Suche** (search). Alle Tabs haben Textbeschriftungen; in schmalen Panels stehen die Symbole darüber. Der Such-Tab hat einen zugänglichen Namen und Tooltip; Tastaturnavigation bleibt erhalten. Begriffsregister und separater Prüfen-Tab bleiben entfernt.
 
-## Architektur und Schnittstellen
+Als eigene Visualisierung enthält der Graph-Tab ausschließlich die **Relationssynopse**. Die zusätzlichen eigenen Modi Verbindungspfade und Nachbarschaft/Links sowie deren Anzeigegrenzen sind aus der Oberfläche entfernt. Bestehende Einstellungen und Graph-Daten bleiben lesbar; es gibt keine Notiz- oder Frontmatter-Migration.
 
-Die Obsidian-Seitenpanel-View bleibt ein `ItemView`. Hauptnotizen werden über Workspace-Leaves und `openFile` geöffnet; neue Tabs über `getLeaf('tab')`; fehlende Ziele gehen erst bei ausdrücklichem Öffnen an `openLinkText`. Icons stammen aus Obsidian. Der bestehende Frontmatter-Writer und das Änderungsjournal bleiben erhalten.
+Das Dropdown **Ansicht** beginnt mit der vorausgewählten **Relationssynopse**. Es zeigt genau eine Ansicht; nur die ausgewählte native View wird geladen. Sie füllt die verbleibende Seitenpanelfläche rahmenlos bis zum unteren Rand. Zusätzliche Kartenrahmen und feste Pixelhöhen entfallen. Die weiteren Optionen verwenden die tatsächlich registrierten Original-Renderer:
 
-Die Reihenfolge wird beim Aufbau des vorhandenen Graph-Snapshots aus `MetadataCache.frontmatterLinks` gelesen und ausschließlich im Arbeitsspeicher auf bestehende Kanten angewendet. Die Datenstruktur der Notizen bleibt unverändert.
+| Ansicht | Voraussetzung | Notizkontext |
+| --- | --- | --- |
+| `bc-matrix-view` | Breadcrumbs aktiviert | Breadcrumbs-eigener aktueller Notizkontext |
+| `bc-tree-view` | Breadcrumbs aktiviert | Breadcrumbs-eigener aktueller Notizkontext |
+| `zotlit-references` | ZotLit aktiviert | ZotLit-eigenes Literaturverzeichnis der aktuellen Notiz |
+| `localgraph` | Obsidian-Core-Plugin Graph aktiviert und Markdown-Notiz vorhanden | explizit `setState({file: ...})` für die Hauptnotiz |
 
-Die ZotLit-Anbindung ist ein kleiner Adapter gegen die in ZotLit 2.2 vorhandenen Services. `itemLookup.openSession()` liefert eine abbrechbare Promise-Suche; `libraryScope.state.all.available` bezeichnet die vollständige Library-Liste. Dieser Adapter verändert weder ZotLits Einstellungen noch dessen Datenbank. Ohne kompatible Services bleibt die Notizsuche nutzbar und der Literaturbereich zeigt die fehlende Anbindung an.
+Matrix und Baum sind die beiden von der installierten Breadcrumbs-Version registrierten Seitenansichten. Deren originale Bedienelemente bleiben erhalten. ZotLit formatiert sein Literaturverzeichnis selbst mit seinem eingerichteten Zitationsstil. Der Obsidian-Gesamtgraph wird nicht eingebettet. Beim Erkunden der Synopse bleibt der Kontext dieser Originalansichten die geöffnete Hauptnotiz.
 
-Referenzen:
+`src/ui/native-views.ts` kapselt den versionsabhängigen Zugriff auf die registrierten View-Factories und den nativen Open-/Close-Lebenszyklus. Die öffentliche Obsidian-API bietet keine allgemeine Einbettung fremder Workspace-Views an. Deshalb werden Existenz und Methoden geprüft und Fehler im betreffenden Abschnitt angezeigt. Jede ausgewählte Instanz erhält einen isolierten Container und eine Leaf-Fassade mit eigenen Events. Es werden keine vorhandenen Plugin-Tabs umgehängt oder zusätzliche Workspace-Leaves für die Einbettung erzeugt. ResizeObserver und originale View-Komponenten werden beim Schließen aufgeräumt. Ein deaktiviertes Core-Plugin wird vor dem Factory-Zugriff ausgeschlossen und niemals durch Emergence aktiviert.
 
-- [Offizielle Obsidian-API](https://github.com/obsidianmd/obsidian-api/blob/master/obsidian.d.ts): ItemView, Workspace, MetadataCache, Keymap und native Icons.
-- [ZotLit Item Lookup](https://github.com/aidenlx/zotlit/tree/main/apps/obsidian/src/services/item-lookup): eigene Suchsitzungen, explizite Libraries und Promise-Fassade.
-- [ZotLit Library Scope](https://github.com/aidenlx/zotlit/tree/main/apps/obsidian/src/services/library-scope): aktueller und vollständiger Library-Bereich.
-- [Ollama Chat API](https://docs.ollama.com/api/chat): Textantwort und Abschlussgrund.
+Technische Orientierung: [offizielle Obsidian-API](https://github.com/obsidianmd/obsidian-api/blob/master/obsidian.d.ts), [Obsidian-Lebenszyklus und Ressourcenverwaltung](https://docs.obsidian.md/plugins/guides/lifecycle-management), [ZotLit-References-View](https://github.com/aidenlx/zotlit/tree/main/apps/obsidian/src/views/references). Die Einbettung ist mit der vorhandenen Obsidian-Desktop-Umgebung, Breadcrumbs 4.22.1 und ZotLit 2.2 geprüft; sie ist keine Zusage für beliebige zukünftige Plugin-Versionen.
 
-## Prüfungen
+## Felder und Quellen
+
+Nur eine Aufklappebene. Fünf beschriftete Auswahlknöpfe öffnen Obsidian-eigene Menüs mit Häkchen für die tatsächlich vorhandenen Breadcrumbs-Felder. Mehrfachzuordnungen bleiben erhalten und können einzeln hinzugefügt oder entfernt werden. Es gibt keine HTML-Mehrfachauswahllisten mit schmalen inneren Scrollbalken mehr. Literatur und freie Verweise zeigen nur ihre festen Quellen ZotLit bzw. Notizlinks. Offene native Menüs werden beim Wechseln oder Schließen aufgeräumt. Einstellungen werden weiterhin im bestehenden `synopsis.fields`-Format gespeichert.
+
+## Literatur und Kopieren
+
+Literaturangaben in Synopse und Suche verwenden ZotLits tatsächlichen `BibliographyRender.readBibliography`-Dienst aus seinem bestehenden Runtime-Kontext, mit dem dort ausgewählten CSL-Stil. Es werden keine Zitationsbestandteile oder Trennzeichen selbst zusammengesetzt. Die von ZotLit formatierte Pandoc-Inline-AST wird als Text, Kursiv-/Fettdruck und weitere Inline-Elemente dargestellt; Roh-HTML wird nicht interpretiert und Links innerhalb einer Angabe behalten die übergeordnete Library-Aktion. Die vorhandenen ZotLit-Felder für Notizstil, Sprache und Importprofil werden übernommen.
+
+ZotLits `getDocumentCitationSet` liefert die CSL-Daten der aktuellen Notiz offline und vollständig, damit die bibliografische Disambiguierung dieselbe Grundlage wie das Originalverzeichnis hat. Für bislang unzitierte Library-Treffer liefert Zotero kanonisches CSL-JSON über die bestehende lokale API und ZotLits eigenen HTTP-Client. Port und Aktivierung werden aus ZotLits realem Präferenzdienst gelesen; nichts wird eingeschaltet oder umgestellt. Ein echter zuvor unzitierter Suchtreffer wurde erfolgreich formatiert. Ist Zotero hierfür geschlossen oder seine lokale API deaktiviert, erscheint ein knapper Status statt einer selbst erfundenen Ersatzformatierung. Die vorhandene Literaturidentität, Library-Aktion und Kopierfunktion bleiben erhalten.
+
+Der direkte native Vergleich bestätigt für die aktive Testnotiz **denselben Wortlaut und dieselben Kursivsetzungen wie ZotLits Originalverzeichnis**. Die frühere eigene Autoren-/Jahres-Kurzform wurde entfernt.
+
+Der bibliografische Eintrag öffnet den zugehörigen Datensatz mit ZotLits eigener `showInLibrary.show(indexedKey)`-Aktion. Darunter steht eine separate Citekey-Schaltfläche mit Lucide-Kopiersymbol. Sie kopiert ausschließlich den Schlüssel im konfigurierten Format: `[@citekey]`, `@citekey` oder `citekey`. Die Voreinstellung bleibt `[@citekey]`. Literaturangaben öffnen auch im Suchmodus „Erkunden“ ihre Library; Markdown-Notizen lassen sich weiterhin im Graphen erkunden. Mittelklick öffnet Notizlinks in einem neuen Tab, Literaturangaben sind davon ausgenommen.
+
+Fehlende oder mehrdeutige Literaturdaten erhalten einen sachlichen Status und den kopierbaren Schlüssel. Titel werden nicht aus Citekeys erfunden. ZotLit-Zitate bleiben Literatur und werden nicht zusätzlich als freie Textverweise einsortiert. Virtuelle Zitate ohne Markdown-Datei werden nicht zu Notiz-Knoten. Bei bestehenden Literaturnotizen bleiben auch weitere Relationsschritte und deren Sichttiefe erhalten. Mehrere Zotero-Einträge an derselben Notiz führen bei Wikilink-Zitaten nicht zur willkürlichen Auswahl eines Metadatensatzes.
+
+Die globale Zotero-Suche bleibt unabhängig von Ordnern, aktiven Sammlungen und ZotLits gespeicherter Library-Auswahl und übergibt alle verfügbaren Libraries einschließlich Gruppen. Der Adapter verändert weder ZotLits Einstellungen noch dessen Datenbank.
+
+## Breadcrumbs-Anzeige aus dem Screenshot
+
+Die technischen Texte `field`, `explicit`, `source`, `implied_kind` und `round` waren in Breadcrumbs als sichtbare Baum-Kantenattribute ausgewählt. Sie sind Metadatenanzeigen, kein Nachweis beschädigter Beziehungen. Im Entwicklungs-Vault wurde ausschließlich `views.side.tree.show_attributes` auf eine leere Liste gesetzt und über Breadcrumbs selbst gespeichert und aktualisiert.
+
+Der Vergleich bestätigt: **nur diese Anzeigeoption geändert; Breadcrumbs-Felder und Ableitungsregeln unverändert**. Notizdateien wurden nicht geschrieben. Der Emergence-Produktionscode setzt keine Breadcrumbs-Anzeigeoptionen. Aus dem vorgefundenen Zustand lässt sich nicht bestimmen, wodurch die ursprüngliche Auswahl entstanden war.
+
+## Build und Tests
 
 - `npm run build`: TypeScript und Produktionsbundle erfolgreich.
-- `npm test`: **210 bestanden**, fünf optionale Ollama-Tests standardmäßig übersprungen. Enthalten sind Regressionen für Reihenfolge, unveränderte Metadaten, vollständige Library-Auswahl, Abbruch überholter Suchen, Library-Navigation, eindeutige Ziele und die strikte Trennung zwischen gekürzter Recherche und unvollständiger Analyse.
-- `npm run lint`: keine Fehler; drei bestehende Warnungen zur deklarativen Obsidian-Einstellungssuche und zu Timern in einem Wikipedia-Test.
-- Native Workspace-Prüfung: vier Tabs, Suchsymbol, entfernte Graph-Suche, Mittelklick in Synopse und Suche, echte Zotero-Treffer, tatsächliche Auswahl des Library-Eintrags, Erkunden-Wechsel und Fortsetzung einer synthetisch gekürzten Antwort erfolgreich. Die vier befüllten Relationslisten der aktiven Testnotiz stimmen mit dem Frontmatter überein. Einstellungen, Benutzerverlauf und Dateibestand blieben unverändert; keine Notiz geschrieben.
-- Echte lokale Modellprüfung mit `qwen3.5:9b`: eine künstlich auf 16 Ausgabetokens begrenzte Antwort blieb als Teiltext erhalten; „Frage senden“ lieferte eine vollständige Antwort auf eine kurze synthetische Frage. Zusammen rund 16 Sekunden; kein Notiztext gesendet, kein Benutzerverlauf verändert.
-- Suche, Analyse und Recherche zusätzlich bei 280 und 328 Pixeln auf horizontalen Überlauf geprüft: sechs Fälle erfolgreich, sechs lokale Screenshots.
-- Native Synopsen-Prüfung: **acht Fälle** bei 280/328 Pixeln, hell/dunkel und 100/200 Prozent Schrift. Jeweils 165 Notizverweise, keine horizontalen Überläufe und keine Linien durch Beschriftungen. Zusätzlich zwei Fälle mit 24 weiteren Tiefenstufen und Kreisen bei Sichttiefe ∞ erfolgreich. Zwölf lokale Screenshots; normale Navigation, Erkunden und Speicherung der getrennten Sichttiefen erfolgreich.
+- `npm test`: **220 bestanden**, fünf optionale Ollama-Tests übersprungen. Zehn neue Regressionen decken originale CSL-Ausgabe, Stil-/Sprachweitergabe, ungültige Stile ohne Fallback, kanonische CSL-Daten für Suchtreffer sowie echte bibliografische Metadaten, fehlende Titel ohne Erfindungen, virtuelle Zitate ohne Markdown-Datei, tiefere Literaturbeziehungen und mehrdeutige Notizzuordnungen ab.
+- `npm run lint`: keine Fehler; drei bestehende Warnungen zur deklarativen Einstellungssuche und Timern im Wikipedia-Test.
+- `npm run test:synopsis`: acht Kombinationen aus 280/328 Pixeln, heller/dunkler Darstellung und 100/200 Prozent Schrift bestanden. Je 165 Notizdarstellungen; kein horizontaler Überlauf, keine Linien durch Beschriftungen, durchgängige Liniengrammatik, gleiche Höhen der gegenüberliegenden Überschriften und Bedienelemente. Weitere tiefe Pfade und Kreise, unabhängige Sichttiefen, echte Editor-Navigation, Erkunden und Persistenz geprüft. Die Ausgangsnotiz blieb bytegleich. Zwölf lokale Screenshots.
+- `npm run test:workspace`: echte Notiz- und Library-Suche, Öffnen/Erkunden, Mittelklick, Frontmatter-Reihenfolge von vier befüllten Listen und Fortsetzung einer synthetisch gekürzten Recherche bestanden. Nutzereinstellungen, Verlauf und Dateibestand unverändert; keine Notiz geschrieben.
+- `npm run test:native-views`: vorausgewählte Synopse und einzelne Dropdown-Auswahl, originale Renderer mit eigenen Instanzen und Bedienelementen, unveränderte Anzahl Workspace-Leaves, unveränderte Haupt-View, Entladen abgewählter nativer Komponenten, Graph deaktiviert ohne Factory-Zugriff und alle drei Kopierformate ohne Navigation, eine einzige Quellen-Aufklappung und die fünf nativen Feldauswahlmenüs bestanden. Wortlaut und Kursivsetzungen stimmen im direkten Vergleich mit ZotLit überein. Der lokale Graph startet mit lesbarem Maßstab auf der aktuellen Notiz, zentriert sich beim Notizwechsel neu und erhält anschließendes manuelles Zoomen. Vier Kombinationen aus 280/328 Pixeln und hell/dunkel, jeweils alle vier Originalansichten, ohne horizontalen Überlauf, über die volle Breite und Höhe der verfügbaren Fläche; alle Tabs bleiben beschriftet und lesbar. Einstellungen und Dateibestand unverändert. 28 lokale Screenshots.
 
-Ausführbare Prüfskripte: `scripts/workspace-native-check.mjs`, `scripts/research-native-check.mjs` und `scripts/synopsis-native-check.mjs`. Native Tests benötigen eine laufende Entwicklungsinstanz und `OBSIDIAN_VAULT`. Lokale Berichte und Screenshots enthalten eventuell Vault-Bezüge und werden nicht veröffentlicht.
+Die Zwischenablage wurde in den Kopiertests abgefangen und anschließend wiederhergestellt; der tatsächliche Zwischenablageinhalt blieb erhalten. Native Tests verwenden die laufende Entwicklungsinstanz und `OBSIDIAN_VAULT`. Lokale Berichte und Screenshots liegen in `docs/native-views/` und `docs/relationssynopse/`; sie können Vault-Bezüge enthalten und werden bewusst nicht veröffentlicht.
 
-## Bekannte Grenzen
+Die vorhandene Umgebung erzeugt beim Notizwechsel gelegentlich `provider destroyed` aus Media Extended. Ein früherer Vergleich mit gewöhnlicher Obsidian-Navigation reproduziert dieselbe Meldung. Auch die aktuellen Tests protokollieren sie getrennt; Emergence unterdrückt oder verändert das Fremdplugin nicht. Keine neuen JavaScript-Fehler in den erfolgreichen UI-Prüfungen.
 
-Die Integration ist mit der vorhandenen ZotLit-Version geprüft; deren interne Services sind keine dauerhaft zugesicherte öffentliche API. Die philosophische Qualität von Modellantworten ist weiterhin vom Modell und Kontext abhängig. Allgemeine Kompatibilität mit beliebigen Vaults, Mobile und eine Community-Release-Abnahme sind nicht Teil dieser Prüfung.
+## Weiterhin erhaltene Funktionen und Grenzen
 
-Die vorhandene Umgebung erzeugt beim nativen Notizwechsel gelegentlich `provider destroyed` aus Media Extended. Der Vergleich mit gewöhnlicher Obsidian-Navigation reproduziert dieselbe Fremdplugin-Meldung. Emergence unterdrückt sie nicht und verändert das andere Plugin nicht.
+Frontmatter-Reihenfolge, die sieben Relationsgruppen, zusätzliche tatsächliche Breadcrumbs-Felder, Plus-Aktionen, native Link-/Unresolved-Stile, kurze eindeutige Wikilinks, kontrollierter Writer und Änderungsjournal bleiben erhalten. Explizite Fakten werden nur einmal in Gegenrichtungen abgeleitet; generisches „Werk“ wird nicht willkürlich allen Urheberrollen zugeordnet. Neue Zielbegriffe erzeugen nur Wikilinks.
 
+Feldideen bleiben eine lokale Assoziationshilfe mit bis zu vier Begriffen je ausgewähltem Feld. Recherche liefert einzelne übernehmbare Beispiele oder Kunstwerke und optional freie Textantworten mit eigenem Ausgabebudget und Fortsetzung. Unvollständige strukturierte Analysen bleiben gesperrt. Gesprächsverlauf wird nur ausdrücklich einbezogen. Optionale Wikipedia- und DuckDuckGo-Kontexte, bearbeitbare Profile und Feldbeschreibungen bleiben erhalten; es wurden für diese Oberflächenänderungen keine neuen Modellanfragen benötigt.
 
-## Ergänzungen: gültige Plugin-ID, Citekeys, Webbeispiele und weitere Relationsfelder
-
-Die Manifest-ID ist jetzt `emergence` entsprechend den [offiziellen Manifest-Vorgaben](https://docs.obsidian.md/Reference/Manifest). Das offizielle Community-Verzeichnis enthielt zum Prüfzeitpunkt keinen gleichlautenden Eintrag. In der vorhandenen macOS-Installation wurde der Ordner von `Emergence` nach `emergence` umbenannt, die alte ID deaktiviert und die neue über Obsidian geladen. Die `data.json` war unmittelbar nach der Ordnerumstellung bytegleich; bestehende Einstellungen und Journal blieben erhalten. Neue Voreinstellungen ergänzen ausschließlich das Citekey-Format und die fehlende Beispiele-Vorlage.
-
-Citekeys in Zotero-Treffern sind eigene Kopierschaltflächen. Die Formate `[@citekey]` (Voreinstellung), `@citekey` und `citekey` sind im Daten-Bereich der Plugin-Einstellungen wählbar. Eine native Prüfung bestätigt alle drei Formate und dass Kopieren keine Navigation auslöst; Schreibzugriffe wurden für diesen Test abgefangen, die tatsächliche Zwischenablage blieb unverändert.
-
-Analyse und Recherche haben eine optionale DuckDuckGo-Websuche ohne Registrierung oder API-Schlüssel. Sie liest die [öffentliche HTML-Suche](https://safe.duckduckgo.com/duckduckgo-help-pages/features/non-javascript), höchstens zwei Seiten und maximal 20 verschiedene Ergebnis-URLs. Nur die sichtbare Suchanfrage wird gesendet. Die Zielseiten selbst werden nicht angefordert. Parser und Modell behandeln Überschriften und Vorschautexte als unzuverlässigen Kontext; Anzeigen, ausführbare URLs und fremde Weiterblätter-Formulare werden nicht übernommen. Captchas und HTTP-Begrenzungen werden angezeigt und nicht umgangen. Bei knappen Kontextfenstern werden externe Hinweise begrenzt, nicht der Notiztext; die Zahl aller Treffer und der tatsächlich verwendeten Hinweise wird unterschieden.
-
-Recherche liefert wahlweise konkrete Beispiele, Kunstwerke aus unterschiedlichen Gattungen oder weiterhin eine freie Antwort. Beispiele werden in getrennten, kompakten Zeilen bearbeitet, abgelehnt und einzeln über den vorhandenen Writer übernommen. Das Frontmatter-Feld stammt ausschließlich aus der tatsächlich konfigurierten Breadcrumbs-Liste. Die offene Analyse bleibt getrennt erhalten. Kunstwerke erhalten eine zusätzliche kurze Modellprüfung, die ausschließlich bestehende Vorschläge entfernen darf. Quellen-IDs werden nur angezeigt, wenn der Titel in dem zugehörigen mitgegebenen Vorschautext vorkommt. Eine solche Titelübereinstimmung und die Modellprüfung sind keine fachliche Verifikation.
-
-Im letzten echten Test wurden zwei DuckDuckGo-Seiten mit 16 unterschiedlichen Treffern abgerufen. Das lokale Modell lieferte nach der Kurzprüfung vier kompakte Kunstwerkideen aus verschiedenen Gattungen; die Gesamtdauer betrug rund 33 Sekunden. Die Ein-Klick-Übernahme wurde mit abgefangenem Schreibaufruf geprüft. Nutzerverlauf, offene Analyse und Notizdateien blieben unverändert. Die Qualität der Ideen bleibt modellabhängig; vermeintlich passende Werke und Urheberschaften müssen weiterhin geprüft werden.
-
-Die Regeln für `Beispiel`/`Konzept` sowie `Komponist_in`, `Autor_in`, `Künstler_in`, `Regisseur_in`/`Werk` wurden aus der vorhandenen Breadcrumbs-Konfiguration gelesen. Nicht den sieben Hauptgruppen zugeordnete Felder erscheinen bei vorhandenen Verbindungen als eigene Register mit demselben Notiz-Linktyp und einer feldbezogenen Plus-Aktion. Ihre direkten Gegenrichtungen werden einmalig aus expliziten Fakten abgeleitet; abgeleitete Fakten werden nicht erneut in die Inferenz eingespeist. Ein generisches `Werk` mit mehreren möglichen Urheberrollen wird nicht in alle diese Rollen rückübersetzt. Für die Urheberrolle werden nur vorhandene, eindeutig bestimmte Angaben verwendet.
-
-Gemeinsame CSS-Grid-Tracks richten die seitlichen Überschriften, Plus-/Tiefensteuerungen und Trennlinien auf gleiche Höhen aus. Vier zusätzliche native Fälle mit absichtlich unterschiedlich langen Überschriften bei 280/328 Pixeln und 100/200 Prozent Schrift bestätigen die Ausrichtung, alle zusätzlichen Register und die tatsächlichen Zielfelder der Plus-Aktionen. Auch die acht vollständigen Synopsenfälle einschließlich heller/dunkler Darstellung und der Tests auf Linien durch Text bestehen weiterhin.
-
-Zusätzliche native Skripte: `citekey-native-check.mjs`, `research-examples-native-check.mjs`, `synopsis-fields-native-check.mjs`. Die Regression für explizit einbezogenen Rechercheverlauf besteht weiterhin. Die portable Suite enthält 210 erfolgreiche Tests; fünf optionale Modelltests werden dort übersprungen. Build erfolgreich, Lint ohne Fehler mit drei bestehenden Warnungen.
+Die Qualität von Modellideen bleibt modellabhängig. Die ZotLit-Services und die native View-Einbettung sind versionsabhängige Adapter. Allgemeine Kompatibilität mit beliebigen Vaults, Mobile und eine Community-Release-Abnahme sind nicht Teil dieser Prüfung. Build-Artefakte, persönliche Konfiguration und lokale Prüfdaten werden nicht committed.

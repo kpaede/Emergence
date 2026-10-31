@@ -9,7 +9,7 @@ const source=evaluate('app.plugins.plugins.emergence.controller.activePath');
 const hash=()=>createHash('sha256').update(readFileSync(resolve('../../..',source))).digest('hex'),before=hash();
 const code=String.raw`(()=>{
  const v=app.workspace.getLeavesOfType('emergence-workspace')[0].view,p=v.graphPanel,w=require('@electron/remote').getCurrentWindow(),wc=w.webContents;
- const previous={body:document.body.className,bg:wc.getBackgroundThrottling(),tab:v.tab,focus:p.focusPath,follow:p.follow,mode:p.mode,explore:p.explore,synopsis:JSON.stringify(v.controller.settings().synopsis),active:v.controller.activePath,settings:JSON.stringify(v.controller.settings())};
+ const previous={body:document.body.className,bg:wc.getBackgroundThrottling(),tab:v.tab,focus:p.focusPath,follow:p.follow,explore:p.explore,synopsis:JSON.stringify(v.controller.settings().synopsis),active:v.controller.activePath,settings:JSON.stringify(v.controller.settings())};
  const state=window.__emSynCheck={done:false,report:{cases:[],screenshots:[],errors:[],unhandledRejections:[]},previous};
  const error=e=>state.report.errors.push(String(e.error??e.message));const rejection=e=>state.report.unhandledRejections.push(String(e.reason?.stack??e.reason));window.addEventListener('error',error);window.addEventListener('unhandledrejection',rejection);wc.setBackgroundThrottling(false);
  const pause=()=>new Promise(r=>window.setTimeout(r,50));
@@ -66,7 +66,7 @@ const code=String.raw`(()=>{
   }
   cleanup();document.body.className=previous.body;
   // Actual Obsidian editor navigation, followed by restoration of the original editor state.
-  v.switchTab('graph');p.mode='structure';p.follow=true;p.focus(previous.active);p.explore=false;p.exploreBox.checked=false;
+  v.switchTab('graph');p.follow=true;p.focus(previous.active);p.explore=false;p.exploreBox.checked=false;
   const main=app.workspace.getMostRecentLeaf(app.workspace.rootSplit),originalFile=main.view.file,editorState=main.view.getEphemeralState?.();
   const target=[...p.semantic.model.neighbors(previous.active,'broader')].find(id=>p.semantic.model.notes.get(id).exists)??previous.active;
   state.report.navigationTarget=target===previous.active?'current-note':'direct-parent';
@@ -87,7 +87,7 @@ const code=String.raw`(()=>{
   cleanup();document.body.className=previous.body;window.removeEventListener('error',error);window.removeEventListener('unhandledrejection',rejection);wc.setBackgroundThrottling(previous.bg);
   const c=v.controller;if(previous.synopsis===undefined)delete c.settings().synopsis;else c.settings().synopsis=JSON.parse(previous.synopsis);await c.persist();
   const original=app.vault.getFileByPath(previous.active),main=app.workspace.getMostRecentLeaf(app.workspace.rootSplit);if(original&&main.view.file?.path!==original.path)await main.openFile(original,{active:true});
-  p.mode=previous.mode;p.explore=previous.explore;p.exploreBox.checked=previous.explore;p.follow=previous.follow;p.followBox.checked=previous.follow;p.focusPath=previous.focus;p.semantic.invalidate();p.renderContext();v.switchTab(previous.tab);state.report.settingsRestored=JSON.stringify(c.settings())===previous.settings;state.cleaned=true;
+  p.explore=previous.explore;p.exploreBox.checked=previous.explore;p.follow=previous.follow;p.focusPath=previous.focus;p.semantic.invalidate();p.renderStructure();v.switchTab(previous.tab);state.report.settingsRestored=JSON.stringify(c.settings())===previous.settings;state.cleaned=true;
  });
  return true;
 })()`;

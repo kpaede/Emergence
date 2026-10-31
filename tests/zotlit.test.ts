@@ -78,7 +78,7 @@ describe('Unrestricted Zotero search',()=>{
   Object.assign(f.s,{libraryScope:{state:scope},itemLookup:{search,openSession:()=>({search,close})}});
   const hits=await searchZotlitLibrary(f.app,'ontology',30,new AbortController().signal);
   expect(search).toHaveBeenCalledWith('ontology',{limit:30,libraries:all});expect(close).toHaveBeenCalledOnce();
-  expect(hits).toEqual([{indexedKey:'ABCD1234',title:'Ontology',citekey:'doe2024',detail:'Jane Doe · 2024 · Research',notes:['Literatur.md']}]);
+  expect(hits).toEqual([{indexedKey:'ABCD1234',title:'Ontology',citekey:'doe2024',detail:'Research',notes:['Literatur.md']}]);
   expect(scope.current.available).toHaveLength(1);
  });
  it('closes an obsolete search on abort and does not publish its stale results',async()=>{
