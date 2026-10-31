@@ -276,3 +276,17 @@
 
 .em-search-heading { font-size: var(--font-ui-small); margin: var(--size-4-3) 0 var(--size-2-1); color: var(--text-muted); }
 .em-path-matches > a { display: block; margin-block: var(--size-2-1); }
+
+.em-workspace button.em-citekey { display:inline; height:auto; min-height:0; margin:0; padding:0; border:0; box-shadow:none; background:transparent; color:var(--link-color); text-decoration:var(--link-decoration); font:inherit; cursor:pointer; }
+.em-workspace button.em-citekey:hover { color:var(--link-color-hover); text-decoration:var(--link-decoration-hover); }
+.em-workspace button.em-citekey:focus-visible { outline:2px solid var(--background-modifier-border-focus); outline-offset:2px; }
+.em-idea-name > .em-caption { display:block; }
+
+/* Shared grid tracks keep lateral headings, controls and rules aligned at every text scale. */
+.em-relations-synopsis .em-syn-lateral { grid-template-rows:auto auto auto; row-gap:0; align-items:stretch; }
+.em-relations-synopsis .em-syn-lateral > .em-syn-section { display:grid; grid-template-rows:subgrid; grid-row:span 3; }
+.em-relations-synopsis .em-syn-lateral .em-syn-head { display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:subgrid; grid-row:span 2; align-items:start; gap:4px; }
+.em-relations-synopsis .em-syn-lateral .em-syn-head h3 { grid-row:1; overflow-wrap:anywhere; }
+.em-relations-synopsis .em-syn-lateral .em-syn-controls { grid-row:2; align-self:end; justify-self:end; flex-basis:auto; }
+.em-relations-synopsis .em-syn-lateral-items { grid-row:3; align-self:start; }
+.em-relations-synopsis .em-syn-extra { margin-top:12px; }

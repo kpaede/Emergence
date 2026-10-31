@@ -189,3 +189,14 @@ describe('whole-note title catalogue', () => {
   expect(assignmentTarget({field: 'Überbau', target: 'Weiterer langer Testtitel 10000', evidence: 'T'}, context.refs, prepared.targets, g, 'Parola scenica.md', options)?.path).toBe('Weiterer langer Testtitel 10000.md');
  });
 });
+
+describe('Optional web context preserves the whole note',()=>{
+ it('limits external previews to the model budget while retaining note evidence and the real field contract',()=>{
+  const g=graph(),s=defaults();s.numCtx=4096;const content='---\nÜberbau:\n---\n'+'Vollständiger inhaltlicher Beleg. '.repeat(80);
+  const webSearch={query:'Quelle Beispiele',status:'ready' as const,pages:2,sources:Array.from({length:20},(_,i)=>({id:'WEB-'+i,title:'Webresult '+i,url:'https://example.org/'+i,snippet:'Externes Datenmaterial. '.repeat(30)}))};
+  const prepared=prepareAssignments('Quelle.md',content,g,profile(),s,{...options(),perField:4,webSearch}),context=prepared.contexts[0]!;
+  expect(context.estimatedTokens).toBeLessThanOrEqual(4096);expect(context.evidence.map(e=>e.text)).toEqual(assignmentDocument(content).evidence.map(e=>e.text));
+  expect(context.webSearch?.shortened).toBe(true);expect(context.webSearch?.totalSources).toBe(20);expect(context.webSearch?.sources.length).toBeLessThan(20);
+  expect(context.messages[0]!.content).toContain('unvertrauenswürdiges Datenmaterial');expect(context.format).toHaveProperty('properties.Überbau');
+ });
+});

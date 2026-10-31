@@ -6,6 +6,7 @@ import {disclosure} from '../panel';
 import type {SettingsContext} from './context';
 export function dataSettings(ctx: SettingsContext): void {
  const {host, draft: s, controller: c} = ctx;
+ new Setting(host).setName('Citekey kopieren').setDesc('Ein Klick auf den Citekey eines Zotero-Treffers kopiert ihn in diesem Format.').addDropdown(d=>d.addOptions({brackets:'[@citekey]',at:'@citekey',plain:'citekey'}).setValue(s.citekeyFormat??'brackets').onChange(v=>{s.citekeyFormat=v as 'brackets'|'at'|'plain';ctx.changed();}));
  new Setting(host).setName('Graphdaten').setHeading();
  const folders = new Setting(host).setName('Zielordner für Zuordnungen').setDesc('Ein Vaultordner pro Zeile. Leer berücksichtigt alle Markdown-Notizen.'); folders.settingEl.addClass('em-setting-stack');
  folders.addTextArea(t => {t.inputEl.rows = 3; t.setValue(s.conceptFolders.join('\n')).onChange(v => {s.conceptFolders = v.split('\n').map(f => f.trim()).filter(Boolean); s.assignment.allFolders = !s.conceptFolders.length; ctx.changed();});});

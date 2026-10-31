@@ -6,7 +6,7 @@ import type {SettingsContext} from './context';
 export function modelSettings(ctx: SettingsContext): void {
  const {host, draft: s} = ctx;
  new Setting(host).setName('Lokales Modell').setHeading();
- host.createDiv({text: 'Emergence verbindet sich mit deinem lokalen Ollama. Notizinhalte verlassen deinen Rechner nicht.', cls: 'em-muted'});
+ host.createDiv({text: 'Das Sprachmodell läuft in deinem lokalen Ollama. Optionale Web- und Wikipedia-Abfragen senden nur den sichtbaren Suchbegriff.', cls: 'em-muted'});
  new Setting(host).setName('Ollama-Adresse').setDesc('Lokale HTTP-Adresse, zum Beispiel http://127.0.0.1:11434.').addText(t => t.setValue(s.endpoint).onChange(v => {s.endpoint = v; ctx.changed();}));
  const modelRow = new Setting(host).setName('Modell').setDesc('Name eines bereits installierten Modells.');
  modelRow.addText(t => t.setValue(s.model).onChange(v => {s.model = v; ctx.changed();}));

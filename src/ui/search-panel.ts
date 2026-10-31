@@ -1,3 +1,4 @@
+import {citekeyButton} from './citekey';
 import {Keymap} from 'obsidian';
 import type {EmergenceController} from '../controller';
 import {ConceptRegistry} from '../graph/registry';
@@ -68,7 +69,7 @@ export class SearchPanel {
      const row = this.library.createDiv({cls: 'em-search-hit'}), link = row.createEl('a', {text: item.title, cls: 'internal-link', attr: {href:'#', 'data-zotlit-item':item.indexedKey}});
      link.onclick = event => {event.preventDefault(); if(this.state().mode === 'explore')this.exploreItem(item);else void this.controller.run(() => openZotlitLibrary(this.controller.app, {indexedKey:item.indexedKey}));};
      link.onauxclick = event => {if(event.button === 1)event.preventDefault();};
-     row.createDiv({text: [item.detail, item.citekey ? '@' + item.citekey : ''].filter(Boolean).join(' · '), cls:'em-path'});
+     const detail=row.createDiv({cls:'em-path'}); if(item.detail)detail.appendText(item.detail+' ');if(item.citekey)citekeyButton(detail,item.citekey,()=>this.controller.settings().citekeyFormat??'brackets');
     }
     if(hits.length === limit)button(this.library,'Weitere Literatur',()=>this.findLibrary(query,limit + 30));
    }).catch(error => {if (generation === this.generation && !request.signal.aborted) status.setText(errorMessage(error));});

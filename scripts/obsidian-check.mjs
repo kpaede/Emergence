@@ -22,11 +22,11 @@ const evaluate = code => {
  return result;
 };
 if (command('vault', ['info=path']) !== expectedVault) throw new Error('Wrong vault: aborted without writes.');
-const base = 'app.plugins.plugins.Emergence';
+const base = 'app.plugins.plugins.emergence';
 const view = 'app.workspace.getLeavesOfType("emergence-workspace")[0].view';
 const initial = evaluate(`(()=>{const c=${base}.controller,g=c.graph.snapshot;return {loaded:true,nodes:g.nodes.length,existingNodes:g.nodes.filter(n=>n.exists).length,edges:g.edges.length,explicit:g.edges.filter(e=>e.layer==='breadcrumbs'&&e.explicit).length,implied:g.edges.filter(e=>e.layer==='breadcrumbs'&&!e.explicit).length,ordinary:g.edges.filter(e=>e.layer==='obsidian').length,fields:g.fields,groups:g.groups.length,partial:g.partial,diagnostics:g.diagnostics,model:c.settings().model};})()`);
 if (initial.partial || initial.fields.length === 0) throw new Error('Graph is partial or no Breadcrumbs fields were detected.');
-command('command', ['id=Emergence:open-workspace']);
+command('command', ['id=emergence:open-workspace']);
 const tabs = evaluate(`(()=>{const v=${view};return Array.from(v.contentEl.querySelectorAll('[role=tab]')).map(x=>x.textContent);})()`);
 const panelDimensions = evaluate(`(()=>{const v=${view};v.switchTab('graph');const cy=v.graphPanel.cy,canvas=v.graphPanel.canvas;return {width:canvas.clientWidth,height:canvas.clientHeight,renderedNodes:v.graphPanel.semanticHost.querySelectorAll('a.em-syn-note').length,renderedEdges:v.graphPanel.semantic.geometry?.last.segments.length??0,canvas:!!canvas.querySelector('svg')};})()`);
 if (panelDimensions.width <= 0 || !panelDimensions.canvas) throw new Error('Graph canvas has no width or did not render.');

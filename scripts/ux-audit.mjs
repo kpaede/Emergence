@@ -3,7 +3,7 @@ import {command,evaluate} from './obsidian-cli.mjs';
 const phase=process.argv.includes('--before')?'before':'after';
 mkdirSync('docs/ux',{recursive:true});
 const v='app.workspace.getLeavesOfType("emergence-workspace")[0].view';
-command('command',['id=Emergence:open-workspace']);
+command('command',['id=emergence:open-workspace']);
 const report={};
 for(const tab of ['graph','analysis','inquiry','registry','review']) {
  evaluate(`(()=>{${v}.switchTab('${tab}');return true;})()`);

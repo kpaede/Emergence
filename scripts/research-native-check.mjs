@@ -1,6 +1,6 @@
 import {writeFileSync} from 'node:fs';
 import {evaluate} from './obsidian-cli.mjs';
-evaluate(`(()=>{const c=app.plugins.plugins.Emergence.controller;if(c.abort)throw Error('Eine Anfrage läuft.');window.__emResearchCheck={done:false};(async()=>{
+evaluate(`(()=>{const c=app.plugins.plugins.emergence.controller;if(c.abort)throw Error('Eine Anfrage läuft.');window.__emResearchCheck={done:false};(async()=>{
  const probe=new c.constructor(app,()=>JSON.parse(JSON.stringify(c.settings())),async()=>{},[],async()=>{}),before=JSON.stringify(c.inquiryHistory),started=performance.now();
  try{
   let truncated=false;const partial=await probe.provider.chat({messages:[{role:'user',content:'Erkläre Ontologie ausführlich in mindestens 300 Wörtern.'}],temperature:0,maxTokens:16,allowPartial:true,onTruncated:()=>{truncated=true;},signal:new AbortController().signal});

@@ -1,4 +1,5 @@
 import {renderReview} from './review';
+import {renderWebSearchOption, renderWebSearchContext, webSearchRequest} from '../web-search';
 import {Modal} from 'obsidian';
 import {button} from '../helpers';
 import {badge, disclosure, title, type PanelContext} from '../panel';
@@ -19,16 +20,17 @@ export function renderAnalysis(ctx: PanelContext): void {
  // The setup element is in place before an event can invoke this handler.
  const start=button(actions, c.abort ? 'Ideen werden gesucht …' : hasPromptDraft(ctx) ? 'Prompt speichern und starten' : 'Ideen vorschlagen', () => {
   const issues = c.assignmentBlockers(); if (issues.length) {revealSetup(host, issues[0]!); return;}
-  if(!hasPromptDraft(ctx)){setup.open=false;void ctx.run(()=>c.analyze(wikipediaRequest(ctx.state.analysis,c.activePath)));return;}
+  if(!hasPromptDraft(ctx)){setup.open=false;void ctx.run(()=>c.analyze(wikipediaRequest(ctx.state.analysis,c.activePath),webSearchRequest(ctx.state.analysis,c.activePath)));return;}
   void ctx.run(async()=>{
    try{await savePromptDraft(ctx);}catch{
     for(const key of ['analysis-settings','analysis-profile-prompt']){const box=host.querySelector<HTMLDetailsElement>(`[data-em-disclosure="${key}"]`);if(box)box.open=true;}return;
    }
    const current=host.querySelector<HTMLDetailsElement>('[data-em-disclosure="analysis-settings"]');if(current)current.open=false;
-   await c.analyze(wikipediaRequest(ctx.state.analysis,c.activePath));
+   await c.analyze(wikipediaRequest(ctx.state.analysis,c.activePath),webSearchRequest(ctx.state.analysis,c.activePath));
   });
  }, !!c.abort || c.applyingIdea || !!c.profilePromptSave);start.addClass('mod-cta');start.dataset.emAction='analyze';start.dataset.emFocus='analysis-start';
  if (c.abort) button(actions, 'Abbrechen', () => c.cancel());
+ renderWebSearchOption(host,ctx.state.analysis,c.activePath,!!c.abort,()=>ctx.repaint());
  renderWikipediaOption(host,ctx.state.analysis,c.activePath,!!c.abort,()=>ctx.repaint());
  const setup = disclosure(host, 'Analyse einstellen', !ready, 'analysis-settings');
  renderAnalysisProfile({...ctx,host:setup});
@@ -50,6 +52,7 @@ export function renderAnalysis(ctx: PanelContext): void {
    for (const error of a.errors) summary.createDiv({text: error, cls: 'em-error'});
    void renderReview({...ctx, host: summary}).catch(error => {if (ctx.isCurrent()) summary.createDiv({text: errorMessage(error), cls: 'em-error'});});
   }
+  renderWebSearchContext(summary,a.webSearch,`analysis-web-${a.id}`);
   renderWikipediaContext(summary,a.wikipedia,`analysis-wikipedia-${a.id}`);
  }
  renderDiagnostics(ctx);

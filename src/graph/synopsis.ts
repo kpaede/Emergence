@@ -1,3 +1,4 @@
+import {fieldRelations, type FieldRelations} from './field-relations';
 import type {GraphSnapshot, Settings} from '../types';
 import {defaultSynopsisDepths, synopsisRelations, type AncestorPath, type SynopsisDepth, type SynopsisEntry, type SynopsisNote, type SynopsisRelation} from './synopsis-types';
 
@@ -24,6 +25,7 @@ export class SynopsisGraph {
  readonly fields: Record<SynopsisRelation, string[]>;
  readonly adjacency = new Map<SynopsisRelation, Map<string, Set<string>>>();
  readonly unassignedFields: string[];
+ readonly fieldRelations: FieldRelations;
  private returnCounts=new Map<SynopsisRelation,number>();
  private virtualCitations = new Map<string, {citekey:string;state:string}[]>();
  constructor(readonly snapshot: GraphSnapshot, settings: Settings) {
@@ -37,16 +39,7 @@ export class SynopsisGraph {
    if (!this.notes.has(source) || !this.notes.has(target)) return;
    const map = this.adjacency.get(relation)!; if (!map.has(source)) map.set(source, new Set()); map.get(source)!.add(target);
   };
-  // A direct one-field reversed rule is an admitted inverse; transitive closure is not a direct edge.
-  const inverses = new Map<string, Set<string>>();
-  for (const rule of snapshot.inferenceRules ?? []) if (rule.reversed && rule.chain.length === 1) {
-   const source = rule.chain[0]!, target = rule.field;
-   if (!inverses.has(target)) inverses.set(target, new Set()); inverses.get(target)!.add(source);
-   if (!inverses.has(source)) inverses.set(source, new Set()); inverses.get(source)!.add(target);
-  }
-  for (const field of snapshot.fields) if (snapshot.rules[field]?.inverse) {
-   if (!inverses.has(field)) inverses.set(field, new Set()); inverses.get(field)!.add(snapshot.rules[field].inverse);
-  }
+  this.fieldRelations=fieldRelations(snapshot);
   const concepts=new Map(snapshot.nodes.map(n=>[n.id,n]));
   const citationPairs=new Set(snapshot.edges.filter(e=>e.layer==='zotlit'&&e.explicit).map(e=>JSON.stringify([e.source,e.target])));
   const derived: [SynopsisRelation, string, string][] = [];
@@ -61,12 +54,12 @@ export class SynopsisGraph {
    for (const relation of synopsisRelations) {
     const fields = this.fields[relation];
     if (fields.includes(edge.field)) add(relation, edge.source, edge.target);
-    if (fields.some(f => inverses.get(f)?.has(edge.field) || f === edge.field && snapshot.rules[f]?.symmetric)) derived.push([relation, edge.target, edge.source]);
    }
    // The explicitly mapped two sides describe one hierarchy, without writing an inverse record.
    if (this.fields.broader.includes(edge.field)) derived.push(['narrower', edge.target, edge.source]);
    if (this.fields.narrower.includes(edge.field)) derived.push(['broader', edge.target, edge.source]);
   }
+  for(const relation of synopsisRelations)for(const field of this.fields[relation])for(const [source,targets] of this.fieldRelations.get(field)??[])for(const target of targets)add(relation,source,target);
   for (const [relation, source, target] of derived) add(relation, source, target);
   // Obsidian's unresolved-link index contains real link targets, not invented note paths.
   for (const unresolved of snapshot.unresolved) {
@@ -84,6 +77,7 @@ export class SynopsisGraph {
  neighbors(id: string, relation: SynopsisRelation): string[] {
   return [...this.adjacency.get(relation)?.get(id) ?? []];
  }
+ fieldNeighbors(id:string,field:string):SynopsisNote[]{return [...this.fieldRelations.get(field)?.get(id)??[]].flatMap(id=>this.notes.has(id)?[this.notes.get(id)!]:[]);}
  returns(relation:SynopsisRelation):number{return this.returnCounts.get(relation)??0;}
  citationReferences(id:string):ReadonlyArray<{citekey:string;state:string}>{return this.virtualCitations.get(id)??[];}
  citationNotice(id: string): number {return this.citationReferences(id).length;}

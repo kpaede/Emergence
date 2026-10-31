@@ -100,7 +100,7 @@ export class GraphPanel {
    activate:(note,event)=>this.activateSynopsisNote(note,event),inspect:note=>this.inspectSynopsisNote(note),
    literature:target=>{void c.run(()=>openZotlitLibrary(c.app,target));},
    hover:(note,event,anchor)=>c.app.workspace.trigger('hover-link',{event,source:'emergence-synopsis',hoverParent:{hoverPopover:null},targetEl:anchor,linktext:note.linktext,sourcePath:note.sourcePath}),
-  },(relation,source)=>{this.addModal?.close();this.addModal=new SynopsisAddModal(c,relation,source);this.addModal.open();});
+  },(relation,source)=>{this.addModal?.close();this.addModal=new SynopsisAddModal(c,relation,source);this.addModal.open();},(field,source)=>{this.addModal?.close();this.addModal=new SynopsisAddModal(c,'examples',source,field);this.addModal.open();});
   this.cy = createGraph(this.networkHost);
   this.cy.on('dragpan scrollzoom grab', () => {this.manuallyExplored = true;});
   this.cy.on('zoom', () => this.labelDensity());

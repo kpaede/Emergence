@@ -29,16 +29,19 @@ export const defaultProfile = (): Profile => ({
  }, outputs: [output('relations', 'relations')],
 });
 export const defaults = (): Settings => ({
+ citekeyFormat: 'brackets',
  schemaVersion: 1, endpoint: 'http://127.0.0.1:11434', model: 'qwen3.5:9b', numCtx: 8192,
  timeoutMs: 180000, think: false, releaseModel: false, maxConcurrent: 1, rules: {},
  profiles: [defaultProfile()], activeProfile: 'strict', inquiryTemplates: [
   {name: 'Widersprüche', prompt: 'Welche philosophischen Positionen widersprechen dieser These? Trenne lokale Belege und unbestätigtes Modellwissen.'},
-  {name: 'Kunstwerke', prompt: 'Welche Kunstwerke passen zum Thema? Kennzeichne nicht verifizierte Angaben. Erfinde keine Quellen oder URLs.'},
+  {name: 'Kunstwerke', prompt: 'Nenne konkrete Kunstwerke zum aktuellen Begriff aus unterschiedlichen Kunstgattungen: bildende Kunst, Musik, Literatur, Theater, Musiktheater, Tanz, Film, Architektur und digitale Kunst. Nur einzelne Werktitel, keine Abhandlung.'},
+  {name: 'Beispiele', prompt: 'Nenne konkrete, unterschiedliche Beispiele zum aktuellen Begriff. Nur einzelne Beispiele, keine Abhandlung.'},
  ], maxGraphNodes: 1500, maxGraphEdges: 6000, conceptFolders: [], graphHeight: 560, layout: 'elk',
  assignment: {allFolders: true, allowNewTargets: true, excludeExistingTargets: false, propertyFilter: 'none', properties: [], fieldsByNote: {}}, fieldDescriptions: {},
 });
 export function validateSettings(s: Settings): void {
  assert(s !== null && typeof s === 'object', 'Einstellungen müssen ein JSON-Objekt sein.');
+ assert(s.citekeyFormat === undefined || ['brackets','at','plain'].includes(s.citekeyFormat), 'Ungültiges Citekey-Format.');
  assert(s.schemaVersion === 1, 'Nicht unterstützte Einstellungsversion.');
  const url = new URL(s.endpoint);
  assert(url.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)
@@ -105,6 +108,7 @@ export function migrateSettings(input: unknown): Settings {
  assert(raw.schemaVersion === undefined || raw.schemaVersion === 1, 'Neuere Einstellungen können nicht verlustfrei geladen werden.');
  const s = {...d, ...raw, rules: raw.rules ?? {}, profiles: raw.profiles ?? d.profiles,
   assignment: {...d.assignment, allFolders: !(raw.conceptFolders?.length), ...raw.assignment}, fieldDescriptions: raw.fieldDescriptions ?? {}};
+ if (!s.inquiryTemplates.some(t=>t.name==='Beispiele')) s.inquiryTemplates=[...s.inquiryTemplates, d.inquiryTemplates.find(t=>t.name==='Beispiele')!];
  validateSettings(s);
  return clone(s);
 }

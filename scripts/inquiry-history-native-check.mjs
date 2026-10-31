@@ -12,7 +12,7 @@ evaluate(`(()=>{window.__emHistoryCheck={done:false};(async()=>{
  let off;const panel=()=>v.contentEl.querySelector('.em-panel-inquiry'),box=()=>panel().querySelector('[data-em-focus="inquiry-include-history"]');
  const ask=async question=>{const input=panel().querySelector('[data-em-focus="Deine Frage"]');input.value=question;input.dispatchEvent(new input.ownerDocument.defaultView.Event('input',{bubbles:true}));[...panel().querySelectorAll('button')].find(b=>b.textContent==='Frage senden').click();await task;v.update(true);};
  try{
-  v.controller=probe;v.state=JSON.parse(JSON.stringify(saved.state));Object.assign(v.state.inquiry,{mode:'none',prompt:'Current independent question',includeHistory:false,wikipedia:false});off=probe.subscribe(()=>v.update(true));v.switchTab('inquiry');
+  v.controller=probe;v.state=JSON.parse(JSON.stringify(saved.state));Object.assign(v.state.inquiry,{kind:'free',mode:'none',prompt:'Current independent question',includeHistory:false,wikipedia:false});off=probe.subscribe(()=>v.update(true));v.switchTab('inquiry');
   const defaultOff=!!box()&&!box().checked;await ask('Current independent question');
   const independentByDefault=requests[0].length===2&&!requests[0].some(m=>m.content.includes('OLD question'))&&probe.inquiryHistory.at(-1).historyIncluded===0;
   const expected=probe.inquiryHistory.slice(-3).flatMap(h=>[h.prompt,h.answer]);box().click();await ask('Current follow-up question');

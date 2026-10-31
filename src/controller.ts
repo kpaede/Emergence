@@ -1,4 +1,4 @@
-import {MarkdownView, Notice, type App} from 'obsidian';
+import {MarkdownView, Notice, requestUrl, type App} from 'obsidian';
 import type {AnalysisResult, JournalEntry, Profile, Settings, WikipediaContext, WikipediaRequest} from './types';
 import {GraphService} from './graph/service';
 import {OllamaProvider} from './llm/provider';
@@ -15,7 +15,11 @@ import {profilePrompts, withProfilePrompts, type ProfilePrompts} from './llm/pro
 import {validateSettings} from './config';
 import {WikipediaProvider, type WikipediaLookup} from './llm/wikipedia';
 
+import {WebSearchProvider, searchQuery, type WebSearchLookup, type WebSearchRequest, type WebSearchContext} from './llm/web-search';
+import {researchExamples, exampleTitle, type ResearchIdea, type ResearchKind} from './llm/research-examples';
+
 export class EmergenceController {
+ webSearch: WebSearchLookup = new WebSearchProvider(async (url,body) => {const response=await requestUrl({url,method:body?'POST':'GET',...(body?{body,contentType:'application/x-www-form-urlencoded'}:{}),throw:false});return {status:response.status,text:response.text};});
  readonly graph: GraphService;
  readonly provider: OllamaProvider;
  readonly analyzer: DocumentAnalyzer;
@@ -28,7 +32,7 @@ export class EmergenceController {
  lastIdeaEntry = '';
  profilePromptSave?: Promise<void>;
  private listeners = new Set<() => void>();
- inquiryHistory: {prompt: string; answer: string; context: string; wikipedia?:WikipediaContext; historyIncluded?:number; truncated?:boolean; requestContext?:string}[] = [];
+ inquiryHistory: {prompt: string; answer: string; context: string; wikipedia?:WikipediaContext; historyIncluded?:number; truncated?:boolean; requestContext?:string; webSearch?:WebSearchContext; examples?:ResearchIdea[]; kind?:ResearchKind; source?:string; field?:string}[] = [];
  research = '';
  private generation = 0;
  private fieldSelectionSave: Promise<void> = Promise.resolve();
@@ -164,14 +168,17 @@ export class EmergenceController {
  }
  rebuild(): void {this.graph.rebuild(); this.notify();}
  cancel(): void {this.abort?.abort(); this.provider.cancel(); this.status = 'Abbruch angefordert'; this.notify();}
- dispose(): void {this.cancel();this.wikipedia.clear?.();this.graph.dispose(); this.writer.invalidate(); this.listeners.clear(); this.inquiryHistory = []; this.research = '';}
- clearSession(): void {this.generation++; this.cancel();this.wikipedia.clear?.();this.review.clear(); this.inquiryHistory = []; this.research = ''; this.writer.invalidate(); this.notify();}
+ dispose(): void {this.cancel();this.wikipedia.clear?.();this.webSearch.clear?.();this.graph.dispose(); this.writer.invalidate(); this.listeners.clear(); this.inquiryHistory = []; this.research = '';}
+ clearSession(): void {this.generation++; this.cancel();this.wikipedia.clear?.();this.webSearch.clear?.();this.review.clear(); this.inquiryHistory = []; this.research = ''; this.writer.invalidate(); this.notify();}
  private async lookupWikipedia(request:WikipediaRequest,source:string,signal:AbortSignal):Promise<WikipediaContext|undefined>{
   if(!request.enabled)return;
   const term=request.term?.trim()||targetTitle(source);this.status=`Wikipedia: ${term}`;this.notify();
   return this.wikipedia.lookup(term,signal);
  }
- async analyze(online:WikipediaRequest={}): Promise<void> {
+ private async lookupWeb(request:WebSearchRequest,source:string,signal:AbortSignal):Promise<WebSearchContext|undefined>{
+  if(!request.enabled)return;const query=searchQuery(request.term?.trim()||targetTitle(source),request.goal);this.status='Websuche: '+query;this.notify();return this.webSearch.lookup(query,signal);
+ }
+ async analyze(online:WikipediaRequest={},search:WebSearchRequest={}): Promise<void> {
   assert(!this.abort && !this.profilePromptSave, 'Eine Anfrage oder Profilspeicherung läuft bereits.');
   this.captureActive();
   const file = this.app.vault.getFileByPath(this.activePath); assert(file?.extension === 'md', 'Zuerst eine Markdown-Notiz öffnen.');
@@ -180,9 +187,9 @@ export class EmergenceController {
   try {
    const editor = this.app.workspace.activeEditor;
    const content = editor?.file?.path === file.path && editor.editor ? editor.editor.getValue() : await this.app.vault.read(file);
-   const wikipedia=await this.lookupWikipedia(online,file.path,this.abort.signal);
+   const [wikipedia,webSearch]=await Promise.all([this.lookupWikipedia(online,file.path,this.abort.signal),this.lookupWeb(search,file.path,this.abort.signal)]);
    const result: AnalysisResult = await this.analyzer.analyze(file.path, content, this.graph.snapshot, this.profile, this.settings(), this.abort.signal,
-    progress => {this.status = progress; this.notify();}, '', '', {...this.assignmentOptions(content),...(wikipedia?{wikipedia}:{})});
+    progress => {this.status = progress; this.notify();}, '', '', {...this.assignmentOptions(content),...(wikipedia?{wikipedia}:{}),...(webSearch?{webSearch}:{})});
    result.elapsedMs=Math.round(performance.now()-started);
    if (generation === this.generation) {this.review.set(result); this.status = `${result.status === 'complete' ? 'Zuordnung abgeschlossen' : 'Zuordnung unvollständig'} · ${result.suggestions.length} Vorschläge`; this.ollamaStatus = 'erreichbar';}
   } catch (error) {this.status = errorMessage(error); throw error;}
@@ -192,7 +199,7 @@ export class EmergenceController {
   try {const info = await this.provider.health(); this.ollamaStatus = `erreichbar · ${info.version} · Thinking ${info.thinking ? 'verfügbar' : 'nicht gemeldet'}`; this.notify(); return info.models;}
   catch (error) {this.ollamaStatus = errorMessage(error); this.notify(); throw error;}
  }
- async inquire(prompt: string, mode: string, extraPaths: string[],online:WikipediaRequest={},includeHistory=false): Promise<string> {
+ async inquire(prompt: string, mode: string, extraPaths: string[],online:WikipediaRequest={},includeHistory=false,options:{kind?:ResearchKind;field?:string;webSearch?:WebSearchRequest}={}): Promise<string> {
   assert(!this.abort, 'Eine Anfrage läuft bereits.'); assert(prompt.trim(), 'Bitte eine Frage eingeben.');
   this.captureActive();
   const source=this.activePath;
@@ -218,14 +225,24 @@ export class EmergenceController {
    }
    const included=includeHistory?this.inquiryHistory.slice(-3):[];
    const history = included.flatMap(h => [{role: 'user' as const, content: h.prompt}, {role: 'assistant' as const, content: h.answer}]);
-   let wikipedia=await this.lookupWikipedia(online,source,this.abort.signal);
+   let [wikipedia,webSearch]=await Promise.all([this.lookupWikipedia(online,source,this.abort.signal),this.lookupWeb(options.webSearch??{},source,this.abort.signal)]);
    this.status='Antwort wird erstellt …';this.notify();
+   if(options.kind && options.kind!=='free'){
+    const result=await researchExamples(this.provider,{prompt,title:targetTitle(source),context,history,...(options.field?{field:{name:options.field,meaning:this.graph.snapshot.rules[options.field]?.description??''}}:{}),kind:options.kind,wikipedia,webSearch},this.profile,this.settings(),this.abort.signal);
+    assert(!this.abort.signal.aborted&&generation===this.generation,'Recherche abgebrochen.');
+    const answer=result.ideas.map(i=>i.title).join('\n');this.inquiryHistory.push({prompt,answer,context:mode,source,field:options.field,kind:options.kind,historyIncluded:included.length,examples:result.ideas,wikipedia:result.wikipedia,webSearch:result.webSearch,requestContext:context});this.status=result.ideas.length?result.ideas.length+' Beispiele gefunden':'Keine passenden Beispiele gefunden';return answer;
+   }
    let truncated = false;
-   const answer = await this.analyzer.inquire(prompt, context, this.profile, this.settings(), this.abort.signal, history,wikipedia,value=>{wikipedia=value;},()=>{truncated=true;});
+   const answer = await this.analyzer.inquire(prompt, context, this.profile, this.settings(), this.abort.signal, history,wikipedia,value=>{wikipedia=value;},()=>{truncated=true;},webSearch,value=>{webSearch=value;});
    assert(!this.abort.signal.aborted && generation === this.generation, 'Recherche abgebrochen.');
-   this.inquiryHistory.push({prompt, answer, context: mode,truncated,requestContext:context,historyIncluded:included.length,...(wikipedia?{wikipedia}:{})});this.status=wikipedia?.status==='ready'?'Forschungsantwort mit Wikipedia-Auszug':'Forschungsantwort ohne Wikipedia-Kontext';return answer;
+   this.inquiryHistory.push({prompt, answer, context: mode,webSearch,truncated,requestContext:context,historyIncluded:included.length,...(wikipedia?{wikipedia}:{})});this.status=wikipedia?.status==='ready'?'Forschungsantwort mit Wikipedia-Auszug':'Forschungsantwort ohne Wikipedia-Kontext';return answer;
   } catch (error) {this.status = errorMessage(error); throw error;}
   finally {this.abort = undefined; this.notify();}
+ }
+ async applyResearchIdea(index:number,id:string):Promise<void>{
+  const entry=this.inquiryHistory[index],idea=entry?.examples?.find(i=>i.id===id);assert(entry&&idea?.status==='pending'&&entry.source===this.activePath,'Öffne zuerst die zugehörige Notiz.');assert(entry.field&&this.graph.snapshot.fields.includes(entry.field),'Ein vorhandenes Breadcrumbs-Feld auswählen.');
+  const matches=existingTargetMatches(idea.title,this.graph.snapshot,entry.source),chosen=matches.find(n=>n.id===idea.selectedTarget)??(matches.length===1?matches[0]:undefined);assert(matches.length<2||chosen,'Bitte eine vorhandene Zielnotiz auswählen.');
+  const target=chosen?.id??exampleTitle(idea.title)+'.md';await this.addSynopsisLink(entry.source,entry.field,target,chosen?'existing':'unresolved');idea.status='applied';idea.entryId=this.writer.journal.at(-1)?.id;this.notify();
  }
  async continueInquiry(index: number): Promise<void> {
   assert(!this.abort, 'Eine Anfrage läuft bereits.');
@@ -235,7 +252,7 @@ export class EmergenceController {
   try {
    let truncated = false;
    const answer = await this.analyzer.inquire('Setze deine vorige Antwort an der Abbruchstelle fort, ohne Wiederholung.', entry.requestContext ?? '', this.profile, this.settings(), this.abort.signal,
-    [{role:'user', content:entry.prompt}, {role:'assistant', content:entry.answer}], entry.wikipedia, undefined, () => {truncated = true;});
+    [{role:'user', content:entry.prompt}, {role:'assistant', content:entry.answer}], entry.wikipedia, undefined, () => {truncated = true;},entry.webSearch);
    assert(!this.abort.signal.aborted && generation === this.generation && this.inquiryHistory[index] === entry, 'Recherche abgebrochen.');
    entry.answer += '\n\n' + answer; entry.truncated = truncated;
    this.status = truncated ? 'Antwort am Ausgabelimit gekürzt' : 'Forschungsantwort fortgesetzt';

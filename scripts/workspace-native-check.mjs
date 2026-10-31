@@ -55,7 +55,7 @@ async function check() {
   probe=new c.constructor(app,()=>JSON.parse(original.settings),async()=>{},[],async()=>{});probe.activePath=original.active;probe.graph.snapshot=c.graph.snapshot;
   const requests=[];let continued=false;
   probe.provider.chat=async options=>{requests.push(options);if(!continued)options.onTruncated?.();return continued?'Fortsetzung.':'Erster Teil.';};
-  v.controller=probe;off=probe.subscribe(()=>v.update(true));v.state.inquiry={mode:'none',prompt:'Synthetic research question',extra:'',template:'',wikipedia:false,includeHistory:false};v.switchTab('inquiry');
+  v.controller=probe;off=probe.subscribe(()=>v.update(true));v.state.inquiry={kind:'free',mode:'none',prompt:'Synthetic research question',extra:'',template:'',wikipedia:false,includeHistory:false};v.switchTab('inquiry');
   v.panels.get('inquiry').querySelector('.mod-cta').click();await until(()=>probe.inquiryHistory.length===1&&!probe.abort);
   assert('partialResearchVisible',v.panels.get('inquiry').textContent.includes('Erster Teil.')&&v.panels.get('inquiry').textContent.includes('Ausgabelimit erreicht'));
   continued=true;[...v.panels.get('inquiry').querySelectorAll('button')].find(b=>b.textContent==='Antwort fortsetzen').click();await until(()=>!probe.abort&&probe.inquiryHistory[0].answer.includes('Fortsetzung.'));

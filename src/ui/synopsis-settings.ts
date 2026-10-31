@@ -18,6 +18,6 @@ export function synopsisSourceSettings(host:HTMLElement,c:EmergenceController,ch
    if(label===control.getAttribute('aria-label'))control.focus({preventScroll:true});
   }
   const assigned=new Set(Object.values(fields).flat()),unassigned=graph.fields.filter(f=>!assigned.has(f));
-  if(unassigned.length)body.createDiv({text:`Nicht zugeordnet: ${unassigned.join(', ')}. Diese Felder bleiben in „Nachbarschaft und Links“ erhalten.`,cls:'em-muted'});
+  if(unassigned.length)body.createDiv({text:`Nicht zugeordnet: ${unassigned.join(', ')}. Verbindungen dieser Felder erscheinen in eigenen Registern unter den Beispielen sowie im freien Netz.`,cls:'em-muted'});
  };refresh();return refresh;
 }

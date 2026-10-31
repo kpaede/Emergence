@@ -20,13 +20,15 @@ npm ci
 npm run build
 ```
 
-Node.js 20 oder neuer verwenden. Anschließend `main.js`, `manifest.json` und `styles.css` in den Ordner `<Vault>/.obsidian/plugins/Emergence/` kopieren und Emergence unter **Einstellungen → Community-Plugins** aktivieren. Die Plugin-ID `Emergence` bleibt einschließlich Großschreibung erhalten. Das generierte `main.js` wird nicht im Repository verwaltet.
+Node.js 20 oder neuer verwenden. Anschließend `main.js`, `manifest.json` und `styles.css` in den Ordner `<Vault>/.obsidian/plugins/emergence/` kopieren und Emergence unter **Einstellungen → Community-Plugins** aktivieren. Die Plugin-ID lautet `emergence` und enthält gemäß Obsidian-Vorgabe nur Kleinbuchstaben. Bei älteren Entwicklungsinstallationen muss auch der Plugin-Ordner entsprechend umbenannt werden; `data.json` bleibt dabei erhalten. Das generierte `main.js` wird nicht im Repository verwaltet.
 
 Über das Netzwerk-Symbol in der Seitenleiste oder den Befehl **Emergence: Wissensgraph und Analyse öffnen** öffnet sich das Plugin im rechten Seitenpanel. Die Hauptnotiz bleibt daneben editierbar.
 
 ## Vier Arbeitsbereiche
 
 ### Suche
+
+Ein Klick auf den **Citekey** eines Zotero-Treffers kopiert ihn. Unter **Einstellungen → Emergence → Daten → Citekey kopieren** sind `[@citekey]` (Voreinstellung), `@citekey` und `citekey` wählbar.
 
 Der erste Tab mit der Lupe durchsucht alle Markdown-Notizen anhand von Titel, Alias und Tags. Zusätzlich fragt er über ZotLit die **gesamte verfügbare Zotero-Library einschließlich Gruppen-Libraries** ab. Weder die Ordnerauswahl für KI-Kandidaten noch die gerade geöffnete ZotLit-Sammlung begrenzt diese Suche. ZotLits gespeicherte Einstellungen werden dabei nicht verändert.
 
@@ -40,7 +42,9 @@ Notiz- und Literaturtreffer stehen getrennt untereinander. Weitere Ergebnisse la
 
 Die **Relationssynopse** ordnet die aktuelle Notiz in der Mitte an: Überordnung darüber, Unterordnung darunter, Ähnlichkeit links und Reibung rechts. Beispiele, Literatur und freie Verweise stehen in eigenen Registern. Die Namen der zugehörigen Breadcrumbs-Felder werden in **Ansicht und Filter** zugeordnet; Emergence legt dafür keine neuen Frontmatter-Felder an.
 
-Jede der sieben Gruppen hat eine eigene Sichttiefe: **1, 2, 3 oder ∞**. Mehrfachüberordnungen bleiben als vollständige Ahnenpfade erhalten. Rückverweise werden begrenzt, damit Kreise keine endlosen Listen erzeugen. Viele Einträge werden durch vertikales Scrollen zugänglich.
+Weitere vorhandene Breadcrumbs-Felder wie **Konzept**, **Werk**, **Komponist_in**, **Autor_in**, **Künstler_in** und **Regisseur_in** erscheinen bei vorhandenen Verbindungen in eigenen Registern unter den Beispielen. Ihre Gegenrichtungen stammen aus der Breadcrumbs-Konfiguration. Ein generischer „Werk“-Link wird nicht willkürlich allen Urheberrollen zugewiesen. Die zusätzlichen Register haben ebenfalls eine Plus-Aktion für ihr tatsächliches Frontmatter-Feld.
+
+Jede der sieben Hauptgruppen hat eine eigene Sichttiefe: **1, 2, 3 oder ∞**. Mehrfachüberordnungen bleiben als vollständige Ahnenpfade erhalten. Rückverweise werden begrenzt, damit Kreise keine endlosen Listen erzeugen. Viele Einträge werden durch vertikales Scrollen zugänglich.
 
 **Die Reihenfolge direkt gespeicherter Begriffe entspricht dem Frontmatter.** Nur zusätzlich abgeleitete Gegenrichtungen folgen danach. Auch weitere Schritte verwenden jeweils die Reihenfolge ihrer eigenen Ausgangsnotiz. Es werden keine Sortierdaten in den Notizen gespeichert.
 
@@ -56,7 +60,7 @@ Die Analyse dient als Assoziationshilfe: bis zu **vier Begriffe je ausgewähltem
 
 1. Unter **Analyse einstellen** Felder auswählen und ihre Bedeutung beschreiben. Die Beschreibungen sind editierbar; fremde Feldnamen werden nicht stillschweigend interpretiert.
 2. Den Suchbereich für bestehende Zielbegriffe wählen: alle Notizen, bestimmte Ordner und/oder Notizen mit bestimmten Frontmatter-Schlüsseln. „Mindestens ein Breadcrumbs-Feld“ ist ein möglicher Filter. Diese Auswahl betrifft die Analyse, nicht die globale Suche.
-3. Optional Wikipedia-Zusatzkontext aktivieren und **Ideen vorschlagen** starten.
+3. Optional Wikipedia oder die Websuche hinzuziehen und **Ideen vorschlagen** starten.
 4. Vorschläge direkt in den Feldgruppen mit **✓** übernehmen oder **×** ablehnen. Der Stift bearbeitet den Begriff in der Zeile; Enter bestätigt, Escape verwirft die Bearbeitung.
 
 Profilanweisungen und Prompts sind editierbar. Vorhandene Ziele werden gekennzeichnet und bevorzugt verlinkt. Kurze Wikilinks wie `[[Taxonomie]]` werden verwendet, sofern sie das Ziel eindeutig auflösen; andernfalls ist ein qualifizierter Pfad nötig. Ein neuer Vorschlag erzeugt keine neue Notizdatei.
@@ -65,17 +69,23 @@ Profilanweisungen und Prompts sind editierbar. Vorhandene Ziele werden gekennzei
 
 ### Recherche
 
-**Frage senden** richtet eine freie, lesende Frage an das lokale Modell. Der Kontext wird ausdrücklich gewählt: kein Notizkontext, Markierung, aktuelle Notiz, Beziehungen oder bestimmte Notizen.
+Die Recherche bietet **Konkrete Beispiele**, **Kunstwerke – alle Gattungen** und weiterhin eine **freie Textantwort**. Die Vorlagen „Beispiele“ und „Kunstwerke“ sind direkt auswählbar. Kunstwerke können unter anderem Malerei, Skulptur, Fotografie, Installation, Musik, Oper, Musiktheater, Literatur, Theater, Tanz, Film, Architektur und digitale Kunst umfassen.
+
+Bis zu vier Beispiele erscheinen als einzelne kompakte Zeilen mit Übernehmen, Ablehnen und Bearbeiten. Das Frontmatter-Zielfeld wird aus den vorhandenen Breadcrumbs-Feldern gewählt; die konfigurierte Beispiel-Gruppe ist die Voreinstellung. Ein Klick ergänzt genau einen Wikilink über denselben kontrollierten Writer wie die Synopsen-Plus-Aktion. Vorhandene Notizen werden wiederverwendet, bei Mehrdeutigkeit wird das Ziel ausgewählt. Die Recherche ersetzt keine offenen Ideen der Notizanalyse. Bei Kunstwerken filtert eine zweite, kurze Modellprüfung ungeeignete Vorschläge wie Fachbücher; sie darf keine neuen Titel hinzufügen und ersetzt keine Faktenprüfung. Modellideen und Suchhinweise werden unterschieden; Suchvorschauen gelten nicht als geprüfte Volltexte.
+
+Der Notizkontext wird ausdrücklich gewählt: kein zusätzlicher Notiztext, Markierung, aktuelle Notiz, Beziehungen oder bestimmte Notizen. Die freie Textantwort bleibt lesend; nur die ausdrückliche Übernahme einer Beispielzeile schreibt einen Link.
 
 Jede Frage ist zunächst unabhängig. Nur **Bisheriges Gespräch einbeziehen** sendet die letzten drei Gesprächsrunden mit. Der sichtbare Sitzungsverlauf wird nicht automatisch Kontext für neue Fragen oder Wikipedia-Suchen.
 
 Recherche hat ein eigenes, an den verfügbaren Kontext angepasstes Ausgabebudget. Erreicht eine Antwort das Ausgabelimit, bleibt ihr Text sichtbar und wird als gekürzt gekennzeichnet. **Antwort fortsetzen** setzt genau diese Antwort fort. Unvollständige strukturierte Analysen bleiben dagegen für die Übernahme gesperrt.
 
-## Lokale Verarbeitung und Wikipedia
+## Lokale Verarbeitung und optionale Webquellen
 
 Graphindex und Suche arbeiten lokal über Obsidian und ZotLit. KI-Anfragen gehen ausschließlich an den konfigurierten lokalen Ollama-Endpunkt. Je nach ausdrücklich gewählter Funktion enthalten sie die aktuelle Notiz, Feldbeschreibungen, ausgewählte Kontexte und/oder Kandidatentitel. Es gibt keine Telemetrie und keinen Cloud-Modell-Fallback.
 
-**Wikipedia ist optional.** Bei eingeschaltetem Haken wird der angegebene Begriff an Wikipedia geschickt und ein begrenzter Auszug mit Quellenangabe als zusätzlicher Modellkontext verwendet. Notiztexte und Gesprächsverläufe werden nicht als Wikipedia-Suchanfrage übertragen. Ohne Haken erfolgt keine neue Wikipedia-Abfrage. Das Modell kann nicht selbstständig im Web browsen.
+**Websuche ist optional und ohne Anmeldung nutzbar.** DuckDuckGos öffentliche HTML-Suche liefert Titel und Vorschautexte aus höchstens zwei Ergebnisseiten, insgesamt höchstens 20 unterschiedliche Treffer. Nur der sichtbare Suchbegriff mit dem gewählten Zusatz „Beispiele“ oder „Kunstwerke“ wird gesendet. Zielseiten werden nicht automatisch geöffnet. Suchtreffer werden im Modellkontext begrenzt und als externes Datenmaterial behandelt. Bei Sperrprüfungen oder Ausfällen wird der tatsächliche Status angezeigt; es gibt keine Umgehung oder erfundenen Treffer. Die HTML-Anbindung ist keine zugesicherte Such-API und kann sich ändern.
+
+**Wikipedia ist ebenfalls optional.** Bei eingeschaltetem Haken wird der angegebene Begriff an Wikipedia geschickt und ein begrenzter Auszug mit Quellenangabe als zusätzlicher Modellkontext verwendet. Notiztexte und Gesprächsverläufe werden nicht als Wikipedia-Suchanfrage übertragen. Ohne Haken erfolgt keine neue Wikipedia-Abfrage. Das Modell kann nicht selbstständig im Web browsen.
 
 Plugin-Einstellungen und das Änderungsjournal liegen in Obsidian-typischem `data.json`. Rechercheverlauf und Suchtreffer bleiben im Arbeitsspeicher. Persönliche Einstellungen, Vault-Inhalte und lokale Prüfberichte gehören nicht ins Repository.
 

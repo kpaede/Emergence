@@ -9,7 +9,7 @@ import {SynopsisGeometry} from './synopsis-geometry';
 export class RelationsSynopsis {
  geometry?:SynopsisGeometry; model?:SynopsisGraph;
  private generation=0; private frame?:number; private diagram?:HTMLElement; private focus=''; private fingerprint='';
- constructor(private host:HTMLElement,private settings:()=>Settings,private changeDepth:(relation:SynopsisRelation,depth:SynopsisDepth)=>void,private actions:SynopsisLinkActions,private addRelation?:(relation:SynopsisRelation,source:string)=>void){host.addClass('em-relations-synopsis');}
+ constructor(private host:HTMLElement,private settings:()=>Settings,private changeDepth:(relation:SynopsisRelation,depth:SynopsisDepth)=>void,private actions:SynopsisLinkActions,private addRelation?:(relation:SynopsisRelation,source:string)=>void,private addField?:(field:string,source:string)=>void){host.addClass('em-relations-synopsis');}
  render(snapshot:GraphSnapshot,focus:string):void{
   const depths=synopsisDepths(this.settings()),fingerprint=JSON.stringify([snapshot.version,focus,depths,this.settings().synopsis?.fields,this.settings().graphStructure]);
   if(fingerprint===this.fingerprint){this.geometry?.schedule();return;} this.fingerprint=fingerprint;
@@ -66,7 +66,15 @@ export class RelationsSynopsis {
    }
   };
   populate('similar',lateral);populate('friction',lateral);populate('narrower',diagram);
-  for(const relation of ['examples','literature','links'] as const)populate(relation,diagram);
+  populate('examples',diagram);
+  for(const field of model.unassignedFields){
+   const targets=model.fieldNeighbors(focus,field);if(!targets.length)continue;
+   const section=diagram.createEl('section',{cls:'em-syn-section em-syn-extra',attr:{'data-syn-field':field,'aria-label':field}}),heading=section.createDiv({cls:'em-syn-head'});
+   heading.createEl('h3',{text:field}).createSpan({text:' '+targets.length,cls:'em-syn-count'});
+   const controls=heading.createDiv({cls:'em-syn-controls'}),add=iconButton(controls,'plus',field+' ergänzen',()=>this.addField?.(field,focus));add.disabled=!note.exists||!this.addField;
+   const list=section.createEl('ul',{cls:'em-syn-register'});for(const target of targets)synopsisNote(list.createEl('li'),target,this.actions);
+  }
+  populate('literature',diagram);populate('links',diagram);
   this.geometry=new SynopsisGeometry(diagram,svg);renderPaths();this.geometry.schedule();
   if(sameFocus)this.host.scrollTop=scroll;else this.host.scrollTop=0;
   if(selected)this.host.querySelector<HTMLElement>(`[data-syn-depth="${selected}"]`)?.focus({preventScroll:true});

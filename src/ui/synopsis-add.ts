@@ -12,13 +12,13 @@ interface TargetChoice {path:string;title:string;exists:boolean}
 /** Choosing a target explicitly authorizes one addition to the displayed Breadcrumbs field. */
 export class SynopsisAddModal extends SuggestModal<TargetChoice>{
  private field='';private submitting=false;
- constructor(private controller:EmergenceController,private relation:SynopsisRelation,private source:string){
-  super(controller.app);this.limit=25;this.setTitle(`${synopsisLabels[relation]} ergänzen`);this.setPlaceholder('Vorhandene Notiz suchen oder neuen Begriff eingeben');this.emptyStateText='Begriff eingeben';
+ constructor(private controller:EmergenceController,private relation:SynopsisRelation,private source:string,private fixedField?:string){
+  super(controller.app);this.limit=25;this.setTitle(`${fixedField??synopsisLabels[relation]} ergänzen`);this.setPlaceholder('Vorhandene Notiz suchen oder neuen Begriff eingeben');this.emptyStateText='Begriff eingeben';
   this.setInstructions([{command:'↑↓',purpose:'auswählen'},{command:'Enter',purpose:'Link ergänzen'},{command:'Esc',purpose:'abbrechen'}]);
  }
  async onOpen():Promise<void>{
   await super.onOpen();this.modalEl.addClass('em-syn-add-modal');
-  const fields=synopsisFields(this.controller.graph.snapshot,this.controller.settings())[this.relation];
+  const fields=this.fixedField?this.controller.graph.snapshot.fields.filter(f=>f===this.fixedField):synopsisFields(this.controller.graph.snapshot,this.controller.settings())[this.relation];
   this.field=fields.length===1?fields[0]!:'';
   const row=this.contentEl.createDiv({cls:'em-syn-add-field'});this.inputEl.parentElement?.before(row);
   if(fields.length===1)row.createDiv({text:`${targetTitle(this.source)} · ${this.field}`,cls:'em-muted'});

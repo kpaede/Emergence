@@ -1,3 +1,4 @@
+import type {WebSearchUiState} from './web-search';
 import {setIcon, setTooltip} from 'obsidian';
 import type {EmergenceController} from '../controller';
 import type {Decision} from '../types';
@@ -5,13 +6,13 @@ import type {ProfilePromptDraft} from '../llm/profile-prompts';
 import type {WikipediaUiState} from './wikipedia';
 export type Tab = 'search' | 'graph' | 'analysis' | 'inquiry';
 export interface PanelState {
- analysis: WikipediaUiState & {folders?: string; properties?: string; filter?: 'none' | 'breadcrumbs' | 'custom'; descriptionField?: string; descriptions?: Record<string, string>; fieldsOpen?: boolean; descriptionsOpen?: boolean; scopeOpen?: boolean;
+ analysis: WikipediaUiState & WebSearchUiState & {folders?: string; properties?: string; filter?: 'none' | 'breadcrumbs' | 'custom'; descriptionField?: string; descriptions?: Record<string, string>; fieldsOpen?: boolean; descriptionsOpen?: boolean; scopeOpen?: boolean;
   connection?: 'checking' | 'success' | 'error'; connectionMessage?: string; targetChoice?: string; ideaEdit?: {id: string; value: string; error?: string}; profileDrafts?: Record<string, ProfilePromptDraft>};
- inquiry: WikipediaUiState & {prompt: string; mode: string; extra: string; template: string; includeHistory?:boolean};
+ inquiry: WikipediaUiState & WebSearchUiState & {prompt: string; mode: string; extra: string; template: string; includeHistory?:boolean;kind?:import('../llm/research-examples').ResearchKind;field?:string;editingExample?:{id:string;value:string;error?:string}};
  search: {query: string; mode: 'open' | 'explore'};
  review: {query: string; status: string; page: number; expanded: string};
 }
-export const initialPanelState = (): PanelState => ({analysis: {}, inquiry: {prompt: '', mode: 'none', extra: '', template: ''}, search: {query: '', mode: 'open'}, review: {query: '', status: 'all', page: 0, expanded: ''}});
+export const initialPanelState = (): PanelState => ({analysis: {}, inquiry: {prompt: '', mode: 'none', extra: '', template: '', kind:'examples', webGoal:'examples'}, search: {query: '', mode: 'open'}, review: {query: '', status: 'all', page: 0, expanded: ''}});
 export interface PanelContext {
  host: HTMLElement; controller: EmergenceController; state: PanelState;
  navigate(tab: Tab): void; repaint(): void; run(action: () => unknown): Promise<void>; isCurrent(): boolean;

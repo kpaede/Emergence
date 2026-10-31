@@ -10,21 +10,21 @@ export function evaluate(code) {
 }
 /** Preserve the user's form, expanded sections and field choices across a development reload. */
 export function reloadPlugin() {
- evaluate(`(()=>{const c=app.plugins.plugins.Emergence?.controller;if(c?.abort)throw new Error('Eine Modellanfrage läuft noch.');window.__emReloadWait={done:false};Promise.all([c?.fieldSelectionSave,c?.profilePromptSave,app.workspace.getLeavesOfType('emergence-workspace')[0]?.view?.graphPanel?.depthSave]).then(()=>window.__emReloadWait={done:true}).catch(e=>window.__emReloadWait={done:true,error:String(e)});return true;})()`);
+ evaluate(`(()=>{const c=app.plugins.plugins.emergence?.controller;if(c?.abort)throw new Error('Eine Modellanfrage läuft noch.');window.__emReloadWait={done:false};Promise.all([c?.fieldSelectionSave,c?.profilePromptSave,app.workspace.getLeavesOfType('emergence-workspace')[0]?.view?.graphPanel?.depthSave]).then(()=>window.__emReloadWait={done:true}).catch(e=>window.__emReloadWait={done:true,error:String(e)});return true;})()`);
  let idle=false;
  for(let attempt=0;attempt<60;attempt++){const state=evaluate('window.__emReloadWait');if(state.done){if(state.error)throw new Error(state.error);idle=true;break;}}
  if(!idle)throw new Error('Field selection save is still pending; reload cancelled.');
- evaluate(`(()=>{const c=app.plugins.plugins.Emergence?.controller,v=app.workspace.getLeavesOfType('emergence-workspace')[0]?.view,opened={};
+ evaluate(`(()=>{const c=app.plugins.plugins.emergence?.controller,v=app.workspace.getLeavesOfType('emergence-workspace')[0]?.view,opened={};
  if(v)for(const d of v.contentEl.querySelectorAll('.em-panel-analysis details')){const label=d.querySelector('summary')?.textContent??'';const key=d.dataset.emDisclosure||(label.startsWith('Breadcrumbs-Felder')?'analysis-fields':label.startsWith('Feldbedeutungen')?'analysis-descriptions':label.startsWith('Zielnotizen')?'analysis-scope':label==='Verbindung und Anfrage prüfen'?'analysis-diagnostics':'');if(key)opened[key]=d.open;}
  const ui=v?.state?JSON.parse(JSON.stringify(v.state)):null;if(ui?.analysis?.connection==='checking'){delete ui.analysis.connection;delete ui.analysis.connectionMessage;}
  window.__emReloadState={analysis:c?.review.analysis?JSON.parse(JSON.stringify(c.review.analysis)):null,status:c?.status,inquiryHistory:c?.inquiryHistory?JSON.parse(JSON.stringify(c.inquiryHistory)):[],research:c?.research??'',ui,tab:v?.tab,opened,scroll:v?.panels.get(v.tab)?.scrollTop??0,
  selections:c?.fieldSelections instanceof Map?Object.fromEntries(c.fieldSelections):c?.settings().assignment?.fieldsByNote??{}};return true;})()`);
- command('plugin:reload', ['id=Emergence']);
+ command('plugin:reload', ['id=emergence']);
  let ready = false;
- for(let attempt=0;attempt<60;attempt++) if(evaluate('!!app.plugins.plugins.Emergence?.controller')) {ready=true;break;}
+ for(let attempt=0;attempt<60;attempt++) if(evaluate('!!app.plugins.plugins.emergence?.controller')) {ready=true;break;}
  if(!ready) throw new Error('Emergence did not finish loading; the prior state remains in window.__emReloadState.');
- command('command', ['id=Emergence:open-workspace']);
- evaluate(`(()=>{const c=app.plugins.plugins.Emergence.controller,s=window.__emReloadState,v=app.workspace.getLeavesOfType('emergence-workspace')[0].view;
+ command('command', ['id=emergence:open-workspace']);
+ evaluate(`(()=>{const c=app.plugins.plugins.emergence.controller,s=window.__emReloadState,v=app.workspace.getLeavesOfType('emergence-workspace')[0].view;
  if(s?.analysis){c.review.set(s.analysis);for(const idea of s.analysis.suggestions)if(idea.status==='rejected')c.review.decide(idea.id,'rejected',c.graph.snapshot,'',c.profile);}if(s?.status)c.status=s.status;
  if(s?.inquiryHistory)c.inquiryHistory=s.inquiryHistory;if(s?.research)c.research=s.research;
  if(s?.selections)c.settings().assignment.fieldsByNote={...c.settings().assignment.fieldsByNote,...s.selections};

@@ -54,6 +54,7 @@ export interface Profile {
  templates: Record<PromptKey, string>; outputs: OutputModule[];
 }
 export interface Settings {
+ citekeyFormat?: 'brackets' | 'at' | 'plain';
  schemaVersion: 1; endpoint: string; model: string; numCtx: number; timeoutMs: number;
  think: boolean; releaseModel: boolean; maxConcurrent: number;
  rules: Record<string, RelationRule>; profiles: Profile[]; activeProfile: string;
@@ -66,6 +67,7 @@ export interface Settings {
 }
 export interface Issue {level: 'block' | 'warn'; message: string; path?: string[]}
 export interface AnalysisResult {
+ webSearch?: import('./llm/web-search').WebSearchContext;
  id: string; source: string; sourceVersion: string; suggestions: Suggestion[]; candidates: Candidate[];
  artifacts: {outputId: string; content: string}[]; completed: number; total: number;
  status: 'complete' | 'partial' | 'cancelled'; errors: string[];

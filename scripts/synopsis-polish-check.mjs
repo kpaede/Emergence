@@ -2,7 +2,7 @@ import {evaluate} from './obsidian-cli.mjs';
 import {writeFileSync,readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {resolve} from 'node:path';
-const source=evaluate('app.plugins.plugins.Emergence.controller.activePath'),before=createHash('sha256').update(readFileSync(resolve('../../..',source))).digest('hex');
+const source=evaluate('app.plugins.plugins.emergence.controller.activePath'),before=createHash('sha256').update(readFileSync(resolve('../../..',source))).digest('hex');
 evaluate(`(()=>{const v=app.workspace.getLeavesOfType('emergence-workspace')[0].view,p=v.graphPanel,c=v.controller,prior={tab:v.tab,mode:p.mode,focus:p.focusPath,follow:p.follow},state=window.__emPolish={done:false,calls:[],original:c.addSynopsisLink};
 v.switchTab('graph');p.mode='structure';p.focus(c.activePath);p.semantic.geometry.draw();(async()=>{await new Promise(r=>window.setTimeout(r,100));const h=p.semanticHost,metadata=app.workspace.getMostRecentLeaf(app.workspace.rootSplit).view.contentEl.querySelector('.metadata-container'),fm=metadata.querySelector('.internal-link:not(.is-unresolved)'),missing=metadata.querySelector('.internal-link.is-unresolved');
 const style=n=>{const s=getComputedStyle(n);return {color:s.color,opacity:s.opacity,decoration:s.textDecoration,fontWeight:s.fontWeight};};

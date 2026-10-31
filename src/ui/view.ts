@@ -96,7 +96,7 @@ export class EmergenceView extends ItemView {
    list.createEl('dt', {text: name}); list.createEl('dd', {text: value});
   }
   this.graphPanel?.update(); this.searchPanel?.update(); if (this.tab === 'graph' || this.tab === 'search') return;
-  const fingerprint = JSON.stringify([this.tab, g.version, c.review.revision, c.activePath, c.status, !!c.abort, c.settings().activeProfile, c.inquiryHistory.length]);
+  const fingerprint = JSON.stringify([this.tab, g.version, c.review.revision, c.activePath, c.status, !!c.abort, c.applyingIdea, !!c.profilePromptSave, c.settings().activeProfile, c.inquiryHistory.length]);
   if (!force && fingerprint === this.fingerprint) return; this.fingerprint = fingerprint;
   const panel = this.panels.get(this.tab)!, focused = panel.ownerDocument.activeElement;
   const editable = focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement || focused instanceof HTMLSelectElement ? focused : undefined;

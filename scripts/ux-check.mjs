@@ -3,14 +3,14 @@ import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {command,evaluate} from './obsidian-cli.mjs';
 const view='app.workspace.getLeavesOfType("emergence-workspace")[0].view';
-const settings='app.setting.pluginTabs.find(t=>t.id==="Emergence")';
+const settings='app.setting.pluginTabs.find(t=>t.id==="emergence")';
 const assert=(condition,message)=>{if(!condition)throw new Error(message);};
-const before= evaluate('JSON.stringify(app.plugins.plugins.Emergence.settings)');
+const before= evaluate('JSON.stringify(app.plugins.plugins.emergence.settings)');
 const bcPath=resolve('../breadcrumbs/data.json'), hash=()=>createHash('sha256').update(readFileSync(bcPath)).digest('hex'), bcBefore=hash();
 const report={};
 evaluate(`(()=>{const v=${view};if(window.__emUXOldInquiry)v.state.inquiry=window.__emUXOldInquiry;if(window.__emUXOldStatus!==undefined)v.controller.status=window.__emUXOldStatus;return true;})()`);
 try {
-command('command',['id=Emergence:open-workspace']);
+command('command',['id=emergence:open-workspace']);
 report.navigation=evaluate(`(()=>{const v=${view};v.switchTab('graph');const nav=v.contentEl.querySelector('[role=tablist]'),buttons=[...nav.querySelectorAll('[role=tab]')];buttons[0].focus();buttons[0].dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));return {arrowNavigation:v.tab==='analysis',oneTabStop:buttons.filter(b=>b.tabIndex===0).length===1,linked:buttons.every(b=>!!document.getElementById(b.getAttribute('aria-controls'))),selected:buttons.filter(b=>b.getAttribute('aria-selected')==='true').length};})()`);
 assert(report.navigation.arrowNavigation&&report.navigation.oneTabStop&&report.navigation.linked&&report.navigation.selected===1,'Accessible tab navigation failed');
 report.mainNote=evaluate(`(()=>{const c=${view}.controller;c.captureActive();const note=app.workspace.getMostRecentLeaf(app.workspace.rootSplit)?.view;return {available:!!note?.file,matches:!!note?.file&&c.activePath===note.file.path};})()`);
@@ -31,7 +31,7 @@ evaluate(`(()=>{const v=${view};window.__emUXPreviousAnalysis=v.controller.revie
 report.review=evaluate(`(()=>{const v=${view},p=v.contentEl.querySelector('[role=tabpanel]:not([hidden])');return {cards:p.querySelectorAll('.em-suggestion').length,allPending:v.controller.review.analysis.suggestions.every(s=>s.status==='pending'),noFinalApply:[...p.querySelectorAll('button')].every(b=>b.textContent!=='Bestätigen und übernehmen'),nextAction:[...p.querySelectorAll('button')].some(b=>b.textContent.includes('Nächsten ungeprüften'))};})()`);
 assert(report.review.cards===3&&report.review.allPending&&report.review.noFinalApply&&report.review.nextAction,'Review pending gate or layout failed');
 evaluate(`(()=>{const v=${view};if(window.__emUXPreviousAnalysis)v.controller.review.set(window.__emUXPreviousAnalysis);else v.controller.review.clear();v.state.inquiry=window.__emUXOldInquiry;v.controller.status=window.__emUXOldStatus;v.switchTab('graph');return true;})()`);
-evaluate(`(()=>{app.setting.open();app.setting.openTabById('Emergence');return true;})()`);
+evaluate(`(()=>{app.setting.open();app.setting.openTabById('emergence');return true;})()`);
 report.settings=[];
 for(const section of ['model','relations','profiles','data']) {
  const metrics=evaluate(`(()=>{const t=${settings};t.section='${section}';t.renderBody();return {section:'${section}',width:t.body.clientWidth,scrollWidth:t.body.scrollWidth,headings:t.body.querySelectorAll('.setting-item-heading').length,rawJSONEditors:[...t.body.querySelectorAll('textarea')].filter(e=>e.value.trim().startsWith('[{')).length,bodyBottom:t.body.getBoundingClientRect().bottom,footerTop:t.saveButton.closest('.em-settings-footer').getBoundingClientRect().top};})()`);
@@ -44,7 +44,7 @@ for(const section of ['prompts','outputs','inquiry']) {
  const metrics=evaluate(`(()=>{const t=${settings};t.section='profiles';t.profileEditor.section='${section}';t.renderBody();return {section:'${section}',width:t.body.clientWidth,scrollWidth:t.body.scrollWidth,textareas:t.body.querySelectorAll('textarea').length};})()`);
  assert(metrics.scrollWidth<=metrics.width+1,`Profile editor overflow: ${section}`);report.profileEditors.push(metrics);
 }
-evaluate(`(()=>{const t=${settings};t.display();window.__emUXHealth={done:false};app.plugins.plugins.Emergence.controller.provider.health().then(r=>window.__emUXHealth={done:true,models:r.models}).catch(e=>window.__emUXHealth={done:true,error:String(e)});return true;})()`);
+evaluate(`(()=>{const t=${settings};t.display();window.__emUXHealth={done:false};app.plugins.plugins.emergence.controller.provider.health().then(r=>window.__emUXHealth={done:true,models:r.models}).catch(e=>window.__emUXHealth={done:true,error:String(e)});return true;})()`);
 for(let i=0;i<40;i++){const state=evaluate('window.__emUXHealth');if(state?.done){report.rendererOllama=state;break;}}
 assert(report.rendererOllama?.models?.includes('qwen3.5:9b'),'Renderer Ollama request failed: '+JSON.stringify(report.rendererOllama));
 evaluate(`(()=>{app.setting.close();const v=${view},c=v.controller;window.__emUXRealPreview=c.writer.preview;window.__emUXRealApply=c.writer.apply;window.__emUXConfirmCalls=0;c.writer.preview=async()=>({token:'ui-only',source:'UI-Test.md',changes:[{}],beforeFrontmatter:'---\\nBeziehung: []\\n---',afterFrontmatter:'---\\nBeziehung: ["[[Neuer Begriff]]"]\\n---'});c.writer.apply=async()=>{window.__emUXConfirmCalls++;};c.review.set({id:'ui-modal',source:'UI-Test.md',sourceVersion:'not-writable',suggestions:[{id:'ui-modal-suggestion',analysisId:'ui-modal',source:'UI-Test.md',sourceVersion:'not-writable',operation:'add',target:'Begriff.md',targetKind:'unresolved',field:c.graph.snapshot.fields[0],property:c.graph.snapshot.fields[0],value:'[[Begriff]]',reason:'UI-Test',evidence:'UI-Test',confidence:'medium',status:'pending',outputId:'relations'}],candidates:[],artifacts:[],completed:1,total:1,status:'complete',errors:[]});c.review.result.suggestions[0].status='accepted';v.switchTab('review');const b=[...v.contentEl.querySelectorAll('button')].find(b=>b.textContent.startsWith('Änderungen ansehen'));if(!b||b.disabled)throw new Error('Missing preview action');b.click();return true;})()`);
@@ -55,7 +55,7 @@ report.theme=evaluate(`(()=>{const v=${view},p=v.contentEl.createSpan();p.style.
 const luminance=color=>{const values=color.match(/[\d.]+/g).slice(0,3).map(n=>{const v=Number(n)/255;return v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4;});return values[0]*0.2126+values[1]*0.7152+values[2]*0.0722;};
 const ratio=(a,b)=>{const x=luminance(a),y=luminance(b);return Number(((Math.max(x,y)+0.05)/(Math.min(x,y)+0.05)).toFixed(2));};
 report.theme.normalContrast=ratio(report.theme.normal,report.theme.background);report.theme.mutedContrast=ratio(report.theme.muted,report.theme.background);
-report.configurationUnchanged=before===evaluate('JSON.stringify(app.plugins.plugins.Emergence.settings)');report.breadcrumbsUnchanged=bcBefore===hash();report.notesWritten=0;
+report.configurationUnchanged=before===evaluate('JSON.stringify(app.plugins.plugins.emergence.settings)');report.breadcrumbsUnchanged=bcBefore===hash();report.notesWritten=0;
 assert(report.configurationUnchanged&&report.breadcrumbsUnchanged,'UX checks changed stored settings');
 mkdirSync('docs/ux',{recursive:true});writeFileSync('docs/ux/checks.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
 

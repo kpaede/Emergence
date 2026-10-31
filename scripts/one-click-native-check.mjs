@@ -3,7 +3,7 @@ import {evaluate} from './obsidian-cli.mjs';
 
 // Actual append/undo in one disposable source note, with an independent controller and in-memory journal.
 const code=`(()=>{window.__emOneClickTest={done:false};(async()=>{
- const main=app.plugins.plugins.Emergence.controller, savedSettings=JSON.stringify(main.settings());
+ const main=app.plugins.plugins.emergence.controller, savedSettings=JSON.stringify(main.settings());
  const root=app.workspace.getMostRecentLeaf(app.workspace.rootSplit), originalPath=root?.view?.file?.path;
  const id=crypto.randomUUID(), path='Emergence test '+id+'.md', targetA='Emergence absent folder '+id+'/Emergence target '+id+' A.md', targetB='Emergence absent folder '+id+'/Emergence target '+id+' B.md';
  const field=main.graph.snapshot.fields.find(f=>main.graph.snapshot.rules[f]?.writable&&main.graph.snapshot.rules[f]?.description);if(!field)throw Error('Kein beschreibbares Feld');
