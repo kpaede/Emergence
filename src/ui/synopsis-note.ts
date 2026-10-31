@@ -1,0 +1,14 @@
+import type {SynopsisNote} from '../graph/synopsis-types';
+
+export interface SynopsisLinkActions {activate(note: SynopsisNote, event: MouseEvent): void; inspect(note: SynopsisNote): void; literature?(target: {path?: string; citekey?: string; indexedKey?: string}): void; hover?(note: SynopsisNote, event: MouseEvent, anchor: HTMLElement): void}
+/** The sole visual note component used in all seven relations and the focus. */
+export function synopsisNote(parent: HTMLElement, note: SynopsisNote, actions: SynopsisLinkActions): HTMLAnchorElement {
+ const anchor=parent.createEl('a',{cls:`em-syn-note internal-link${note.exists?'':' is-unresolved'}`,text:note.title,
+  attr:{href:'./'+encodeURI(note.linktext),'data-href':note.linktext,'data-em-note':note.id, 'aria-label':note.exists?note.title:`${note.title} – noch nicht angelegt`}});
+ anchor.id=`em-syn-note-${crypto.randomUUID()}`;anchor.title=note.path??note.linktext;
+ anchor.onclick=event=>{event.preventDefault();event.stopPropagation();actions.activate(note,event);};
+ anchor.onauxclick=event=>{if(event.button===1){event.preventDefault();actions.activate(note,event);}};
+ anchor.oncontextmenu=event=>{event.preventDefault();actions.inspect(note);};
+ anchor.onmouseover=event=>actions.hover?.(note,event,anchor);
+ return anchor;
+}

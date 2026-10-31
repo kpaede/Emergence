@@ -1,0 +1,48 @@
+import {execFileSync} from 'node:child_process';
+import {resolve, dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {writeFile} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+
+const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const expectedVault = resolve(pluginRoot, '../../..');
+const cli = process.env.OBSIDIAN_CLI ?? '/Applications/Obsidian.app/Contents/MacOS/Obsidian';
+const vault = expectedVault.split('/').at(-1);
+const configHash = () => createHash('sha256').update(readFileSync(resolve(expectedVault, '.obsidian/plugins/breadcrumbs/data.json'))).digest('hex');
+const configurationBefore = configHash();
+const command = (name, args = []) => execFileSync(cli, [`vault=${vault}`, name, ...args], {encoding: 'utf8', timeout: 30000}).trim();
+const evaluate = code => {
+ command('eval', ['code=window.__emergenceRuntimeResult=null']);
+ let text = command('eval', [`code=window.__emergenceRuntimeResult=JSON.stringify((()=>{try{return (${code});}catch(e){return {error:String(e)};}})())`]);
+ for (let attempt = 0; attempt < 30 && (!text.includes('=> ') || text.endsWith('=> null')); attempt++) text = command('eval', ['code=window.__emergenceRuntimeResult']);
+ if (!text.includes('=> ')) throw new Error(`CLI returned no value: ${code.slice(0, 90)}`);
+ const result = JSON.parse(text.slice(text.lastIndexOf('=> ') + 3));
+ if (result?.error) throw new Error(result.error);
+ return result;
+};
+if (command('vault', ['info=path']) !== expectedVault) throw new Error('Wrong vault: aborted without writes.');
+const base = 'app.plugins.plugins.Emergence';
+const view = 'app.workspace.getLeavesOfType("emergence-workspace")[0].view';
+const initial = evaluate(`(()=>{const c=${base}.controller,g=c.graph.snapshot;return {loaded:true,nodes:g.nodes.length,existingNodes:g.nodes.filter(n=>n.exists).length,edges:g.edges.length,explicit:g.edges.filter(e=>e.layer==='breadcrumbs'&&e.explicit).length,implied:g.edges.filter(e=>e.layer==='breadcrumbs'&&!e.explicit).length,ordinary:g.edges.filter(e=>e.layer==='obsidian').length,fields:g.fields,groups:g.groups.length,partial:g.partial,diagnostics:g.diagnostics,model:c.settings().model};})()`);
+if (initial.partial || initial.fields.length === 0) throw new Error('Graph is partial or no Breadcrumbs fields were detected.');
+command('command', ['id=Emergence:open-workspace']);
+const tabs = evaluate(`(()=>{const v=${view};return Array.from(v.contentEl.querySelectorAll('[role=tab]')).map(x=>x.textContent);})()`);
+const panelDimensions = evaluate(`(()=>{const v=${view};v.switchTab('graph');const cy=v.graphPanel.cy,canvas=v.graphPanel.canvas;return {width:canvas.clientWidth,height:canvas.clientHeight,renderedNodes:v.graphPanel.semanticHost.querySelectorAll('a.em-syn-note').length,renderedEdges:v.graphPanel.semantic.geometry?.last.segments.length??0,canvas:!!canvas.querySelector('svg')};})()`);
+if (panelDimensions.width <= 0 || !panelDimensions.canvas) throw new Error('Graph canvas has no width or did not render.');
+const navigation = evaluate(`(()=>{const v=${view},cy=v.graphPanel.cy,pan=JSON.stringify(cy.pan()),zoom=cy.zoom();for(const tab of ['analysis','inquiry','registry','review','graph'])v.switchTab(tab);return {panPreserved:JSON.stringify(cy.pan())===pan,zoomPreserved:cy.zoom()===zoom,tabs:${JSON.stringify(tabs)}};})()`);
+if (!navigation.panPreserved || !navigation.zoomPreserved) throw new Error('Tab navigation changed the camera.');
+const sidebar = evaluate(`app.workspace.getLeavesOfType('emergence-workspace')[0].getRoot()===app.workspace.rightSplit`);
+if (!sidebar) throw new Error('Emergence must be in the right sidebar, preserving the main note editor.');
+const theme = evaluate(`(()=>{const v=${view},host=v.graphPanel.semanticHost;v.refreshTheme();const probe=host.createSpan();probe.style.color='var(--link-color)';const expected=getComputedStyle(probe).color;probe.remove();const note=host.querySelector('a.em-syn-note:not(.is-unresolved)');return {noteColor:getComputedStyle(note).color,expectedText:expected,themeVariables:!!getComputedStyle(host).getPropertyValue('--background-primary')};})()`);
+if (theme.noteColor !== theme.expectedText) throw new Error('Synopsis note colors differ from the native theme link color.');
+const apiComparison = evaluate(`(()=>{const c=${base}.controller,g=c.graph.snapshot,a=window.BCAPI;let count=0;for(const n of g.nodes){const l=a.get_neighbours(n.id),es=l?.get_edges()||[];count+=es.length;for(const e of es)e.free?.();l?.free?.();}return {apiEdges:count,snapshotBreadcrumbs:g.edges.filter(e=>e.layer==='breadcrumbs').length};})()`);
+if (apiComparison.apiEdges !== apiComparison.snapshotBreadcrumbs) throw new Error('Breadcrumbs edge count differs from the API.');
+const protectedWrite = evaluate(`(()=>{const c=${base}.controller;try{new c.review.constructor().accepted();return false;}catch{return true;}})()`);
+if (!protectedWrite) throw new Error('Empty review unexpectedly allowed writes.');
+const report = {vault, checkedAt: new Date().toISOString(), graph: initial, panelDimensions, navigation, sidebar, theme, apiComparison, emptyReviewBlocked: protectedWrite,
+ notesWritten: 0, breadcrumbConfigurationChanged: configurationBefore !== configHash(), newVaultCreated: false, errors: command('dev:errors')};
+if (report.breadcrumbConfigurationChanged) throw new Error('Breadcrumbs configuration changed during the check.');
+await writeFile(resolve(pluginRoot, 'docs/runtime-check.json'), JSON.stringify(report, null, 2) + '\n');
+console.log(JSON.stringify(report, null, 2));
+command('eval', ['code=delete window.__emergenceRuntimeResult']);

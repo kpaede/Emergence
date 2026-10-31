@@ -1,0 +1,9 @@
+{
+  "id": "Emergence",
+  "name": "Emergence",
+  "version": "0.1.0",
+  "minAppVersion": "1.14.0",
+  "description": "Relationssynopse, Notiz- und Zotero-Suche sowie lokale KI-Feldideen für persönliche Wissensarbeit.",
+  "author": "Emergence",
+  "isDesktopOnly": true
+}

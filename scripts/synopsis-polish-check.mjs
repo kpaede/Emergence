@@ -1,0 +1,21 @@
+import {evaluate} from './obsidian-cli.mjs';
+import {writeFileSync,readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {resolve} from 'node:path';
+const source=evaluate('app.plugins.plugins.Emergence.controller.activePath'),before=createHash('sha256').update(readFileSync(resolve('../../..',source))).digest('hex');
+evaluate(`(()=>{const v=app.workspace.getLeavesOfType('emergence-workspace')[0].view,p=v.graphPanel,c=v.controller,prior={tab:v.tab,mode:p.mode,focus:p.focusPath,follow:p.follow},state=window.__emPolish={done:false,calls:[],original:c.addSynopsisLink};
+v.switchTab('graph');p.mode='structure';p.focus(c.activePath);p.semantic.geometry.draw();(async()=>{await new Promise(r=>window.setTimeout(r,100));const h=p.semanticHost,metadata=app.workspace.getMostRecentLeaf(app.workspace.rootSplit).view.contentEl.querySelector('.metadata-container'),fm=metadata.querySelector('.internal-link:not(.is-unresolved)'),missing=metadata.querySelector('.internal-link.is-unresolved');
+const style=n=>{const s=getComputedStyle(n);return {color:s.color,opacity:s.opacity,decoration:s.textDecoration,fontWeight:s.fontWeight};};
+const existing=h.querySelector('a.em-syn-note:not(.is-unresolved)'),unresolved=h.querySelector('a.em-syn-note.is-unresolved'),frame=h.querySelector('.em-syn-focus').getBoundingClientRect(),base=h.querySelector('.em-syn-diagram').getBoundingClientRect();
+state.report={existing:style(existing),frontmatterExisting:style(fm),missing:style(unresolved),frontmatterMissing:style(missing),addKinds:[...h.querySelectorAll('[data-syn-add]')].map(b=>b.dataset.synAdd),emptyCopy:h.textContent.includes('Keine direkten Verbindungen'),citationsUnderLiterature:!!h.querySelector('.em-syn-literature [data-syn-citekey]'),citationsUnderFree:!!h.querySelector('.em-syn-links [data-syn-citekey]'),focusCenter:frame.left+frame.width/2-base.left,upperAxes:p.semantic.geometry.last.segments.filter(s=>s.x1===s.x2&&s.y2<=frame.top-base.top+1).map(s=>s.x1)};
+c.addSynopsisLink=async(...args)=>state.calls.push(args);h.querySelector('[data-syn-add="broader"]').click();
+await new Promise(r=>window.setTimeout(r,100));const modal=p.addModal;state.report.modalField=modal.field;state.report.newChoices=modal.getSuggestions('EmergenceNeuerProbeBegriff').map(s=>({title:s.title,exists:s.exists}));const choice=modal.getSuggestions('Metaphysik').find(s=>s.exists);modal.selectSuggestion(choice,new MouseEvent('click'));await new Promise(r=>window.setTimeout(r,100));state.report.calls=state.calls;for(const n of document.querySelectorAll('.notice'))if(n.textContent==='Überbau: [[Metaphysik]] ergänzt')n.remove();})().catch(e=>state.failure=String(e.stack??e)).finally(()=>{c.addSynopsisLink=state.original;p.addModal?.close();p.mode=prior.mode;p.focusPath=prior.focus;p.follow=prior.follow;p.followBox.checked=prior.follow;p.renderContext();v.switchTab(prior.tab);state.done=true;});return true;})()`);
+let state;for(let i=0;i<60;i++){state=evaluate('({done:window.__emPolish.done,failure:window.__emPolish.failure,report:window.__emPolish.report})');if(state.done)break;await new Promise(r=>setTimeout(r,100));}
+if(!state?.done||state.failure)throw new Error(state?.failure??'Probe timeout');
+const r=state.report;
+r.sourceUnchanged=before===createHash('sha256').update(readFileSync(resolve('../../..',source))).digest('hex');
+r.stylesMatch=JSON.stringify(r.existing)===JSON.stringify(r.frontmatterExisting)&&JSON.stringify(r.missing)===JSON.stringify(r.frontmatterMissing);
+r.plusCorrect=r.addKinds.length===5&&!r.addKinds.includes('literature')&&!r.addKinds.includes('links')&&r.calls.length===1&&r.calls[0][1]==='Überbau';
+writeFileSync('docs/relationssynopse/polish-checks.json',JSON.stringify(state,null,2)+'\n');console.log(JSON.stringify(r,null,2));
+if(!r.stylesMatch||!r.plusCorrect||!r.sourceUnchanged||r.emptyCopy||!r.citationsUnderLiterature||r.citationsUnderFree)throw new Error('Polish verification failed');
+evaluate('delete window.__emPolish');
