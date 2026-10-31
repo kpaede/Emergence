@@ -19,6 +19,7 @@ export function renderFieldIdeas(host: HTMLElement, ctx: PanelContext): void {
  const editing = !!ctx.state.analysis.ideaEdit;
  const status = pending.length ? `${pending.length} offene Ideen` : 'Keine offenen Ideen';
  host.createDiv({text: `${status}${a.elapsedMs === undefined ? '' : ` · ${Math.round(a.elapsedMs / 1000)} s`}`, cls: 'em-muted em-idea-summary', attr: {role: 'status', 'aria-live': 'polite'}});
+ if(a.diagnostics?.sourceMode==='overview')host.createDiv({text:`Arbeitszusammenfassung · ${a.diagnostics.sourceParts??1} Teile`,cls:'em-muted em-caption'});
  if (a.status !== 'complete') badge(host, a.status === 'partial' ? 'Unvollständig' : 'Abgebrochen', 'warning');
  for (const error of a.errors) host.createDiv({text: error, cls: 'em-error'});
  for (const field of a.fields ?? [...new Set(a.suggestions.map(s => s.field))]) {

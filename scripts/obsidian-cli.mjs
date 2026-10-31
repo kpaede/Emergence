@@ -26,7 +26,7 @@ export function reloadPlugin() {
  command('command', ['id=emergence:open-workspace']);
  evaluate(`(()=>{const c=app.plugins.plugins.emergence.controller,s=window.__emReloadState,v=app.workspace.getLeavesOfType('emergence-workspace')[0].view;
  if(s?.analysis){c.review.set(s.analysis);for(const idea of s.analysis.suggestions)if(idea.status==='rejected')c.review.decide(idea.id,'rejected',c.graph.snapshot,'',c.profile);}if(s?.status)c.status=s.status;
- if(s?.inquiryHistory)c.inquiryHistory=s.inquiryHistory;if(s?.research)c.research=s.research;
+ if(s?.inquiryHistory)c.inquiryHistory=[...new Map(s.inquiryHistory.filter(entry=>typeof entry.source==='string').map(entry=>[entry.source,entry])).values()];if(s?.research)c.research=s.research;
  if(s?.selections)c.settings().assignment.fieldsByNote={...c.settings().assignment.fieldsByNote,...s.selections};
  if(s?.ui)v.state={...v.state,...s.ui,search:s.ui.search??{query:'',mode:'open'}};v.switchTab(s?.tab??'graph');
  for(const [key,open]of Object.entries(s?.opened??{})){const box=[...v.contentEl.querySelectorAll('details[data-em-disclosure]')].find(d=>d.dataset.emDisclosure===key);if(box)box.open=open;}

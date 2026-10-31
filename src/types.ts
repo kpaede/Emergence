@@ -76,7 +76,7 @@ export interface AnalysisResult {
  elapsedMs?: number; discarded?: number;
  fields?: string[]; perField?: number;
  wikipedia?: WikipediaContext;
- diagnostics?: {requests: number; titlesTotal: number; titlesSent: number; titleMode?: 'full' | 'local'; estimatedTokens?: number; ignoredLines: number; preparationMs: number; model: ModelMetrics[]};
+ diagnostics?: {sourceMode?:'full'|'overview';sourceParts?:number;requests: number; titlesTotal: number; titlesSent: number; titleMode?: 'full' | 'local'; estimatedTokens?: number; ignoredLines: number; preparationMs: number; model: ModelMetrics[]};
 }
 export interface WikipediaSource {id: string; title: string; url: string; excerpt: string; related: string[]; language: 'de' | 'en'}
 export interface WikipediaContext {query: string; status: 'ready' | 'empty' | 'error'; sources: WikipediaSource[]; fetchedAt: string; message?: string; cached?: boolean; shortened?: boolean}

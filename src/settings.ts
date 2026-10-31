@@ -63,7 +63,7 @@ export class EmergenceSettingsTab extends PluginSettingTab {
    const previous = this.plugin.settings; this.plugin.settings = next;
    try {await this.plugin.saveSettings();} catch (error) {this.plugin.settings = previous; throw error;}
    this.draft = clone(next); this.dirty = false;
-   if (JSON.stringify([previous.assignment, previous.conceptFolders, previous.fieldDescriptions, previous.rules, previous.profiles]) !== JSON.stringify([next.assignment, next.conceptFolders, next.fieldDescriptions, next.rules, next.profiles])) this.plugin.controller.invalidateAssignments();
+   if (JSON.stringify([previous.assignment, previous.conceptFolders, previous.fieldDescriptions, previous.rules, previous.profiles,previous.endpoint,previous.model,previous.numCtx,previous.think]) !== JSON.stringify([next.assignment, next.conceptFolders, next.fieldDescriptions, next.rules, next.profiles,next.endpoint,next.model,next.numCtx,next.think])) this.plugin.controller.invalidateAssignments();
    this.plugin.controller.writer.invalidate(); this.plugin.controller.rebuild(); this.renderBody(); this.report('Änderungen gespeichert.');
   } catch (error) {this.report(errorMessage(error), true);} finally {this.updateSave();}
  }

@@ -134,6 +134,12 @@ describe('Ollama runtime protocol', () => {
   finally {vi.unstubAllGlobals();}
  });
  it('diagnoses missing model without downloading', async () => {const transport = mockTransport({tags: {models: []}}); const p = new OllamaProvider(defaults, transport); await expect(p.health()).rejects.toThrow('Kein automatischer'); expect(transport).toHaveBeenCalledTimes(1);});
+ it('rechecks model capabilities and cloud status when the local endpoint changes',async()=>{
+  const s=defaults(),transport=mockTransport(),p=new OllamaProvider(()=>s,transport),options={messages:[],maxTokens:128,temperature:0,signal:new AbortController().signal};
+  await p.chat(options);s.endpoint='http://127.0.0.1:11435';await p.chat(options);
+  const address=(url:Parameters<typeof fetch>[0])=>typeof url==='string'?url:url instanceof URL?url.href:url.url;const secondHost=transport.mock.calls.filter(([url])=>address(url).startsWith(s.endpoint));expect(secondHost.map(([url])=>address(url).split('/api/')[1])).toEqual(['tags','show','version','chat']);
+  s.endpoint='http://127.0.0.1:11436';transport.mockImplementation(mockTransport({show:{remote_model:'cloud-only'}}));await expect(p.chat(options)).rejects.toThrow('Remote');
+ });
  it('blocks remote models and incomplete generations', async () => {
   await expect(new OllamaProvider(defaults, mockTransport({show: {remote_host: 'external'}})).health()).rejects.toThrow('Remote');
   await expect(new OllamaProvider(defaults, mockTransport({chat: {done: true, done_reason: 'length', message: {content: 'Partial'}}})).chat({messages: [], maxTokens: 128, temperature: 0.2, signal: new AbortController().signal})).rejects.toThrow('unvollständig');

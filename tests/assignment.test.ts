@@ -180,7 +180,8 @@ describe('whole-note title catalogue', () => {
   for (let i = g.nodes.length; i <= 10000; i++) g.nodes.push({...g.nodes[1]!, id: `Weiterer langer Testtitel ${i}.md`, title: `Weiterer langer Testtitel ${i}`});
   const prepared = prepareAssignments('Parola scenica.md', content, g, p, settings, {...options, perField: 4});
   const context = prepared.contexts[0]!;
-  expect(prepared.contexts).toHaveLength(1);
+  expect(prepared.contexts.flatMap(item=>item.fields)).toEqual(fields);
+  expect(prepared.contexts.every(item=>item.titleMode==='local'&&item.estimatedTokens<=8192)).toBe(true);
   expect(context.titleMode).toBe('local');
   expect(context.candidates).toEqual([]);
   expect(prepared.targets).toHaveLength(10000);

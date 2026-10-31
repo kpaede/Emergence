@@ -1,9 +1,10 @@
 {
   "id": "emergence",
   "name": "Emergence",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "minAppVersion": "1.14.0",
   "description": "Relationssynopse, Notiz- und Zotero-Suche sowie lokale KI-Feldideen für persönliche Wissensarbeit.",
-  "author": "Emergence",
-  "isDesktopOnly": true
+  "author": "kpaede",
+  "isDesktopOnly": true,
+  "authorUrl": "https://github.com/kpaede"
 }

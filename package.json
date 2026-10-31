@@ -1,6 +1,6 @@
 {
   "name": "emergence",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Lokaler Multiplex-Wissensgraph und kontrollierte KI-Vorschläge für Obsidian",
   "main": "main.js",
   "type": "module",
@@ -32,7 +32,8 @@
     "test:synopsis": "node scripts/synopsis-native-check.mjs",
     "test:workspace": "node scripts/workspace-native-check.mjs",
     "test:research": "node scripts/research-native-check.mjs",
-    "test:native-views": "node scripts/native-views-check.mjs"
+    "test:native-views": "node scripts/native-views-check.mjs",
+    "release:check": "node scripts/check-release.mjs"
   },
   "keywords": [],
   "license": "0-BSD",
@@ -50,7 +51,8 @@
     "obsidian": "latest",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.59.1",
-    "vitest": "^3.2.4"
+    "vite": "^7.3.7",
+    "vitest": "^5.0.5"
   },
   "dependencies": {
     "ajv": "^8.20.0",

@@ -24,3 +24,6 @@ data.json
 # Local vault checks, generated reports, screenshots and source exports
 /docs/*
 !/docs/VALIDATION.md
+
+# Generated release artifacts
+/dist/

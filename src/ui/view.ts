@@ -90,7 +90,7 @@ export class EmergenceView extends ItemView {
   // Never replace a pressed control between pointer/key down and its click.
   if (this.interactionHeld) {this.updatePending = true; this.forcePending ||= force; return;}
   const c = this.controller, g = c.graph.snapshot, a = c.review.analysis;
-  const pending = a?.suggestions.filter(s => s.status === 'pending').length ?? 0;
+  const pending = (a?.source===c.activePath?a.suggestions.filter(s => s.status === 'pending').length:0) ?? 0;
   this.status.setText(c.abort ? 'Anfrage läuft' : pending ? `${pending} ungeprüft` : 'Lokal');
   this.statusDetails.empty();
   const list = this.statusDetails.createEl('dl');
@@ -98,7 +98,7 @@ export class EmergenceView extends ItemView {
    list.createEl('dt', {text: name}); list.createEl('dd', {text: value});
   }
   this.graphPanel?.update(); this.searchPanel?.update(); if (this.tab === 'graph' || this.tab === 'search') return;
-  const fingerprint = JSON.stringify([this.tab, g.version, c.review.revision, c.activePath, c.status, !!c.abort, c.applyingIdea, !!c.profilePromptSave, c.settings().activeProfile, c.inquiryHistory.length]);
+  const fingerprint = JSON.stringify([this.tab, g.version, c.review.revision, c.activePath, c.status, !!c.abort, c.applyingIdea, !!c.profilePromptSave, c.settings().activeProfile, c.inquiryHistory.length,c.currentResearch?.prompt,c.currentResearch?.answer]);
   if (!force && fingerprint === this.fingerprint) return; this.fingerprint = fingerprint;
   const panel = this.panels.get(this.tab)!, focused = panel.ownerDocument.activeElement;
   const editable = focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement || focused instanceof HTMLSelectElement ? focused : undefined;

@@ -11,7 +11,11 @@ Ein Obsidian-Plugin für philosophische Begriffsarbeit: Breadcrumbs-Beziehungen 
 - Optional **ZotLit 2.2** mit eingerichteter Zotero-Datenbank für Library-Suche und Zitate.
 - Optional **Ollama** mit einem bereits lokal installierten Modell für Analyse und Recherche. Die Voreinstellung ist `qwen3.5:9b`; Emergence lädt kein Modell selbst herunter. Graph und Suche brauchen kein Sprachmodell.
 
-## Installation aus dem Quellcode
+## Installation
+
+Aus [Release 0.0.1](https://github.com/kpaede/Emergence/releases/tag/0.0.1) die drei Dateien `main.js`, `manifest.json` und `styles.css` herunterladen und unter `<Vault>/.obsidian/plugins/emergence/` ablegen. Anschließend unter **Einstellungen → Community-Plugins** aktivieren. Der Release enthält zusätzlich SHA-256-Prüfsummen. Bis zur Aufnahme ins Community-Verzeichnis erfolgt die Installation manuell.
+
+### Aus dem Quellcode
 
 ```sh
 git clone https://github.com/kpaede/Emergence.git
@@ -20,7 +24,7 @@ npm ci
 npm run build
 ```
 
-Node.js 20 oder neuer verwenden. Anschließend `main.js`, `manifest.json` und `styles.css` in den Ordner `<Vault>/.obsidian/plugins/emergence/` kopieren und Emergence unter **Einstellungen → Community-Plugins** aktivieren. Die Plugin-ID lautet `emergence` und enthält gemäß Obsidian-Vorgabe nur Kleinbuchstaben. Bei älteren Entwicklungsinstallationen muss auch der Plugin-Ordner entsprechend umbenannt werden; `data.json` bleibt dabei erhalten. Das generierte `main.js` wird nicht im Repository verwaltet.
+Node.js **22.12 oder neuer innerhalb der unterstützten 22er-/24er-LTS-Reihen** verwenden. Anschließend `main.js`, `manifest.json` und `styles.css` in den Ordner `<Vault>/.obsidian/plugins/emergence/` kopieren und Emergence unter **Einstellungen → Community-Plugins** aktivieren. Die Plugin-ID lautet `emergence` und enthält gemäß Obsidian-Vorgabe nur Kleinbuchstaben. Bei älteren Entwicklungsinstallationen muss auch der Plugin-Ordner entsprechend umbenannt werden; `data.json` bleibt dabei erhalten. Das generierte `main.js` wird nicht im Repository verwaltet.
 
 Über das Netzwerk-Symbol in der Seitenleiste oder den Befehl **Emergence: Wissensgraph und Analyse öffnen** öffnet sich das Plugin im rechten Seitenpanel. Die Hauptnotiz bleibt daneben editierbar.
 
@@ -75,7 +79,9 @@ Bis zu vier Beispiele erscheinen als einzelne kompakte Zeilen mit Übernehmen, A
 
 Der Notizkontext wird ausdrücklich gewählt: kein zusätzlicher Notiztext, Markierung, aktuelle Notiz, Beziehungen oder bestimmte Notizen. Die freie Textantwort bleibt lesend; nur die ausdrückliche Übernahme einer Beispielzeile schreibt einen Link.
 
-Jede Frage ist zunächst unabhängig. Nur **Bisheriges Gespräch einbeziehen** sendet die letzten drei Gesprächsrunden mit. Der sichtbare Sitzungsverlauf wird nicht automatisch Kontext für neue Fragen oder Wikipedia-Suchen.
+Recherche zeigt **nur das letzte Ergebnis der aktuellen Notiz**. Eine neue Anfrage entfernt dieses Ergebnis sofort und ersetzt es nach Abschluss. Beim Notizwechsel erscheint ausschließlich das Ergebnis der jeweiligen Notiz; auch Frageentwurf und Websuchbegriffe bleiben getrennt. Es gibt keine globale Such- oder Vorschlagshistorie und keine automatische Gesprächsübertragung. Nur **Antwort fortsetzen** bezieht ausdrücklich die betreffende letzte Antwort ein.
+
+**Lange Notizen:** Passende Texte gehen unverändert in die Anfrage. Bei zu großem Kontext verarbeitet das Modell den gesamten gewählten Notizkontext abschnittweise und beantwortet die eigentliche Frage anschließend anhand einer gekennzeichneten Arbeitszusammenfassung. Dasselbe gilt für Feldideen und konkrete Beispiele; Feldregeln werden bei Bedarf in Gruppen bearbeitet. Es wird kein bloßer Anfangsausschnitt verwendet und das Kontextfenster bleibt unverändert. Diese zusätzliche Verarbeitung dauert länger und kann Details verdichten oder verlieren. Die Originalnotiz wird dabei nicht geändert. Falls schon Frage und Regeln allein nicht ins Fenster passen, erscheint weiterhin eine konkrete Fehlermeldung. Fehlgeschlagene oder abgebrochene Vorbereitung gibt kein Teilergebnis zur Übernahme frei.
 
 Recherche hat ein eigenes, an den verfügbaren Kontext angepasstes Ausgabebudget. Erreicht eine Antwort das Ausgabelimit, bleibt ihr Text sichtbar und wird als gekürzt gekennzeichnet. **Antwort fortsetzen** setzt genau diese Antwort fort. Unvollständige strukturierte Analysen bleiben dagegen für die Übernahme gesperrt.
 
@@ -99,7 +105,13 @@ Graphindex und Suche arbeiten lokal über Obsidian und ZotLit. Für CSL-Daten bi
 
 **Wikipedia ist ebenfalls optional.** Bei eingeschaltetem Haken wird der angegebene Begriff an Wikipedia geschickt und ein begrenzter Auszug mit Quellenangabe als zusätzlicher Modellkontext verwendet. Notiztexte und Gesprächsverläufe werden nicht als Wikipedia-Suchanfrage übertragen. Ohne Haken erfolgt keine neue Wikipedia-Abfrage. Das Modell kann nicht selbstständig im Web browsen.
 
-Plugin-Einstellungen und das Änderungsjournal liegen in Obsidian-typischem `data.json`. Rechercheverlauf und Suchtreffer bleiben im Arbeitsspeicher. Persönliche Einstellungen, Vault-Inhalte und lokale Prüfberichte gehören nicht ins Repository.
+Plugin-Einstellungen und das Änderungsjournal liegen in Obsidian-typischem `data.json`. Das jeweils letzte Rechercheergebnis pro Notiz und Suchtreffer bleiben nur im Arbeitsspeicher; sie werden nicht gespeichert und beim Entladen gelöscht. Persönliche Einstellungen, Vault-Inhalte und lokale Prüfberichte gehören nicht ins Repository.
+
+## Release und Community-Prüfung
+
+Version **0.0.1** verwendet die unveränderliche ID `emergence`. Manifest, Paketversion, `versions.json`, exakter Git-Tag und Einzeldateien werden vor der Veröffentlichung geprüft. GitHub Actions führt Build, Tests, Lint und einen Produktionsabhängigkeits-Audit aus, erstellt zunächst einen Entwurf und veröffentlicht ihn erst nach Download und Prüfsummenvergleich der Assets. Generierte Bundles werden ausschließlich als Release-Assets veröffentlicht.
+
+Die offizielle automatische Obsidian-Prüfung ist ein eigener Schritt: Im [Community-Verzeichnis](https://community.obsidian.md) mit dem Obsidian-Konto anmelden, GitHub verknüpfen und das Repository als Plugin hinzufügen. Danach zeigt das Verzeichnis die Prüfergebnisse. Ein GitHub-Release allein startet diese Prüfung nicht. Siehe [offizielle Einreichungsanleitung](https://docs.obsidian.md/plugins/releasing/submit-plugin).
 
 ## Grenzen und Entwicklung
 

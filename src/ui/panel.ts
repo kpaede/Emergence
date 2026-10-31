@@ -8,11 +8,16 @@ export type Tab = 'search' | 'graph' | 'analysis' | 'inquiry';
 export interface PanelState {
  analysis: WikipediaUiState & WebSearchUiState & {folders?: string; properties?: string; filter?: 'none' | 'breadcrumbs' | 'custom'; descriptionField?: string; descriptions?: Record<string, string>; fieldsOpen?: boolean; descriptionsOpen?: boolean; scopeOpen?: boolean;
   connection?: 'checking' | 'success' | 'error'; connectionMessage?: string; targetChoice?: string; ideaEdit?: {id: string; value: string; error?: string}; profileDrafts?: Record<string, ProfilePromptDraft>};
- inquiry: WikipediaUiState & WebSearchUiState & {prompt: string; mode: string; extra: string; template: string; includeHistory?:boolean;kind?:import('../llm/research-examples').ResearchKind;field?:string;editingExample?:{id:string;value:string;error?:string}};
+ inquiry: WikipediaUiState & WebSearchUiState & {prompt: string; mode: string; extra: string; template: string; kind?:import('../llm/research-examples').ResearchKind;field?:string;editingExample?:{id:string;value:string;error?:string}};
+ inquirySource?:string;inquiries?:Record<string,PanelState['inquiry']>;
  search: {query: string; mode: 'open' | 'explore'};
  review: {query: string; status: string; page: number; expanded: string};
 }
 export const initialPanelState = (): PanelState => ({analysis: {}, inquiry: {prompt: '', mode: 'none', extra: '', template: '', kind:'examples', webGoal:'examples'}, search: {query: '', mode: 'open'}, review: {query: '', status: 'all', page: 0, expanded: ''}});
+export function inquiryStateForNote(state:PanelState,source:string):PanelState['inquiry']{
+ if(state.inquirySource===undefined){state.inquirySource=source;state.inquiries??={};return state.inquiry;}
+ if(state.inquirySource!==source){state.inquiries??={};if(state.inquirySource!==undefined)state.inquiries[state.inquirySource]=state.inquiry;state.inquiry=state.inquiries[source]??initialPanelState().inquiry;state.inquirySource=source;}return state.inquiry;
+}
 export interface PanelContext {
  host: HTMLElement; controller: EmergenceController; state: PanelState;
  navigate(tab: Tab): void; repaint(): void; run(action: () => unknown): Promise<void>; isCurrent(): boolean;

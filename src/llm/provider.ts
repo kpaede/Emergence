@@ -20,6 +20,7 @@ export class OllamaProvider implements LLMProvider {
  private active = 0;
  private capabilities?: Capabilities;
  private capabilitiesModel = '';
+ private capabilitiesEndpoint = '';
  constructor(private settings: () => Settings, private transport: typeof fetch = (input, init) => fetch(input, init)) {}
  cancel(): void {for (const c of this.controllers) c.abort();}
  private async request(path: string, body?: object, signal?: AbortSignal): Promise<Record<string, unknown>> {
@@ -66,7 +67,7 @@ export class OllamaProvider implements LLMProvider {
   assert(!metadata.remote_host && !metadata.remote_model, 'Remote-/Cloud-Modell wird nicht verwendet.');
   let version = 'unbekannt';
   try {const v = await this.request('/api/version', undefined, signal); if (typeof v.version === 'string') version = v.version;} catch { /* Optional endpoint. */ }
-  this.capabilitiesModel = model;
+  this.capabilitiesModel = model;this.capabilitiesEndpoint=this.settings().endpoint;
   return this.capabilities = {models, thinking: Array.isArray(metadata.capabilities) && metadata.capabilities.includes('thinking'), metadata, version};
  }
  async chat(options: ChatOptions): Promise<string> {
@@ -75,7 +76,7 @@ export class OllamaProvider implements LLMProvider {
   assert(this.active < s.maxConcurrent, 'Lokale Anfrage läuft bereits. Bitte abbrechen oder deren Abschluss abwarten.');
   this.active++;
   try {
-   if (!this.capabilities || this.capabilitiesModel !== s.model) await this.health(options.signal);
+   if (!this.capabilities || this.capabilitiesModel !== s.model || this.capabilitiesEndpoint!==s.endpoint) await this.health(options.signal);
    assert(!s.think || this.capabilities?.thinking, 'Dieses Modell meldet keine Thinking-Unterstützung.');
    const result = await this.request('/api/chat', {model: s.model, messages: options.messages,
     stream: false, ...(options.format ? {format: options.format} : {}),

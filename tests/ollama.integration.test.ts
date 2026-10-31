@@ -6,11 +6,25 @@ import {DocumentAnalyzer} from '../src/llm/analyzer';
 import type {Concept} from '../src/types';
 import {graph, profile, edge} from './fixtures';
 import type {AssignmentOptions} from '../src/llm/assignment-context';
+import {contextEstimate,estimateTextTokens} from '../src/llm/context';
+import {hash} from '../src/util';
 
 const live = process.env.EMERGENCE_OLLAMA_TEST === '1';
 const concept = (id: string, properties: string[] = []): Concept => ({id, title: id.split('/').at(-1)!.replace(/\.md$/u, ''), aliases: [], tags: [], type: 'md', exists: true, mtime: 1, size: 1, properties});
 const model = process.env.EMERGENCE_TEST_MODEL ?? defaults().model;
 const settings = defaults(); settings.model = model;
+
+it.skipIf(!live)('local Qwen processes a note larger than its context window before proposing field ideas',async()=>{
+ const config={...settings,timeoutMs:180000},g=graph(),p=profile();p.maxTokens=1024;
+ g.fields=['Überbau'];g.groups=[];g.edges=[];g.nodes=[concept('Ontologie.md',['Überbau']),concept('Philosophie.md')];g.rules={'Überbau':{...unknownRule('Überbau'),description:'Übergeordnetes Fachgebiet, dessen Teildisziplin die Ausgangsnotiz ist.',provenance:'user',writable:true,targetProperty:'Überbau'}};
+ const paragraphs=['Ontologie untersucht als philosophische Disziplin das Sein, Existenz und Kategorien des Seienden.','Substanzen, Eigenschaften, Relationen und Prozesse sind mögliche ontologische Kategorien. Die Einordnung eines Begriffs ist von seinem Namen zu unterscheiden.','Erkenntnistheorie fragt nach Wissen und seinen Bedingungen. Ontologie fragt dagegen danach, was existiert. Beide gehören zur Philosophie.'];
+ let body='# Ontologie\n';for(let i=0;estimateTextTokens(body)<config.numCtx*1.15;i++)body+=`\nAbsatz ${i+1}. ${paragraphs[i%paragraphs.length]}\n`;
+ const text='---\nÜberbau:\n---\n'+body+'\nAbschluss: Ontologie ist eine Teildisziplin der Philosophie.\n',provider=new OllamaProvider(()=>config),requests:import('../src/llm/provider').ChatOptions[]=[],start=performance.now();
+ const tracked:LLMProvider={health:signal=>provider.health(signal),cancel:()=>provider.cancel(),chat:async request=>{requests.push(request);expect(contextEstimate(request.messages,request.maxTokens,request.format)).toBeLessThanOrEqual(config.numCtx);return provider.chat(request);}};
+ const result=await new DocumentAnalyzer(tracked).analyze('Ontologie.md',text,g,p,config,new AbortController().signal,message=>process.stdout.write(message+'\n'),'','',{fields:['Überbau'],folders:[],allowNew:true,maxSuggestions:4,perField:4,outputId:'relations'});
+ process.stdout.write(JSON.stringify({case:'long-note-field-ideas',sourceCharacters:text.length,estimatedSourceTokens:estimateTextTokens(body),numCtx:config.numCtx,requests:requests.length,seconds:Number(((performance.now()-start)/1000).toFixed(2)),status:result.status,assignments:result.suggestions.map(s=>[s.field,s.target]),diagnostics:result.diagnostics})+'\n');
+ expect(result.status,result.errors.join('\n')).toBe('complete');expect(result.sourceVersion).toBe(await hash(text));expect(result.diagnostics?.sourceMode).toBe('overview');expect(result.diagnostics!.sourceParts).toBeGreaterThan(1);expect(result.suggestions).toContainEqual(expect.objectContaining({field:'Überbau',target:'Philosophie.md',status:'pending',value:'[[Philosophie]]'}));
+},600000);
 const options = (fields: string[]): AssignmentOptions => ({fields, folders: [], allowNew: true, maxSuggestions: 4, outputId: 'relations'});
 function counted(config = settings) {
  const provider = new OllamaProvider(() => config);

@@ -49,7 +49,8 @@ export const tokenBound = (messages: Message[]): number => 32 + messages.reduce(
 export function contextEstimate(messages: Message[], outputTokens: number, structured: boolean | object = false): number {
  return tokenBound(messages) + (typeof structured === 'object' ? estimateTextTokens(JSON.stringify(structured)) : 0) + outputTokens + 512;
 }
+export class ContextBudgetError extends Error {}
 export function ensureBudget(messages: Message[], settings: Settings, outputTokens: number, structured: boolean | object = false): void {
  const total = contextEstimate(messages, outputTokens, structured);
- assert(total <= settings.numCtx, `Geschätztes Kontextbudget überschritten (${total} einschließlich Ausgabe und Reserve > ${settings.numCtx}).`);
+ if(total>settings.numCtx)throw new ContextBudgetError(`Geschätztes Kontextbudget überschritten (${total} einschließlich Ausgabe und Reserve > ${settings.numCtx}).`);
 }

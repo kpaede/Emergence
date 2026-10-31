@@ -3,6 +3,7 @@ import {renderWebSearchOption, renderWebSearchContext, webSearchRequest} from '.
 import {Modal} from 'obsidian';
 import {button} from '../helpers';
 import {badge, disclosure, title, type PanelContext} from '../panel';
+import {ContextBudgetError} from '../../llm/context';
 import {prepareAssignments} from '../../llm/assignment-context';
 import {renderAnalysisScope} from './analysis-scope';
 import {errorMessage} from '../../util';
@@ -42,9 +43,8 @@ export function renderAnalysis(ctx: PanelContext): void {
  }
  if (c.abort) host.createDiv({text: c.status, cls: 'em-muted em-caption', attr: {role: 'status', 'aria-live': 'polite'}});
  const a = c.review.analysis;
- if (a) {
+ if (a&&a.source===c.activePath) {
   const summary = host.createDiv({cls: 'em-analysis-result'});
-  if (a.source !== c.activePath) {summary.createDiv({text: 'Ideen für eine andere Notiz', cls: 'em-muted'}); renderIdeaContext(summary, a.source);}
   if (a.perField) renderFieldIdeas(summary, ctx);
   else {
    title(summary, 'Zuordnungsvorschläge');
@@ -66,9 +66,10 @@ function renderDiagnostics(ctx: PanelContext): void {
   const assignment = c.assignmentOptions(), total = scopedTargets(c.activePath, c.graph.snapshot, assignment.folders, assignment.targetProperties, assignment.excludeExistingTargets).length;
   options.createDiv({text: `${total} vorhandene Notizen in der Titelliste`, cls: 'em-muted em-caption'});
  }
- if (a?.diagnostics) {
+ if (a?.source===c.activePath&&a.diagnostics) {
   const d = a.diagnostics;
   options.createDiv({text: `${d.requests} Anfrage · ${d.titleMode === 'local' ? `lokaler Abgleich gegen ${d.titlesTotal} Zieltitel` : `${d.titlesSent}/${d.titlesTotal} Zieltitel im Kontext`}`, cls: 'em-muted em-caption'});
+  if(d.sourceMode==='overview')options.createDiv({text:`Arbeitszusammenfassung aus ${d.sourceParts??1} vollständig verarbeiteten Teilen.`,cls:'em-muted em-caption'});
   if (d.estimatedTokens !== undefined) options.createDiv({text: `Kontext geschätzt: ${d.estimatedTokens}/${c.settings().numCtx} Tokens einschließlich Ausgabe und Reserve.`, cls: 'em-muted em-caption'});
   for (const m of d.model) options.createDiv({text: [m.loadMs === undefined ? '' : `Laden ${(m.loadMs / 1000).toFixed(1)} s`,
    m.promptMs === undefined ? '' : `Eingabe ${(m.promptMs / 1000).toFixed(1)} s`, m.generationMs === undefined ? '' : `Ausgabe ${(m.generationMs / 1000).toFixed(1)} s`,
@@ -123,10 +124,13 @@ async function openPreview(ctx: PanelContext): Promise<void> {
   const online=wikipediaRequest(ctx.state.analysis,file.path);
   const wikipedia=online.enabled?await c.wikipedia.lookup(online.term??'',abort.signal):undefined;
   if(abort.signal.aborted)return;
-  const request = prepareAssignments(file.path, content, c.graph.snapshot, previewProfile(ctx), c.settings(), {...c.assignmentOptions(content),...(wikipedia?{wikipedia}:{})});
+  const assignment={...c.assignmentOptions(content),...(wikipedia?{wikipedia}:{})};let request:ReturnType<typeof prepareAssignments>,needsOverview=false;
+  try{request=prepareAssignments(file.path,content,c.graph.snapshot,previewProfile(ctx),c.settings(),assignment);}
+  catch(error){if(!(error instanceof ContextBudgetError))throw error;needsOverview=true;request=prepareAssignments(file.path,content,c.graph.snapshot,previewProfile(ctx),c.settings(),{...assignment,overview:{text:'[Arbeitszusammenfassung aus allen Notizabschnitten; wird erst beim Start lokal erzeugt.]',parts:1}});}
   const prepared = request.contexts[0]!;
   body.empty();if(hasPromptDraft(ctx))body.createDiv({text:'Vorschau mit ungespeichertem Promptentwurf.',cls:'em-muted'});
   body.createDiv({text: `${request.sections.length} Modellanfrage · ${prepared.titleMode === 'local' ? `lokaler Abgleich gegen alle ${request.targets.length} Zieltitel` : `${prepared.candidates.length}/${request.targets.length} Zieltitel im Kontext`} · geschätzt ${prepared.estimatedTokens}/${c.settings().numCtx} Tokens einschließlich Ausgabe und Reserve.`, cls: 'em-muted'});
+  if(needsOverview)body.createDiv({text:'Vor der Zuordnung wird der gesamte Notizinhalt abschnittweise aufbereitet. Diese Vorschau zeigt den abschließenden Anfrageplan mit einem Platzhalter; noch keine Modellanfrage gestartet.',cls:'em-muted em-caption'});
   renderWikipediaContext(body,prepared.wikipedia,'preview-wikipedia');
   body.createEl('pre', {text: JSON.stringify(request.contexts.map(({messages, format, maxTokens}) => ({messages, format, maxTokens})), null, 2), cls: 'em-code-preview'});
  } catch (error) {body.empty(); body.createDiv({text: errorMessage(error), cls: 'em-error', attr: {role: 'alert'}});}
