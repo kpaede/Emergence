@@ -131,7 +131,7 @@ describe('Breadcrumbs assignments, not free associations', () => {
    const target = data.data.titles.find(title => title === 'Alt')!;
    return JSON.stringify({suggestions: [0, 1].map(() => ({field: 'Überbau', target, evidence: 'T'}))});
   }};
-  const result = await new DocumentAnalyzer(provider).analyze('Quelle.md', '# Quelle\nAlt', graph(), profile(), defaults(), new AbortController().signal, () => {}, '', '', options());
+  const result = await new DocumentAnalyzer(provider).analyze('Quelle.md', '# Quelle\nAlt', graph(), profile(), defaults(), new AbortController().signal, () => {}, options());
   expect(calls).toBe(1); expect(result.suggestions).toHaveLength(1); expect(result.suggestions[0]).toMatchObject({field: 'Überbau', target: 'Alt.md', reason: '', evidenceSource: 'title', status: 'pending'});
   expect(result.candidates).toEqual([]); expect(result.artifacts).toEqual([]);
  });

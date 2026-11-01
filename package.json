@@ -1,6 +1,6 @@
 {
   "name": "emergence",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Lokaler Multiplex-Wissensgraph und kontrollierte KI-Vorschläge für Obsidian",
   "main": "main.js",
   "type": "module",
@@ -16,6 +16,8 @@
     "test:obsidian": "node scripts/obsidian-check.mjs",
     "test:ollama": "EMERGENCE_OLLAMA_TEST=1 vitest run tests/ollama.integration.test.ts",
     "test:ux": "node scripts/ux-check.mjs",
+    "test:settings-ui": "node scripts/settings-native-check.mjs",
+    "test:field-ideas-native": "node scripts/field-ideas-native-check.mjs",
     "test:context": "node scripts/context-check.mjs",
     "test:assignment-ui": "node scripts/assignment-ui-check.mjs",
     "test:analysis-interactions": "node scripts/analysis-interaction-check.mjs",
@@ -28,12 +30,12 @@
     "test:target-matches": "node scripts/target-matches-native-check.mjs",
     "test:profile-prompt": "node scripts/profile-prompt-native-check.mjs",
     "test:wikipedia-ui": "node scripts/wikipedia-native-check.mjs",
-    "test:inquiry-history": "node scripts/inquiry-history-native-check.mjs",
     "test:synopsis": "node scripts/synopsis-native-check.mjs",
     "test:workspace": "node scripts/workspace-native-check.mjs",
-    "test:research": "node scripts/research-native-check.mjs",
     "test:native-views": "node scripts/native-views-check.mjs",
-    "release:check": "node scripts/check-release.mjs"
+    "release:check": "node scripts/check-release.mjs",
+    "test:literature-ui": "node scripts/literature-native-check.mjs",
+    "test:literature-scroll": "node scripts/literature-scroll-native-check.mjs"
   },
   "keywords": [],
   "license": "0-BSD",

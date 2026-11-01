@@ -132,11 +132,11 @@ export function runLayout(cy: Core, graph: GraphSnapshot, name: Settings['layout
  const display = cy.edges().map(e => ({edge: e, value: String(e.style('display'))}));
  if (!layoutGraph) cy.edges().style('display', 'element');
  return new Promise((resolve, reject) => {
-  let timer: ReturnType<typeof setTimeout>;
-  const finish = () => {clearTimeout(timer); layoutGraph?.destroy();};
+  let timer: number | undefined;
+  const finish = () => {window.clearTimeout(timer); layoutGraph?.destroy();};
   try {
    const layout = elements.layout({...options, fit: layoutGraph ? false : fit} as LayoutOptions);
-   timer = setTimeout(() => {layout.stop(); finish(); reject(new Error('Layout-Zeitlimit erreicht; globale Suche und Datenansicht bleiben verfügbar.'));}, 25000);
+   timer = window.setTimeout(() => {layout.stop(); finish(); reject(new Error('Layout-Zeitlimit erreicht; globale Suche und Datenansicht bleiben verfügbar.'));}, 25000);
    layout.one('layoutstop', () => {
     if (!cy.destroyed() && isCurrent()) {
      if (layoutGraph) for (const n of layoutGraph.nodes()) cy.getElementById(n.id()).position(n.position());

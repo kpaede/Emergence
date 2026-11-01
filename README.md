@@ -9,11 +9,11 @@ Ein Obsidian-Plugin für philosophische Begriffsarbeit: Breadcrumbs-Beziehungen 
 - Obsidian Desktop ab **1.14.0**. Mobile wird nicht unterstützt.
 - **Breadcrumbs v4** für typisierte Beziehungen und dessen Graph-API. Gewöhnliche Notizlinks funktionieren auch ohne Breadcrumbs.
 - Optional **ZotLit 2.2** mit eingerichteter Zotero-Datenbank für Library-Suche und Zitate.
-- Optional **Ollama** mit einem bereits lokal installierten Modell für Analyse und Recherche. Die Voreinstellung ist `qwen3.5:9b`; Emergence lädt kein Modell selbst herunter. Graph und Suche brauchen kein Sprachmodell.
+- Optional **Ollama** mit einem bereits lokal installierten Modell für Feldideen. Die Voreinstellung ist `qwen3.5:9b`; Emergence lädt kein Modell selbst herunter. Graph und Suche brauchen kein Sprachmodell.
 
 ## Installation
 
-Aus [Release 0.0.1](https://github.com/kpaede/Emergence/releases/tag/0.0.1) die drei Dateien `main.js`, `manifest.json` und `styles.css` herunterladen und unter `<Vault>/.obsidian/plugins/emergence/` ablegen. Anschließend unter **Einstellungen → Community-Plugins** aktivieren. Der Release enthält zusätzlich SHA-256-Prüfsummen. Bis zur Aufnahme ins Community-Verzeichnis erfolgt die Installation manuell.
+Aus [Release 0.0.2](https://github.com/kpaede/Emergence/releases/tag/0.0.2) die drei Dateien `main.js`, `manifest.json` und `styles.css` herunterladen und unter `<Vault>/.obsidian/plugins/emergence/` ablegen. Anschließend unter **Einstellungen → Community-Plugins** aktivieren. Der Release enthält zusätzlich SHA-256-Prüfsummen. Bis zur Aufnahme ins Community-Verzeichnis erfolgt die Installation manuell.
 
 ### Aus dem Quellcode
 
@@ -28,25 +28,25 @@ Node.js **22.12 oder neuer innerhalb der unterstützten 22er-/24er-LTS-Reihen** 
 
 Über das Netzwerk-Symbol in der Seitenleiste oder den Befehl **Emergence: Wissensgraph und Analyse öffnen** öffnet sich das Plugin im rechten Seitenpanel. Die Hauptnotiz bleibt daneben editierbar.
 
-## Vier Arbeitsbereiche
+## Drei Arbeitsbereiche
 
-Die Tabs stehen in dieser Reihenfolge: **Graph** (Netzwerk), **Feldideen** (Text-search), **Recherche** (List-plus), **Suche** (Lupe).
+Die Tabs stehen in dieser Reihenfolge: **Graph** (Netzwerk), **Feldideen** (Text-search), **Suche** (Lupe).
 
 ### Graph
 
-Die **Relationssynopse** ordnet die aktuelle Notiz in der Mitte an: Überordnung darüber, Unterordnung darunter, Ähnlichkeit links und Reibung rechts. Beispiele, Literatur und freie Verweise stehen in eigenen Registern. Die Namen der zugehörigen Breadcrumbs-Felder werden unter **Felder und Quellen** über native Auswahlmenüs mit Häkchen zugeordnet. Mehrere Felder pro Gruppe bleiben möglich; Literatur und freie Verweise zeigen ihre festen Quellen. Emergence legt dafür keine neuen Frontmatter-Felder an.
+Die Ansicht **Kontext** ordnet die aktuelle Notiz in der Mitte an: Überordnung darüber, Unterordnung darunter, Ähnlichkeit links und Reibung rechts. Beispiele, Literatur und freie Verweise stehen in eigenen Registern. Die Namen der zugehörigen Breadcrumbs-Felder werden unter **Felder und Quellen** über native Auswahlmenüs mit Häkchen zugeordnet. Mehrere Felder pro Gruppe bleiben möglich; Literatur und freie Verweise zeigen ihre festen Quellen. Emergence legt dafür keine neuen Frontmatter-Felder an.
 
 Weitere vorhandene Breadcrumbs-Felder wie **Konzept**, **Werk**, **Komponist_in**, **Autor_in**, **Künstler_in** und **Regisseur_in** erscheinen bei vorhandenen Verbindungen in eigenen Registern unter den Beispielen. Ihre Gegenrichtungen stammen aus der Breadcrumbs-Konfiguration. Ein generischer „Werk“-Link wird nicht willkürlich allen Urheberrollen zugewiesen. Die zusätzlichen Register haben ebenfalls eine Plus-Aktion für ihr tatsächliches Frontmatter-Feld.
 
-Jede der sieben Hauptgruppen hat eine eigene Sichttiefe: **1, 2, 3 oder ∞**. Mehrfachüberordnungen bleiben als vollständige Ahnenpfade erhalten. Rückverweise werden begrenzt, damit Kreise keine endlosen Listen erzeugen. Viele Einträge werden durch vertikales Scrollen zugänglich.
+Jede der sieben Hauptgruppen hat eine eigene Sichttiefe: **1, 2, 3 oder ∞**. Mehrfachüberordnungen bleiben als vollständige Ahnenpfade erhalten. Rückverweise werden begrenzt, damit Kreise keine endlosen Listen erzeugen. Viele Einträge werden durch vertikales Scrollen zugänglich. Unter **Freie Verweise** stehen zusätzlich **Rückverweise** aus Obsidians eigenem Linkindex: alle verlinkenden Markdown-Notizen einmalig, einschließlich Properties-Links. Dafür wird kein Frontmatter-Feld angelegt.
 
 **Die Reihenfolge direkt gespeicherter Begriffe entspricht dem Frontmatter.** Nur zusätzlich abgeleitete Gegenrichtungen folgen danach. Auch weitere Schritte verwenden jeweils die Reihenfolge ihrer eigenen Ausgangsnotiz. Es werden keine Sortierdaten in den Notizen gespeichert.
 
-Ein Klick öffnet die Notiz. Mit **Im Graphen erkunden** verschiebt ein Klick nur den Graphfokus. Mittelklick öffnet Notizen trotzdem in einem neuen Tab. Bestehende und noch fehlende Notizen verwenden Obsidian-Linkstile und die Werte des aktiven Themes.
+Beim Umbenennen einer Notiz aktualisiert sich auch die zentrale Beschriftung unmittelbar, einschließlich des Erkundungsmodus und umbenannter übergeordneter Ordner. Ein Klick öffnet die Notiz. Mit **Im Graphen erkunden** verschiebt ein Klick nur den Graphfokus. Mittelklick öffnet Notizen trotzdem in einem neuen Tab. Bestehende und noch fehlende Notizen verwenden Obsidian-Linkstile und die Werte des aktiven Themes.
 
 Das **Plus** bei den fünf Breadcrumbs-Gruppen ergänzt nach Auswahl genau einen Wikilink im zugeordneten Frontmatter-Feld. Bestehende Notizen werden wiederverwendet; fehlende Begriffe erzeugen nur einen Link. Bei mehreren gleichnamigen Dateien wird ein eindeutiges Ziel gewählt. Literatur und freie Verweise haben kein Plus: Sie stammen aus ZotLit beziehungsweise normalen Textlinks.
 
-Im Dropdown **Ansicht** steht **Relationssynopse** (HTML/SVG) an erster Stelle und ist vorausgewählt. Es ist jeweils genau eine Ansicht sichtbar; sie füllt die verbleibende Seitenpanelfläche ohne zusätzlichen Fensterrahmen. Zusätzlich sind die **originalen Ansichten** der aktivierten Plugins auswählbar:
+Im Dropdown **Ansicht** steht **Kontext** (HTML/SVG) an erster Stelle und ist vorausgewählt. Es ist jeweils genau eine Ansicht sichtbar; sie füllt die verbleibende Seitenpanelfläche ohne zusätzlichen Fensterrahmen. Zusätzlich sind die **originalen Ansichten** der aktivierten Plugins auswählbar:
 
 - **Breadcrumbs · Matrix** und **Breadcrumbs · Baum**, mit deren eigenen Filtern und Bedienelementen.
 - **ZotLit · Literaturverzeichnis** der aktuellen Notiz, in ZotLits eigener Darstellung und mit dessen Zitationsstil.
@@ -71,23 +71,11 @@ Profilanweisungen und Prompts sind editierbar. Vorhandene Ziele werden gekennzei
 
 Übernehmen ergänzt nur den betreffenden Link. Vor dem Schreiben werden Dateiänderungen und vorhandene Werte erneut geprüft; Text und andere Eigenschaften bleiben erhalten. Das lokale Änderungsjournal ermöglicht ein gezieltes Rückgängigmachen. Die Vorschlagsprüfung ist Teil der Analyse und hat keinen eigenen Haupttab.
 
-### Recherche
-
-Die Recherche bietet **Konkrete Beispiele**, **Kunstwerke – alle Gattungen** und weiterhin eine **freie Textantwort**. Die Vorlagen „Beispiele“ und „Kunstwerke“ sind direkt auswählbar. Kunstwerke können unter anderem Malerei, Skulptur, Fotografie, Installation, Musik, Oper, Musiktheater, Literatur, Theater, Tanz, Film, Architektur und digitale Kunst umfassen.
-
-Bis zu vier Beispiele erscheinen als einzelne kompakte Zeilen mit Übernehmen, Ablehnen und Bearbeiten. Das Frontmatter-Zielfeld wird aus den vorhandenen Breadcrumbs-Feldern gewählt; die konfigurierte Beispiel-Gruppe ist die Voreinstellung. Ein Klick ergänzt genau einen Wikilink über denselben kontrollierten Writer wie die Synopsen-Plus-Aktion. Vorhandene Notizen werden wiederverwendet, bei Mehrdeutigkeit wird das Ziel ausgewählt. Die Recherche ersetzt keine offenen Ideen der Notizanalyse. Bei Kunstwerken filtert eine zweite, kurze Modellprüfung ungeeignete Vorschläge wie Fachbücher; sie darf keine neuen Titel hinzufügen und ersetzt keine Faktenprüfung. Modellideen und Suchhinweise werden unterschieden; Suchvorschauen gelten nicht als geprüfte Volltexte.
-
-Der Notizkontext wird ausdrücklich gewählt: kein zusätzlicher Notiztext, Markierung, aktuelle Notiz, Beziehungen oder bestimmte Notizen. Die freie Textantwort bleibt lesend; nur die ausdrückliche Übernahme einer Beispielzeile schreibt einen Link.
-
-Recherche zeigt **nur das letzte Ergebnis der aktuellen Notiz**. Eine neue Anfrage entfernt dieses Ergebnis sofort und ersetzt es nach Abschluss. Beim Notizwechsel erscheint ausschließlich das Ergebnis der jeweiligen Notiz; auch Frageentwurf und Websuchbegriffe bleiben getrennt. Es gibt keine globale Such- oder Vorschlagshistorie und keine automatische Gesprächsübertragung. Nur **Antwort fortsetzen** bezieht ausdrücklich die betreffende letzte Antwort ein.
-
-**Lange Notizen:** Passende Texte gehen unverändert in die Anfrage. Bei zu großem Kontext verarbeitet das Modell den gesamten gewählten Notizkontext abschnittweise und beantwortet die eigentliche Frage anschließend anhand einer gekennzeichneten Arbeitszusammenfassung. Dasselbe gilt für Feldideen und konkrete Beispiele; Feldregeln werden bei Bedarf in Gruppen bearbeitet. Es wird kein bloßer Anfangsausschnitt verwendet und das Kontextfenster bleibt unverändert. Diese zusätzliche Verarbeitung dauert länger und kann Details verdichten oder verlieren. Die Originalnotiz wird dabei nicht geändert. Falls schon Frage und Regeln allein nicht ins Fenster passen, erscheint weiterhin eine konkrete Fehlermeldung. Fehlgeschlagene oder abgebrochene Vorbereitung gibt kein Teilergebnis zur Übernahme frei.
-
-Recherche hat ein eigenes, an den verfügbaren Kontext angepasstes Ausgabebudget. Erreicht eine Antwort das Ausgabelimit, bleibt ihr Text sichtbar und wird als gekürzt gekennzeichnet. **Antwort fortsetzen** setzt genau diese Antwort fort. Unvollständige strukturierte Analysen bleiben dagegen für die Übernahme gesperrt.
+**Lange Notizen:** Passt der relevante Notiztext nicht in eine Anfrage, wird er vollständig abschnittweise verarbeitet. Die abschließenden Feldideen verwenden dann eine gekennzeichnete Arbeitszusammenfassung. Feldrollen werden bei Bedarf in Gruppen bearbeitet. Es wird kein bloßer Anfangsausschnitt verwendet und die Originalnotiz bleibt unverändert. Diese zusätzliche Verarbeitung dauert länger und kann Details verdichten oder verlieren. Fehler oder Abbruch geben keine unvollständige Vorbereitung zur Übernahme frei.
 
 ### Suche
 
-Die **Literaturangabe** öffnet den Eintrag in der ZotLit Library. Darunter steht der **Citekey mit Kopiersymbol**: Ein Klick darauf kopiert nur den Schlüssel. Dasselbe gilt für Literaturangaben in der Relationssynopse. Unter **Einstellungen → Emergence → Daten → Citekey kopieren** sind `[@citekey]` (Voreinstellung), `@citekey` und `citekey` wählbar.
+Die **Literaturangabe ist auswählbarer Text ohne Link**. Beim Überfahren der jeweiligen Literaturangabe erscheinen darunter dieselben sechs Symbolaktionen in Suche und Kontext: **ZotLit öffnen** (ZotLit-Logo), **Literaturnotiz öffnen**, **Zotero öffnen**, **Anhang öffnen**, **Zur Fundstelle** und **Citekey kopieren**. Ohne Hover benötigt die Aktionszeile keinen Platz. Beim Einblenden bleiben Literaturangabe und Scrollposition unverändert; nur die folgenden Einträge rücken nach unten. Mit Tastaturfokus erscheint sie ebenfalls; auf Geräten ohne Hover bleibt sie sichtbar. Der Citekey selbst erscheint nicht zusätzlich in der Liste; der Tooltip des Kopiersymbols zeigt den zu kopierenden Wert. Fehlende Anhänge oder Fundstellen werden durch deaktivierte Aktionen gekennzeichnet. Die Literaturnotiz wird über ZotLits eigene Öffnen-/Anlegen-Funktion erreicht; ein Mittelklick auf diese Aktion öffnet sie in einem neuen Tab. Unter **Einstellungen → Emergence → Daten → Citekey kopieren** sind `[@citekey]` (Voreinstellung), `@citekey` und `citekey` wählbar.
 
 Der letzte Tab mit der Lupe durchsucht alle Markdown-Notizen anhand von Titel, Alias und Tags. Zusätzlich fragt er über ZotLit die **gesamte verfügbare Zotero-Library einschließlich Gruppen-Libraries** ab. Weder die Ordnerauswahl für KI-Kandidaten noch die gerade geöffnete ZotLit-Sammlung begrenzt diese Suche. ZotLits gespeicherte Einstellungen werden dabei nicht verändert.
 
@@ -99,15 +87,20 @@ Notiz- und Literaturtreffer stehen getrennt untereinander. Weitere Ergebnisse la
 
 ## Lokale Verarbeitung und optionale Webquellen
 
-Graphindex und Suche arbeiten lokal über Obsidian und ZotLit. Für CSL-Daten bisher unzitierter Literatur kann zusätzlich ZotLits eigener HTTP-Client die konfigurierte lokale Zotero-API auf `127.0.0.1` anfragen; dabei werden nur die ausgewählten Zotero-Item-IDs übertragen. KI-Anfragen gehen ausschließlich an den konfigurierten lokalen Ollama-Endpunkt. Je nach ausdrücklich gewählter Funktion enthalten sie die aktuelle Notiz, Feldbeschreibungen, ausgewählte Kontexte und/oder Kandidatentitel. Es gibt keine Telemetrie und keinen Cloud-Modell-Fallback.
+Graphindex und Suche arbeiten lokal über Obsidian und ZotLit. Für CSL-Daten bisher unzitierter Literatur kann zusätzlich ZotLits eigener HTTP-Client die konfigurierte lokale Zotero-API auf `127.0.0.1` anfragen; dabei werden nur die ausgewählten Zotero-Item-IDs übertragen. KI-Anfragen gehen über Obsidian `requestUrl` ausschließlich an den konfigurierten lokalen Ollama-Endpunkt. Sie enthalten die aktuelle Notiz, Feldbeschreibungen und gegebenenfalls Kandidatentitel sowie die ausdrücklich aktivierten externen Suchauszüge. Es gibt keine Telemetrie und keinen Cloud-Modell-Fallback.
+
+**Abbrechen:** Die Oberfläche beendet das Warten und verwirft verspätete Antworten. Obsidian `requestUrl` kann die bereits gestartete HTTP-Verbindung nicht physisch abbrechen; Ollama kann deshalb noch weiterrechnen. Bis zum tatsächlichen Abschluss lässt Emergence keine zweite lokale Anfrage an denselben Endpunkt zu. Ein bewusst eingestellter anderer Loopback-Endpunkt bleibt erreichbar. Größenlimits werden an der vom Host vollständig empfangenen Antwort vor der JSON-Verarbeitung geprüft. Die native API folgt HTTP-Weiterleitungen; der konfigurierte lokale Dienst muss daher vertrauenswürdig sein.
 
 **Websuche ist optional und ohne Anmeldung nutzbar.** DuckDuckGos öffentliche HTML-Suche liefert Titel und Vorschautexte aus höchstens zwei Ergebnisseiten, insgesamt höchstens 20 unterschiedliche Treffer. Nur der sichtbare Suchbegriff mit dem gewählten Zusatz „Beispiele“ oder „Kunstwerke“ wird gesendet. Zielseiten werden nicht automatisch geöffnet. Suchtreffer werden im Modellkontext begrenzt und als externes Datenmaterial behandelt. Bei Sperrprüfungen oder Ausfällen wird der tatsächliche Status angezeigt; es gibt keine Umgehung oder erfundenen Treffer. Die HTML-Anbindung ist keine zugesicherte Such-API und kann sich ändern.
 
-**Wikipedia ist ebenfalls optional.** Bei eingeschaltetem Haken wird der angegebene Begriff an Wikipedia geschickt und ein begrenzter Auszug mit Quellenangabe als zusätzlicher Modellkontext verwendet. Notiztexte und Gesprächsverläufe werden nicht als Wikipedia-Suchanfrage übertragen. Ohne Haken erfolgt keine neue Wikipedia-Abfrage. Das Modell kann nicht selbstständig im Web browsen.
+**Wikipedia ist ebenfalls optional.** Bei eingeschaltetem Haken wird der angegebene Begriff an Wikipedia geschickt und ein begrenzter Auszug mit Quellenangabe als zusätzlicher Modellkontext verwendet. Notiztexte werden nicht als Wikipedia-Suchanfrage übertragen. Ohne Haken erfolgt keine neue Wikipedia-Abfrage. Das Modell kann nicht selbstständig im Web browsen.
 
-Plugin-Einstellungen und das Änderungsjournal liegen in Obsidian-typischem `data.json`. Das jeweils letzte Rechercheergebnis pro Notiz und Suchtreffer bleiben nur im Arbeitsspeicher; sie werden nicht gespeichert und beim Entladen gelöscht. Persönliche Einstellungen, Vault-Inhalte und lokale Prüfberichte gehören nicht ins Repository.
+Plugin-Einstellungen und das Änderungsjournal liegen in Obsidian-typischem `data.json`. Feldideen und Suchtreffer bleiben nur im Arbeitsspeicher; sie werden beim Entladen gelöscht. Persönliche Einstellungen, Vault-Inhalte und lokale Prüfberichte gehören nicht ins Repository.
 
-## Release und Community-Prüfung
+## Entwicklungsstand und Community-Prüfung
+
+Der aktuelle Quellcode entfernt den früheren Recherchebereich vollständig. Die lokale KI bleibt für Breadcrumbs-Feldideen erhalten. Der bereits veröffentlichte Release 0.0.1 enthält noch den früheren Funktionsumfang.
+
 
 Version **0.0.1** verwendet die unveränderliche ID `emergence`. Manifest, Paketversion, `versions.json`, exakter Git-Tag und Einzeldateien werden vor der Veröffentlichung geprüft. GitHub Actions führt Build, Tests, Lint und einen Produktionsabhängigkeits-Audit aus, erstellt zunächst einen Entwurf und veröffentlicht ihn erst nach Download und Prüfsummenvergleich der Assets. Generierte Bundles werden ausschließlich als Release-Assets veröffentlicht.
 
@@ -122,7 +115,12 @@ npm run dev        # Entwicklung mit automatischem Bundle-Build
 npm run build      # TypeScript-Prüfung und Produktionsbundle
 npm test           # Unit- und Integrationstests mit lokalen Fixtures
 npm run lint       # ESLint einschließlich Obsidian-Regeln
-npm run test:native-views # Originalansichten, Literaturaktionen und schmale Layouts in Obsidian
+npm run test:ux          # Graph, Feldideen, Suche und Theme-Linkzustände bei 280/328 Pixeln
+npm run test:literature-scroll # Hover ohne Sprünge in Kontext und Suche
+npm run test:literature-ui # Literaturaktionen, Rückverweise, Umbenennung und Screenshots
+npm run test:settings-ui # Native Settings-Suche, Entwürfe und schmale Editoren
+node scripts/synopsis-native-check.mjs --layout-only # Synthetischer Graph-Stresstest ohne Datei-/Navigationsaktionen
+npm run test:native-views # Originalansichten und Literaturaktionen in Obsidian
 ```
 
 Die optionalen Tests gegen ein installiertes Modell werden mit `npm run test:ollama` gestartet. Native UI-Prüfungen benötigen eine laufende Obsidian-Entwicklungsinstanz mit aktivierter CLI. Dafür `OBSIDIAN_VAULT` auf den Namen des Test-Vaults setzen; bei Bedarf `OBSIDIAN_CLI` auf das ausführbare Programm. Manche ältere Prüfskripte sind auf die ursprüngliche Entwicklungsumgebung zugeschnitten und gehören nicht zur portablen Testsuite.

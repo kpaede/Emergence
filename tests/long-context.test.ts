@@ -5,7 +5,6 @@ import {assignmentDocument} from '../src/llm/assignment-document';
 import {prepareAssignments} from '../src/llm/assignment-context';
 import {contextEstimate,estimateTextTokens} from '../src/llm/context';
 import type {ChatOptions,LLMProvider} from '../src/llm/provider';
-import {researchExamples} from '../src/llm/research-examples';
 import {defaults,unknownRule} from '../src/config';
 import {hash} from '../src/util';
 import {graph,profile} from './fixtures';
@@ -25,11 +24,11 @@ describe('bounded preparation of long notes',()=>{
  it('rejects malformed or invented preparation payloads',async()=>{for(const reply of ['not JSON',JSON.stringify({summary:'Text',write:'yes'}),JSON.stringify({summary:5})]){const p=provider(()=>reply);await expect(prepareLongContext(p,'Inhalt. '.repeat(5000),'Frage',defaults(),new AbortController().signal,value=>value.length<500)).rejects.toThrow(/Arbeitszusammenfassung/u);}});
  it('diagnoses instructions that cannot fit even without a note before starting requests',async()=>{const p=provider(summarizer);await expect(prepareLongContext(p,'Notiz','Frage',defaults(),new AbortController().signal,()=>false)).rejects.toThrow(/Frage oder die Feldregeln/u);expect(p.chat).not.toHaveBeenCalled();});
 });
-describe('whole-note field ideas and research',()=>{
+describe('whole-note field ideas',()=>{
  it('uses a complete overview for long field analysis while retaining original hashes and pending-only proposals',async()=>{
   const s=defaults(),g=graph(),text='---\nÜberbau:\n---\n'+('Ontologie behandelt das Sein und seine Kategorien.\n\n'.repeat(1200))+'Die abschließende Einordnung lautet Philosophie.';
   const p=provider(request=>request.format&&'summary' in (request.format as {properties:object}).properties?summarizer(request):JSON.stringify({'Überbau':['Philosophie']}));
-  const result=await new DocumentAnalyzer(p).analyze('Quelle.md',text,g,profile(),s,new AbortController().signal,()=>{},'','',{fields:['Überbau'],folders:[],allowNew:true,maxSuggestions:4,perField:4,outputId:'relations'});
+  const result=await new DocumentAnalyzer(p).analyze('Quelle.md',text,g,profile(),s,new AbortController().signal,()=>{},{fields:['Überbau'],folders:[],allowNew:true,maxSuggestions:4,perField:4,outputId:'relations'});
   expect(result.status).toBe('complete');expect(result.sourceVersion).toBe(await hash(text));expect(result.diagnostics?.sourceMode).toBe('overview');expect(result.suggestions).toHaveLength(1);expect(result.suggestions[0]).toMatchObject({status:'pending',source:'Quelle.md',value:'[[Philosophie]]'});
   const summaryCalls=p.chat.mock.calls.filter(([r])=>'summary' in (r.format as {properties:object}).properties);expect(summaryCalls.slice(0,result.diagnostics!.sourceParts).map(([r])=>read(r).text).join('')).toBe(assignmentDocument(text).evidence.map(e=>e.text).join(''));
   const final=p.chat.mock.calls.at(-1)![0];expect(final.messages[1]!.content).toContain('model-overview');expect(final.messages[1]!.content).toContain('Philosophie');expect(contextEstimate(final.messages,final.maxTokens,final.format)).toBeLessThanOrEqual(s.numCtx);
@@ -39,14 +38,5 @@ describe('whole-note field ideas and research',()=>{
   const text='---\n'+fields.map(field=>field+':').join('\n')+'\n---\nEine zusammenhängende Notiz.';
   const prepared=prepareAssignments('Quelle.md',text,g,profile(),s,{fields,folders:[],allowNew:true,maxSuggestions:44,perField:4,outputId:'relations'});
   expect(prepared.contexts.length).toBeGreaterThan(1);expect(prepared.contexts.flatMap(c=>c.fields)).toEqual(fields);expect(prepared.contexts.every(c=>c.messages[1]!.content.includes('zusammenhängende Notiz'))).toBe(true);
- });
- it('preserves complete source text for near-boundary research when a smaller answer still fits',async()=>{
-  const s=defaults();s.numCtx=4096;const text='Vollständiger Notiztext. '.repeat(120),p=provider(()=>'Antwort.');await new DocumentAnalyzer(p).inquire('Frage',text,profile(),s,new AbortController().signal);expect(p.chat).toHaveBeenCalledOnce();expect(read(p.chat.mock.calls[0]![0]).context).toBe(text);
- });
- it('prepares a long free-research context before asking the actual question',async()=>{
-  const p=provider(request=>request.format?summarizer(request):'Aktuelle Antwort.'),s=defaults();const answer=await new DocumentAnalyzer(p).inquire('Welche Gegenposition gibt es?','Notiz über Ontologie. '.repeat(4000),profile(),s,new AbortController().signal);expect(answer).toBe('Aktuelle Antwort.');expect(p.chat.mock.calls.at(-1)![0].format).toBeUndefined();expect(read(p.chat.mock.calls.at(-1)![0]).context).toContain('Arbeitszusammenfassung');
- });
- it('uses the same preparation for compact examples without returning an essay or intermediate summaries',async()=>{
-  const p=provider(request=>'summary' in (request.format as {properties:object}).properties?summarizer(request):JSON.stringify({ideas:[{title:'Tisch',sources:[]}]})),s=defaults();const result=await researchExamples(p,{prompt:'Konkrete Beispiele',title:'Ontologie',context:'Ontologische Kategorien. '.repeat(4000),kind:'examples'},profile(),s,new AbortController().signal);expect(result.ideas.map(i=>i.title)).toEqual(['Tisch']);expect(p.chat.mock.calls.length).toBeGreaterThan(1);
  });
 });

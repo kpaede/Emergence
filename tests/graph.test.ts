@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import {describe, expect, it} from 'vitest';
 import cytoscape from 'cytoscape';
 import {readBreadcrumbs, type BCAPI} from '../src/graph/breadcrumbs';

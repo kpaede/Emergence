@@ -8,11 +8,11 @@ async function check() {
  const wait=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
  const until=async predicate=>{for(let i=0;i<160;i++){if(predicate())return;await wait(50);}throw Error('UI timeout');};
  const original={tab:v.tab,state:JSON.parse(JSON.stringify(v.state)),focus:p.focusPath,follow:p.follow,explore:p.explore,active:c.activePath,
-  leaves:new Set(app.workspace.getLeavesOfType('markdown')),files:app.vault.getFiles().length,settings:JSON.stringify(c.settings()),history:JSON.stringify(c.inquiryHistory)};
+  leaves:new Set(app.workspace.getLeavesOfType('markdown')),files:app.vault.getFiles().length,settings:JSON.stringify(c.settings())};
  const report={};const assert=(name,condition)=>{report[name]=!!condition;if(!condition)throw Error(name);};
- let probe,off;
+
  try {
-  assert('fourTabs',JSON.stringify([...v.contentEl.querySelectorAll('.em-tabs > [role=tab]')].map(b=>b.textContent))===JSON.stringify(['Graph','Feldideen','Recherche','Suche']));
+  assert('threeTabs',JSON.stringify([...v.contentEl.querySelectorAll('.em-tabs > [role=tab]')].map(b=>b.textContent))===JSON.stringify(['Graph','Feldideen','Suche']));
   assert('labelledSearchLast',!!v.contentEl.querySelector('[role=tab]:last-child[aria-label=Suche] .lucide-search'));
   assert('searchRemovedFromGraph',!v.panels.get('graph').querySelector('input[type=search]'));
   v.switchTab('graph');p.explore=false;p.exploreBox.checked=false;p.follow=true;p.focus(c.activePath);p.renderStructure();
@@ -41,6 +41,9 @@ async function check() {
   target.dispatchEvent(new MouseEvent('auxclick',{button:1,bubbles:true,cancelable:true}));
   await until(()=>app.workspace.getLeavesOfType('markdown').some(l=>!original.leaves.has(l)&&!!l.view.file));
   assert('searchMiddleClickNewTab',true);for(const leaf of app.workspace.getLeavesOfType('markdown'))if(!original.leaves.has(leaf))leaf.detach();
+  // The active note need not have a matching library entry. Use an already indexed citation for the library-action check.
+  const reference=c.graph.snapshot.edges.find(e=>e.layer==='zotlit'&&e.reference?.citekey)?.reference;
+  if(reference?.citekey){search.value=reference.citekey;search.dispatchEvent(new Event('input',{bubbles:true}));await until(()=>!v.contentEl.querySelector('.em-library-results [role=status]')?.textContent.includes('wird gesucht'));}
   const libraryLink=v.contentEl.querySelector('.em-library-results [data-zotlit-item]');
   assert('realLibrarySearch',!!libraryLink);await until(()=>!!v.contentEl.querySelector('.em-library-results [data-zotlit-formatted]'));assert('searchUsesZotlitCsl',true);
   const itemKey=libraryLink.dataset.zotlitItem;
@@ -50,25 +53,13 @@ async function check() {
   libraryLink.dispatchEvent(new MouseEvent('auxclick',{button:1,bubbles:true,cancelable:true}));await wait(50);
   assert('literatureMiddleClickNoExtraTab',app.workspace.getLeavesOfType('zotlit-library').length===countBefore);
   v.state.search.mode='explore';libraryLink.click();await wait(200);
-  assert('bibliographicEntryAlwaysOpensLibrary',app.workspace.getLeavesOfType('zotlit-library').some(l=>l.view.selected?.key===itemKey));
-  // Test inquiry controls using a separate controller; no real note reads or writes.
-  probe=new c.constructor(app,()=>JSON.parse(original.settings),async()=>{},[],async()=>{});probe.activePath=original.active;probe.graph.snapshot=c.graph.snapshot;
-  const requests=[];let continued=false;
-  probe.provider.chat=async options=>{requests.push(options);if(!continued)options.onTruncated?.();return continued?'Fortsetzung.':'Erster Teil.';};
-  v.controller=probe;off=probe.subscribe(()=>v.update(true));v.state.inquiry={kind:'free',mode:'none',prompt:'Synthetic research question',extra:'',template:'',wikipedia:false};v.switchTab('inquiry');
-  v.panels.get('inquiry').querySelector('.mod-cta').click();await until(()=>probe.inquiryHistory.length===1&&!probe.abort);
-  assert('partialResearchVisible',v.panels.get('inquiry').textContent.includes('Erster Teil.')&&v.panels.get('inquiry').textContent.includes('Ausgabelimit erreicht'));
-  continued=true;[...v.panels.get('inquiry').querySelectorAll('button')].find(b=>b.textContent==='Antwort fortsetzen').click();await until(()=>!probe.abort&&probe.inquiryHistory[0].answer.includes('Fortsetzung.'));
-  assert('researchContinuationPreservesText',probe.inquiryHistory.length===1&&probe.inquiryHistory[0].answer==='Erster Teil.\n\nFortsetzung.'&&!probe.inquiryHistory[0].truncated);
-  assert('continuationOnlySelectedAnswer',requests[1].messages.filter(m=>m.role==='assistant').length===1&&requests[1].messages.find(m=>m.role==='assistant').content==='Erster Teil.');
-  off();off=undefined;probe.dispose();probe=undefined;v.controller=c;
-  assert('userHistoryUnchanged',JSON.stringify(c.inquiryHistory)===original.history);
+  assert('libraryActionIndependentOfNoteMode',app.workspace.getLeavesOfType('zotlit-library').some(l=>l.view.selected?.key===itemKey));
   assert('userSettingsUnchanged',JSON.stringify(c.settings())===original.settings);
   assert('noFilesCreated',app.vault.getFiles().length===original.files);
-  report.notesWritten=0;report.syntheticModelCalls=2;
+  report.notesWritten=0;report.syntheticModelCalls=0;
   return report;
  } catch(error) {throw Error(String(error)+' '+JSON.stringify(report));} finally {
-  off?.();probe?.dispose();v.controller=c;
+  v.controller=c;
   for(const leaf of app.workspace.getLeavesOfType('markdown'))if(!original.leaves.has(leaf))leaf.detach();
   const main=[...original.leaves].find(l=>l.view.file?.path===original.active);if(main)app.workspace.setActiveLeaf(main,{focus:false});
   c.activePath=original.active;v.state=original.state;p.focusPath=original.focus;p.follow=original.follow;p.explore=original.explore;p.exploreBox.checked=p.explore;p.details.hidden=true;p.renderStructure();v.switchTab(original.tab);c.notify();

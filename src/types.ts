@@ -60,7 +60,7 @@ export interface Settings {
  schemaVersion: 1; endpoint: string; model: string; numCtx: number; timeoutMs: number;
  think: boolean; releaseModel: boolean; maxConcurrent: number;
  rules: Record<string, RelationRule>; profiles: Profile[]; activeProfile: string;
- inquiryTemplates: {name: string; prompt: string}[]; maxGraphNodes: number; maxGraphEdges: number;
+ maxGraphNodes: number; maxGraphEdges: number;
  synopsis?: {depths?: Partial<Record<SynopsisRelation, SynopsisDepth>>; fields?: Partial<Record<SynopsisRelation, string[]>>};
  graphStructure?: {up: string; down: string; left: string; right: string; examples?: string; depth: number};
  conceptFolders: string[]; graphHeight: number; layout: 'elk' | 'fcose' | 'concentric';

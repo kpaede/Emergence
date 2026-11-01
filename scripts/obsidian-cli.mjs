@@ -10,14 +10,14 @@ export function evaluate(code) {
 }
 /** Preserve the user's form, expanded sections and field choices across a development reload. */
 export function reloadPlugin() {
- evaluate(`(()=>{const c=app.plugins.plugins.emergence?.controller;if(c?.abort)throw new Error('Eine Modellanfrage läuft noch.');window.__emReloadWait={done:false};Promise.all([c?.fieldSelectionSave,c?.profilePromptSave,app.workspace.getLeavesOfType('emergence-workspace')[0]?.view?.graphPanel?.depthSave]).then(()=>window.__emReloadWait={done:true}).catch(e=>window.__emReloadWait={done:true,error:String(e)});return true;})()`);
+ evaluate(`(()=>{const c=app.plugins.plugins.emergence?.controller,t=app.setting.pluginTabs.find(t=>t.id==='emergence');if(c?.abort||c?.applyingIdea||c?.provider?.controllers?.size||c?.provider?.active)throw new Error('Eine Nutzeraktion oder Modellanfrage läuft noch.');if(c?.provider?.pending instanceof Map&&[...c.provider.pending.values()].some(p=>p.size))throw new Error('Eine native HTTP-Anfrage läuft noch.');if(t?.dirty)throw new Error('Ungespeicherter Einstellungsentwurf; Neuladen abgebrochen.');window.__emReloadWait={done:false};Promise.all([c?.fieldSelectionSave,c?.profilePromptSave,app.workspace.getLeavesOfType('emergence-workspace')[0]?.view?.graphPanel?.depthSave]).then(()=>window.__emReloadWait={done:true}).catch(e=>window.__emReloadWait={done:true,error:String(e)});return true;})()`);
  let idle=false;
  for(let attempt=0;attempt<60;attempt++){const state=evaluate('window.__emReloadWait');if(state.done){if(state.error)throw new Error(state.error);idle=true;break;}}
  if(!idle)throw new Error('Field selection save is still pending; reload cancelled.');
  evaluate(`(()=>{const c=app.plugins.plugins.emergence?.controller,v=app.workspace.getLeavesOfType('emergence-workspace')[0]?.view,opened={};
  if(v)for(const d of v.contentEl.querySelectorAll('.em-panel-analysis details')){const label=d.querySelector('summary')?.textContent??'';const key=d.dataset.emDisclosure||(label.startsWith('Breadcrumbs-Felder')?'analysis-fields':label.startsWith('Feldbedeutungen')?'analysis-descriptions':label.startsWith('Zielnotizen')?'analysis-scope':label==='Verbindung und Anfrage prüfen'?'analysis-diagnostics':'');if(key)opened[key]=d.open;}
  const ui=v?.state?JSON.parse(JSON.stringify(v.state)):null;if(ui?.analysis?.connection==='checking'){delete ui.analysis.connection;delete ui.analysis.connectionMessage;}
- window.__emReloadState={analysis:c?.review.analysis?JSON.parse(JSON.stringify(c.review.analysis)):null,status:c?.status,inquiryHistory:c?.inquiryHistory?JSON.parse(JSON.stringify(c.inquiryHistory)):[],research:c?.research??'',ui,tab:v?.tab,opened,scroll:v?.panels.get(v.tab)?.scrollTop??0,
+ window.__emReloadState={analysis:c?.review.analysis?JSON.parse(JSON.stringify(c.review.analysis)):null,status:c?.status,ui,tab:v?.tab,opened,scroll:v?.panels.get(v.tab)?.scrollTop??0,
  selections:c?.fieldSelections instanceof Map?Object.fromEntries(c.fieldSelections):c?.settings().assignment?.fieldsByNote??{}};return true;})()`);
  command('plugin:reload', ['id=emergence']);
  let ready = false;
@@ -26,9 +26,8 @@ export function reloadPlugin() {
  command('command', ['id=emergence:open-workspace']);
  evaluate(`(()=>{const c=app.plugins.plugins.emergence.controller,s=window.__emReloadState,v=app.workspace.getLeavesOfType('emergence-workspace')[0].view;
  if(s?.analysis){c.review.set(s.analysis);for(const idea of s.analysis.suggestions)if(idea.status==='rejected')c.review.decide(idea.id,'rejected',c.graph.snapshot,'',c.profile);}if(s?.status)c.status=s.status;
- if(s?.inquiryHistory)c.inquiryHistory=[...new Map(s.inquiryHistory.filter(entry=>typeof entry.source==='string').map(entry=>[entry.source,entry])).values()];if(s?.research)c.research=s.research;
  if(s?.selections)c.settings().assignment.fieldsByNote={...c.settings().assignment.fieldsByNote,...s.selections};
- if(s?.ui)v.state={...v.state,...s.ui,search:s.ui.search??{query:'',mode:'open'}};v.switchTab(s?.tab??'graph');
+ if(s?.ui)v.state={...v.state,analysis:s.ui.analysis??{},review:s.ui.review??v.state.review,search:s.ui.search??{query:'',mode:'open'}};v.switchTab(['graph','analysis','search'].includes(s?.tab)?s.tab:'graph');
  for(const [key,open]of Object.entries(s?.opened??{})){const box=[...v.contentEl.querySelectorAll('details[data-em-disclosure]')].find(d=>d.dataset.emDisclosure===key);if(box)box.open=open;}
  const panel=v.panels.get(v.tab);if(panel)panel.scrollTop=s?.scroll??0;c.notify();delete window.__emReloadState;delete window.__emReloadWait;return true;})()`);
 }

@@ -19,14 +19,14 @@ async function check(OUT){
  try{
   v.switchTab('graph');assert('synopsisPreselected',p.viewSelect.value==='synopsis'&&manager.slots.size===0);p.follow=true;p.focus(c.activePath);
   const tabs=[...v.contentEl.querySelectorAll('.em-tabs > [role=tab]')],types=[...p.viewSelect.options].map(o=>o.value);
-  assert('tabs',JSON.stringify(tabs.map(t=>t.textContent))===JSON.stringify(['Graph','Feldideen','Recherche','Suche'])&&tabs.every((t,i)=>t.querySelector('.lucide-'+['network','text-search','list-plus','search'][i])));
+  assert('tabs',JSON.stringify(tabs.map(t=>t.textContent))===JSON.stringify(['Graph','Feldideen','Suche'])&&tabs.every((t,i)=>t.querySelector('.lucide-'+['network','text-search','search'][i])));
   assert('onlySynopsisAndNativeChoices',JSON.stringify(types)===JSON.stringify(['synopsis','bc-matrix-view','bc-tree-view','zotlit-references',...(app.internalPlugins.plugins.graph.enabled?['localgraph']:[])]));
   const controls=p.synopsisControls.querySelector('details'),wasOpen=controls.open;controls.open=true;await wait(50);
   assert('singleSourceDisclosure',!controls.querySelector('details')&&!controls.querySelector('select[multiple]')&&controls.querySelectorAll('.em-syn-source-choice').length===5);
   controls.querySelector('.em-syn-source-choice').click();await wait(50);const nativeChoices=[...document.querySelectorAll('.menu .menu-item-title')].map(n=>n.textContent);assert('nativeFieldDropdown',c.graph.snapshot.fields.every(field=>nativeChoices.includes(field)));p.refreshSources.closeMenu();controls.open=wasOpen;
   const initialRow=p.semanticHost.querySelector('.em-syn-citation .em-literature-reference');assert('bibliographicEntryAndSeparateCopy',!!initialRow?.querySelector('.em-citekey .lucide-copy'));
   await until(()=>!!initialRow.querySelector('[data-zotlit-formatted]'));
-  const key=initialRow.querySelector('.em-citekey-label').textContent.slice(1),indexedKey=initialRow.querySelector('[data-zotlit-item]').dataset.zotlitItem,ourText=initialRow.querySelector('.em-literature-title').textContent.trim(),ourEmphasis=initialRow.querySelector('em')?.textContent;
+  const indexedKey=initialRow.querySelector('[data-zotlit-item]').dataset.zotlitItem,key=c.graph.snapshot.edges.find(e=>e.source===c.activePath&&e.layer==='zotlit'&&e.reference?.indexedKey===indexedKey)?.reference?.citekey,ourText=initialRow.querySelector('.em-literature-title').textContent.trim(),ourEmphasis=initialRow.querySelector('em')?.textContent;
   const copied=[],format=c.settings().citekeyFormat;Object.defineProperty(navigator.clipboard,'writeText',{configurable:true,value:async text=>{copied.push(text);}});
   for(const value of ['brackets','at','plain']){c.settings().citekeyFormat=value;initialRow.querySelector('.em-citekey').click();await wait(10);}c.settings().citekeyFormat=format;
   assert('copyFormatsWithoutNavigation',JSON.stringify(copied)===JSON.stringify(['[@'+key+']','@'+key,key])&&leaves().length===before.leaves&&main.view.file===file);

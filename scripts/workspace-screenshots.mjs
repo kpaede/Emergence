@@ -8,7 +8,7 @@ async function capture(output) {
  const pause=()=>new Promise(r=>window.setTimeout(r,100));
  try {
   wc.setBackgroundThrottling(false);
-  for(const tab of ['search','analysis','inquiry'])for(const width of [280,328]) {
+  for(const tab of ['search','analysis'])for(const width of [280,328]) {
    v.switchTab(tab);await pause();
    root=v.contentEl.cloneNode(true);root.style.cssText='position:fixed;top:8px;left:8px;width:'+width+'px;height:740px;z-index:99999;background:var(--background-primary);';document.body.append(root);await pause();
    const panel=root.querySelector('.em-panel-'+tab),nav=root.querySelector('.em-tabs');

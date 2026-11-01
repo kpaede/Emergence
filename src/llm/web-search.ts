@@ -40,7 +40,7 @@ export class WebSearchProvider implements WebSearchLookup {
  clear(): void {this.cache.clear();}
  async lookup(input: string, signal: AbortSignal): Promise<WebSearchContext> {
   const query = input.trim().replace(/\s+/gu, ' '); assert(query.length > 0 && query.length <= 220, 'Web-Suchbegriff: 1 bis 220 Zeichen.');
-  assert(!signal.aborted, 'Recherche abgebrochen.');
+  assert(!signal.aborted, 'Websuche abgebrochen.');
   const cached = this.cache.get(query); if (cached) return {...clone(cached), cached: true};
   const result: WebSearchContext = {query, status: 'empty', sources: [], pages: 0};
   let timer: number | undefined, stop: () => void = () => {};
@@ -50,7 +50,7 @@ export class WebSearchProvider implements WebSearchLookup {
    for (let page = 0; page < 2; page++) {
     const url = 'https://html.duckduckgo.com/html/' + (body ? '' : '?' + new URLSearchParams({q: query}).toString());
     const response = await Promise.race([this.transport(url, body), cancelled]);
-    assert(!signal.aborted, 'Recherche abgebrochen.'); assert(response.text.length <= 1_000_000, 'Suchantwort zu groß.');
+    assert(!signal.aborted, 'Websuche abgebrochen.'); assert(response.text.length <= 1_000_000, 'Suchantwort zu groß.');
     const parsed = parseSearchPage(response.text);
     if (parsed.blocked || [202, 403, 429].includes(response.status)) {result.status = result.sources.length ? 'ready' : 'blocked'; result.message = 'DuckDuckGo verlangt eine Prüfung oder begrenzt Anfragen. Keine Sperre umgangen.'; break;}
     assert(response.status === 200, 'Websuche nicht erreichbar.'); result.pages++;
@@ -63,7 +63,7 @@ export class WebSearchProvider implements WebSearchLookup {
    if (result.status === 'empty') result.message = 'Keine Webtreffer gefunden.';
    if (result.status === 'ready') {this.cache.set(query, clone(result)); if (this.cache.size > 24) this.cache.delete(this.cache.keys().next().value!);}
   } catch {
-   assert(!signal.aborted, 'Recherche abgebrochen.'); result.status = result.sources.length ? 'ready' : 'error'; result.message = 'Websuche nicht vollständig verfügbar; nur tatsächlich geladene Treffer verwendet.';
+   assert(!signal.aborted, 'Websuche abgebrochen.'); result.status = result.sources.length ? 'ready' : 'error'; result.message = 'Websuche nicht vollständig verfügbar; nur tatsächlich geladene Treffer verwendet.';
   } finally {if (timer !== undefined) window.clearTimeout(timer); signal.removeEventListener('abort', stop);}
   return result;
  }

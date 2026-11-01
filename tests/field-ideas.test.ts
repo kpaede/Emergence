@@ -25,7 +25,7 @@ describe('four concise ideas per actual field',()=>{
   const g=graph();g.rules.Reibung!.description='Eine interessante Gegenposition.';
   let calls=0;
   const provider:LLMProvider={health:async()=>({models:[],thinking:false,metadata:{},version:''}),cancel:()=>{},chat:async()=>{calls++;return JSON.stringify({Überbau:['Oberthema A','Oberthema B','Oberthema C','Oberthema D'],Reibung:['Gegenidee A','Gegenidee B','Gegenidee C','Gegenidee D']});}};
-  const a=await new DocumentAnalyzer(provider).analyze('Quelle.md','---\nÜberbau:\nReibung:\n---\nEine Notiz.',g,profile(),defaults(),new AbortController().signal,()=>{},'','',{fields:g.fields,folders:[],allowNew:true,maxSuggestions:8,perField:4,outputId:'relations'});
+  const a=await new DocumentAnalyzer(provider).analyze('Quelle.md','---\nÜberbau:\nReibung:\n---\nEine Notiz.',g,profile(),defaults(),new AbortController().signal,()=>{},{fields:g.fields,folders:[],allowNew:true,maxSuggestions:8,perField:4,outputId:'relations'});
   expect(a.status,a.errors.join('\n')).toBe('complete');expect(calls).toBe(1);expect(a.suggestions).toHaveLength(8);
   expect(a.suggestions.filter(s=>s.field==='Überbau')).toHaveLength(4);expect(a.suggestions.every(s=>s.reason===''&&s.evidenceSource==='title'&&s.status==='pending')).toBe(true);
  });
@@ -36,7 +36,7 @@ describe('four concise ideas per actual field',()=>{
    expect(options.messages[0]!.content).toContain('einzelner Zielbegriff');
    return JSON.stringify({Überbau:[],Reibung:['Realismus vs. Idealismus','Substanzontologie versus Strukturalismus','Nominalismus','Idealismus vs. Realismus']});
   }};
-  const a=await new DocumentAnalyzer(provider).analyze('Quelle.md','---\nÜberbau:\nReibung:\n---\nEine Notiz.',g,profile(),defaults(),new AbortController().signal,()=>{},'','',{fields:g.fields,folders:[],allowNew:true,maxSuggestions:8,perField:4,outputId:'relations'});
+  const a=await new DocumentAnalyzer(provider).analyze('Quelle.md','---\nÜberbau:\nReibung:\n---\nEine Notiz.',g,profile(),defaults(),new AbortController().signal,()=>{},{fields:g.fields,folders:[],allowNew:true,maxSuggestions:8,perField:4,outputId:'relations'});
   expect(a.status).toBe('complete');expect(a.discarded).toBe(2);
   expect(a.suggestions.map(s=>[s.target,s.targetKind])).toEqual([['Nominalismus.md','unresolved'],['Vorhandener Vergleich.md','existing']]);
  });

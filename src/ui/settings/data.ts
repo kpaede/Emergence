@@ -21,8 +21,8 @@ export function dataSettings(ctx: SettingsContext): void {
   catch (error) {ctx.report(errorMessage(error), true);}
  });
  new Setting(host).setName('Lokale Sitzungsdaten').setHeading();
- host.createDiv({text: 'Graph, Analysen und Rechercheverlauf bleiben im Arbeitsspeicher. Das lokale Rücknahmejournal speichert höchstens 20 Frontmatter-Zustände; keine Notizkörper.', cls: 'em-muted'});
- new Setting(host).setName('Sitzung zurücksetzen').setDesc('Bricht laufende Anfragen ab und entfernt Analysen und Rechercheverlauf.').addButton(b => b.setButtonText('Sitzung leeren').onClick(() => {c.clearSession(); ctx.report('Sitzungsdaten entfernt.');}));
+ host.createDiv({text: 'Graph und Feldideen bleiben im Arbeitsspeicher. Das lokale Rücknahmejournal speichert höchstens 20 Frontmatter-Zustände; keine Notizkörper.', cls: 'em-muted'});
+ new Setting(host).setName('Sitzung zurücksetzen').setDesc('Bricht laufende Anfragen ab und entfernt Feldideen.').addButton(b => b.setButtonText('Sitzung leeren').onClick(() => {c.clearSession(); ctx.report('Sitzungsdaten entfernt.');}));
  const journal = disclosure(host, 'Rücknahmejournal verwalten');
  new Setting(journal).setName('Journal löschen').setDesc('Entfernt die gespeicherten Rücknahmemöglichkeiten. Deine Notizen werden nicht geändert.').addButton(b => b.setButtonText('Journal löschen').onClick(() => {
   c.writer.journal.splice(0); void c.persist().then(() => ctx.report('Journal gelöscht.')).catch(e => ctx.report(errorMessage(e), true));

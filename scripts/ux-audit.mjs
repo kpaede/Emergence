@@ -5,7 +5,7 @@ mkdirSync('docs/ux',{recursive:true});
 const v='app.workspace.getLeavesOfType("emergence-workspace")[0].view';
 command('command',['id=emergence:open-workspace']);
 const report={};
-for(const tab of ['graph','analysis','inquiry','registry','review']) {
+for(const tab of ['graph','analysis','search']) {
  evaluate(`(()=>{${v}.switchTab('${tab}');return true;})()`);
  const metrics=evaluate(`(()=>{const v=${v},p=v.contentEl.querySelector('[role=tabpanel]:not([hidden])'),r=v.containerEl.getBoundingClientRect();return {width:p.clientWidth,height:p.clientHeight,scrollHeight:p.scrollHeight,scrollWidth:p.scrollWidth,buttons:p.querySelectorAll('button').length,rect:{x:r.x,y:r.y,width:r.width,height:r.height}};})()`);
  report[tab]=metrics;

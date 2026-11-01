@@ -34,7 +34,7 @@ try {
    const start = performance.now();
    try {
     const f = test.fixture; f.settings.model = model; f.settings.timeoutMs = settings.timeoutMs;
-    const result = await new DocumentAnalyzer(provider).analyze(test.source, f.content, f.g, f.p, f.settings, new AbortController().signal, () => {}, '', '', f.options);
+    const result = await new DocumentAnalyzer(provider).analyze(test.source, f.content, f.g, f.p, f.settings, new AbortController().signal, () => {}, f.options);
     const score = scoreAssignments(result, test);
     modelResult.generation.push({case: test.id, ...score, status: result.status, errors: result.errors, elapsedMs: result.elapsedMs, diagnostics: result.diagnostics,
      assignments: result.suggestions.map(s => ({field: s.field, target: s.target, kind: s.targetKind}))});

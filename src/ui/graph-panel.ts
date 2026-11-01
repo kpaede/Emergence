@@ -9,6 +9,9 @@ import {openSynopsisNote} from './graph-navigation';
 import type {SynopsisDepth, SynopsisNote, SynopsisRelation} from '../graph/synopsis-types';
 import {formatZotlitReference} from '../graph/zotlit-bibliography';
 import {NativeViews} from './native-views';
+import {renamedPath} from '../graph/rename';
+import {backlinkSources} from '../graph/backlinks';
+import {literatureActions} from '../graph/zotlit-actions';
 
 /** The synopse and original plugin views share one scrollable side panel. */
 export class GraphPanel {
@@ -24,9 +27,12 @@ export class GraphPanel {
   const row=this.synopsisControls.createEl('label',{cls:'em-check-row em-graph-explore'});this.exploreBox=row.createEl('input',{type:'checkbox'});row.appendText('Im Graphen erkunden');
   this.exploreBox.onchange=()=>{this.explore=this.exploreBox.checked;if(!this.explore){this.follow=true;this.focus(c.activePath);}};
   const controls=disclosure(this.synopsisControls,'Felder und Quellen');controls.addEventListener('toggle',()=>this.resize());this.refreshSources=synopsisSourceSettings(controls,c,()=>{this.semantic.invalidate();this.renderStructure();});
-  this.canvas=this.host.createDiv({cls:'em-graph em-synopsis-canvas',attr:{role:'region','aria-label':'Relationssynopse'}});
+  this.canvas=this.host.createDiv({cls:'em-graph em-synopsis-canvas',attr:{role:'region','aria-label':'Kontext'}});
   this.semanticHost=this.canvas.createDiv();
   this.semantic=new RelationsSynopsis(this.semanticHost,c.settings,(relation,depth)=>this.setDepth(relation,depth),{
+   referenceActions:(reference,source)=>literatureActions(c.app,reference,source),
+   run:action=>{void c.run(action);},
+   backlinks:path=>backlinkSources(c.app.metadataCache.resolvedLinks,path),
    bibliography:(reference,source)=>formatZotlitReference(c.app,source,reference),
    activate:(note,event)=>this.activateSynopsisNote(note,event),inspect:note=>this.inspectSynopsisNote(note),
    literature:target=>{void c.run(()=>import('../graph/zotlit').then(m=>m.openZotlitLibrary(c.app,target)));},
@@ -36,12 +42,13 @@ export class GraphPanel {
   this.nativeHost=this.host.createDiv({cls:'em-native-views'});this.nativeViews=new NativeViews(c.app,this.leaf,this.nativeHost);
   this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(this.canvas);this.observer.observe(this.host);this.update();
  }
+ onNoteRename(oldPath:string,newPath:string):void{this.focusPath=renamedPath(this.focusPath,oldPath,newPath);this.lastActive=renamedPath(this.lastActive,oldPath,newPath);this.version=-1;this.semantic?.invalidate();}
  update():void{
   const c=this.controller,g=c.graph.snapshot;this.refreshSources?.refresh();
   const changed=this.lastActive!==c.activePath;this.lastActive=c.activePath;
   if(!this.focusPath||changed&&this.follow){this.focusPath=c.activePath;this.details.hidden=true;this.version=-1;}
   if(this.version!==g.version){this.version=g.version;this.renderStructure();}
-  const choices=[{type:'synopsis',label:'Relationssynopse'},...this.nativeViews.choices(c.activePath)],fingerprint=JSON.stringify(choices);
+  const choices=[{type:'synopsis',label:'Kontext'},...this.nativeViews.choices(c.activePath)],fingerprint=JSON.stringify(choices);
   if(fingerprint!==this.viewChoices){this.viewChoices=fingerprint;this.viewSelect.empty();for(const choice of choices)this.viewSelect.createEl('option',{value:choice.type,text:choice.label});}
   if(!choices.some(choice=>choice.type===this.selectedView)){this.selectedView='synopsis';this.version=-1;this.semantic.invalidate();this.renderStructure();}this.viewSelect.value=this.selectedView;
   const synopsis=this.selectedView==='synopsis';this.synopsisControls.hidden=!synopsis;this.canvas.hidden=!synopsis;this.nativeHost.hidden=synopsis;if(!synopsis)this.details.hidden=true;

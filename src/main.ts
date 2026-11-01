@@ -1,6 +1,7 @@
 import {Plugin} from 'obsidian';
 import type {JournalEntry, Settings} from './types';
 import {migrateSettings} from './config';
+import {renamedPath} from './graph/rename';
 import {EmergenceController} from './controller';
 import {EmergenceSettingsTab} from './settings';
 import {EmergenceView, VIEW_TYPE} from './ui/view';
@@ -16,7 +17,7 @@ export default class EmergencePlugin extends Plugin {
   this.journal = Array.isArray(data.journal) ? data.journal : [];
   this.controller = new EmergenceController(this.app, () => this.settings, async entries => {this.journal = entries; await this.saveSettings();}, this.journal, () => this.saveSettings());
   const c = this.controller;
-  this.registerHoverLinkSource('emergence-synopsis',{display:'Emergence Relationssynopse',defaultMod:true});
+  this.registerHoverLinkSource('emergence-synopsis',{display:'Emergence Kontext',defaultMod:true});
   this.registerView(VIEW_TYPE, leaf => new EmergenceView(leaf, c));
   this.addSettingTab(new EmergenceSettingsTab(this.app, this));
   this.addRibbonIcon('network', 'Emergence öffnen', () => {void c.run(() => this.open());});
@@ -32,7 +33,11 @@ export default class EmergencePlugin extends Plugin {
   this.registerEvent(this.app.metadataCache.on('changed', () => {breadcrumbDirty = true; schedule();}));
   this.registerEvent(this.app.metadataCache.on('resolve', schedule));
   this.registerEvent(this.app.metadataCache.on('resolved', () => {c.graph.resolved = true; schedule();}));
-  this.registerEvent(this.app.vault.on('rename', schedule));
+  this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
+   c.activePath = renamedPath(c.activePath, oldPath, file.path);
+   for(const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE))if(leaf.view instanceof EmergenceView)leaf.view.onNoteRename(oldPath,file.path);
+   breadcrumbDirty=true;c.rebuild();schedule();
+  }));
   this.registerEvent(this.app.vault.on('delete', schedule));
   this.registerEvent(this.app.vault.on('create', schedule));
   this.registerEvent(this.app.workspace.on('file-open', file => {if (file?.extension === 'md') c.activePath = file.path; c.captureActive(); c.notify();}));

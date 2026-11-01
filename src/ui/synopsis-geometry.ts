@@ -69,7 +69,7 @@ export class SynopsisGeometry {
   }
   // Explicit predecessor IDs keep deep, visually flattened steps semantically connected.
   const stepGroups=new Map<string,HTMLElement[]>();
-  for(const link of this.diagram.querySelectorAll<HTMLElement>('a[data-syn-parent]')){
+  for(const link of this.diagram.querySelectorAll<HTMLElement>('[data-syn-parent]')){
    const parent=link.dataset.synParent!;stepGroups.set(parent,[...stepGroups.get(parent)??[],link]);
   }
   for(const [id,links] of stepGroups){

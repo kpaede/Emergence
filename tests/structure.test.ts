@@ -8,7 +8,7 @@ import {edge,graph} from './fixtures';
 import {synopsisFixture} from './synopsis-fixture';
 const focus='Dekonstruktion.md';
 function flatten(entries:SynopsisEntry[]):SynopsisEntry[]{const all=[...entries];for(let i=0;i<all.length;i++)all.push(...all[i]!.children);return all;}
-describe('Relationssynopse: existing metadata adapter',()=>{
+describe('Kontext: existing metadata adapter',()=>{
  it('adapts all seven groups with complete stress counts, without mutating metadata',()=>{
   const fixture=synopsisFixture(),before=JSON.stringify(fixture),model=new SynopsisGraph(fixture,defaults());
   expect(synopsisRelations.map(r=>model.neighbors(focus,r).length)).toEqual([4,12,8,6,4,48,74]);expect(JSON.stringify(fixture)).toBe(before);

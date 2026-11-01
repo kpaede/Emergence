@@ -1,3 +1,18 @@
+# 0.0.2
+
+- Die bisherige Relationssynopse heißt jetzt **Kontext**; gespeicherte Zuordnungen und Sichttiefen bleiben erhalten.
+- Literaturaktionen blenden sich ohne Scrollsprünge ein: Die Literaturangabe bleibt stehen, nachfolgende Inhalte rücken nach unten.
+
+- Zentrale Graphbeschriftung folgt Notiz-/Ordnerumbenennungen sofort, auch im Erkundungsmodus.
+- Rückverweise aus Obsidians eigenem Linkindex unter den freien Verweisen ergänzt.
+- Literatur in Graph und Suche als reiner CSL-Text mit sechs Symbolaktionen; ZotLit zuerst, Citekey ausschließlich über Kopiersymbol und Tooltip. Aktionen erscheinen bei Hover oder Tastaturfokus; ohne Hoverfähigkeiten bleiben sie sichtbar.
+- Literaturaktionen und CSL-Kontext der Suche wechseln mit der aktuellen Notiz.
+
+- Recherche vollständig entfernt; lokale Breadcrumbs-Feldideen bleiben erhalten.
+- Ollama/Wikipedia auf Obsidian requestUrl und native Timer umgestellt; Abbruch, Timeout und Endpunktwechsel abgesichert.
+- Einstellungen in der nativen Obsidian-Suche auffindbar; explizite Entwürfe und Speichern bleiben erhalten.
+- Gemeldete CSS-/SVG-Hinweise behoben und drei Arbeitsbereiche an Obsidian-Themes ausgerichtet.
+
 # 0.0.1
 
 Erster öffentlicher Entwicklungsrelease von Emergence. Das Plugin ist für persönliche philosophische Begriffsarbeit entstanden und bleibt experimentell.

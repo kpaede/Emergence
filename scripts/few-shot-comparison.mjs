@@ -27,7 +27,7 @@ try{
   const provider=new OllamaProvider(()=>settings,transport);await provider.health();const row={model,generation:[]};report.results.push(row);
   for(const test of comparisonCases()){
    const f=test.fixture,start=performance.now();
-   try{const result=await new DocumentAnalyzer(provider).analyze(test.source,f.content,f.g,f.p,settings,new AbortController().signal,()=>{},'','',f.options);
+   try{const result=await new DocumentAnalyzer(provider).analyze(test.source,f.content,f.g,f.p,settings,new AbortController().signal,()=>{},f.options);
     row.generation.push({case:test.id,...scoreAssignments(result,test),elapsedMs:result.elapsedMs,errors:result.errors,assignments:result.suggestions.map(s=>({field:s.field,target:s.target,kind:s.targetKind})),diagnostics:result.diagnostics});
    }catch(error){row.generation.push({case:test.id,passed:false,error:String(error),elapsedMs:Math.round(performance.now()-start)});}
    await writeFile(file,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify({model,...row.generation.at(-1)}));

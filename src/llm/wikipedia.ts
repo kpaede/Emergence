@@ -1,11 +1,12 @@
 import type {WikipediaContext, WikipediaSource} from '../types';
 import {assert, clone} from '../util';
+import {nativeRequest, requestResponse, type UrlTransport} from './request';
 
 export interface WikipediaLookup {lookup(query: string, signal: AbortSignal): Promise<WikipediaContext>;clear?():void}
 /** Only fixed Wikipedia API hosts; the caller supplies a visible term, never note bodies. */
 export class WikipediaProvider implements WikipediaLookup {
  private cache=new Map<string,{until:number;value:WikipediaContext}>();
- constructor(private transport: typeof fetch=(input,init)=>fetch(input,init)) {}
+ constructor(private transport: UrlTransport=nativeRequest) {}
  clear():void{this.cache.clear();}
  async lookup(input: string, signal: AbortSignal): Promise<WikipediaContext> {
   const query=input.trim().replace(/\s+/gu,' ');
@@ -39,13 +40,10 @@ export class WikipediaProvider implements WikipediaLookup {
   const params={action:'query',format:'json',formatversion:'2',origin:'*',redirects:'1',prop:'extracts|info|links|pageprops',exintro:'1',explaintext:'1',exchars:'1800',inprop:'url',plnamespace:'0',pllimit:'30',
    ...(search?{generator:'search',gsrsearch:query,gsrlimit:'2',gsrnamespace:'0'}:{titles:query})};
   for(const [key,value]of Object.entries(params))url.searchParams.set(key,value);
-  const response=await this.transport(url.href,{method:'GET',headers:{Accept:'application/json','Api-User-Agent':'Emergence/0.1 (Obsidian desktop plugin; Wikipedia context)'},credentials:'omit',redirect:'error',signal});
-  assert(response.ok&&response.body,'Wikipedia ist nicht erreichbar.');
-  const reader=response.body.getReader(),parts:Uint8Array[]=[];let bytes=0;
-  try{for(;;){const chunk=await reader.read();if(chunk.done)break;bytes+=chunk.value.length;assert(bytes<=1000000,'Wikipedia-Antwort zu groß.');parts.push(chunk.value);}}
-  catch(error){await reader.cancel();throw error;}finally{reader.releaseLock();}
-  const data=new Uint8Array(bytes);let offset=0;for(const part of parts){data.set(part,offset);offset+=part.length;}
-  const body:unknown=JSON.parse(new TextDecoder().decode(data));
+  const response=await requestResponse(this.transport,{url:url.href,method:'GET',headers:{Accept:'application/json','Api-User-Agent':'Emergence (Obsidian desktop plugin; Wikipedia context)'},throw:false},signal);
+  assert(response.status>=200&&response.status<300,'Wikipedia ist nicht erreichbar.');
+  assert(response.arrayBuffer.byteLength<=1000000,'Wikipedia-Antwort zu groß.');
+  const body:unknown=JSON.parse(response.text);
   if(!body||typeof body!=='object'||'error'in body)throw new Error('Ungültige Wikipedia-Antwort.');
   const rows=(body as {query?:{pages?:unknown[]}}).query?.pages;if(!Array.isArray(rows))return [];
   const sources:WikipediaSource[]=[];

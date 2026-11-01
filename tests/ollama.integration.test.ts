@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import {musicalConceptFixture} from './assignment-fixture';
 import {expect, it} from 'vitest';
 import {defaults, unknownRule} from '../src/config';
@@ -21,7 +22,7 @@ it.skipIf(!live)('local Qwen processes a note larger than its context window bef
  let body='# Ontologie\n';for(let i=0;estimateTextTokens(body)<config.numCtx*1.15;i++)body+=`\nAbsatz ${i+1}. ${paragraphs[i%paragraphs.length]}\n`;
  const text='---\nÜberbau:\n---\n'+body+'\nAbschluss: Ontologie ist eine Teildisziplin der Philosophie.\n',provider=new OllamaProvider(()=>config),requests:import('../src/llm/provider').ChatOptions[]=[],start=performance.now();
  const tracked:LLMProvider={health:signal=>provider.health(signal),cancel:()=>provider.cancel(),chat:async request=>{requests.push(request);expect(contextEstimate(request.messages,request.maxTokens,request.format)).toBeLessThanOrEqual(config.numCtx);return provider.chat(request);}};
- const result=await new DocumentAnalyzer(tracked).analyze('Ontologie.md',text,g,p,config,new AbortController().signal,message=>process.stdout.write(message+'\n'),'','',{fields:['Überbau'],folders:[],allowNew:true,maxSuggestions:4,perField:4,outputId:'relations'});
+ const result=await new DocumentAnalyzer(tracked).analyze('Ontologie.md',text,g,p,config,new AbortController().signal,message=>process.stdout.write(message+'\n'),{fields:['Überbau'],folders:[],allowNew:true,maxSuggestions:4,perField:4,outputId:'relations'});
  process.stdout.write(JSON.stringify({case:'long-note-field-ideas',sourceCharacters:text.length,estimatedSourceTokens:estimateTextTokens(body),numCtx:config.numCtx,requests:requests.length,seconds:Number(((performance.now()-start)/1000).toFixed(2)),status:result.status,assignments:result.suggestions.map(s=>[s.field,s.target]),diagnostics:result.diagnostics})+'\n');
  expect(result.status,result.errors.join('\n')).toBe('complete');expect(result.sourceVersion).toBe(await hash(text));expect(result.diagnostics?.sourceMode).toBe('overview');expect(result.diagnostics!.sourceParts).toBeGreaterThan(1);expect(result.suggestions).toContainEqual(expect.objectContaining({field:'Überbau',target:'Philosophie.md',status:'pending',value:'[[Philosophie]]'}));
 },600000);
@@ -38,7 +39,7 @@ for (const exists of [true, false]) it.skipIf(!live)(`local Qwen assigns Ontolog
  g.rules = {'Überbau': {...unknownRule('Überbau'), description: 'Das übergeordnete Fachgebiet, in das die Ausgangsnotiz inhaltlich gehört.', provenance: 'user', writable: true, targetProperty: 'Überbau'}};
  const text = '---\nÜberbau:\n---\n# Ontologie\nOntologie ist eine philosophische Disziplin und untersucht das Sein, die Existenz und die grundlegenden Kategorien des Seienden.';
  const test = counted(), start = performance.now();
- const result = await test.analyzer.analyze('Konzepte/Ontologie.md', text, g, profile(), settings, new AbortController().signal, () => {}, '', '', options(['Überbau']));
+ const result = await test.analyzer.analyze('Konzepte/Ontologie.md', text, g, profile(), settings, new AbortController().signal, () => {}, options(['Überbau']));
  expect(result.status, result.errors.join('\n')).toBe('complete'); expect(test.calls()).toBe(1);
  expect(result.suggestions, test.response()).toContainEqual(expect.objectContaining({field: 'Überbau', target: 'Konzepte/Philosophie.md', targetKind: exists ? 'existing' : 'unresolved', status: 'pending', reason: ''}));
  expect(result.candidates).toEqual([]); expect(result.artifacts).toEqual([]);
@@ -58,7 +59,7 @@ it.skipIf(!live)('local Qwen does not assign an existing composer or an unrelate
  g.rules = Object.fromEntries(Object.entries(descriptions).map(([field, description]) => [field, {...unknownRule(field), description, provenance: 'user' as const, writable: true, targetProperty: field}]));
  const text = '---\nÜberbau: ["[[Personen/Verdi, Giuseppe]]"]\nReibung:\nÄhnlichkeit:\nBeispiel:\n---\n# Parola scenica\nEin dramatischer Sprachstil, der eine kurze prägnante Wendung musikalisch hervorhebt, um die Situation auf den Punkt zu bringen.';
  const test = counted(), start = performance.now();
- const result = await test.analyzer.analyze('Parola scenica.md', text, g, profile(), settings, new AbortController().signal, () => {}, '', '', options(Object.keys(descriptions)));
+ const result = await test.analyzer.analyze('Parola scenica.md', text, g, profile(), settings, new AbortController().signal, () => {}, options(Object.keys(descriptions)));
  expect(result.status, result.errors.join('\n')).toBe('complete'); expect(test.calls()).toBe(1);
  expect(result.suggestions.some(s => s.field === 'Komponist_in' || s.target.includes('Verdi') || s.target.includes('Belmont') || /Act|Scene/iu.test(s.target))).toBe(false);
  expect(new Set(result.suggestions.map(s => s.target)).size).toBe(result.suggestions.length);
@@ -71,7 +72,7 @@ it.skipIf(!live)('local Qwen proposes a useful musical parent with 58 complete t
  settings.model = model;
  p.instructions = 'Fachkontext: Musikwissenschaft. ' + p.instructions;
  const test = counted(settings), start = performance.now();
- const result = await test.analyzer.analyze('Parola scenica.md', content, g, p, settings, new AbortController().signal, () => {}, '', '', options);
+ const result = await test.analyzer.analyze('Parola scenica.md', content, g, p, settings, new AbortController().signal, () => {}, options);
  process.stdout.write(JSON.stringify({case: 'musical-parent-full-catalogue', requests: test.calls(), seconds: Number(((performance.now() - start) / 1000).toFixed(2)), assignments: result.suggestions.map(s => [s.field, s.target]), metrics: result.diagnostics}) + '\n');
  expect(result.status, result.errors.join('\n')).toBe('complete'); expect(test.calls()).toBe(1);
  expect(result.suggestions.some(s => s.field === 'Überbau' && /(?:^|\/)(?:Oper|Musiktheater)\.md$/u.test(s.target)), test.response()).toBe(true);

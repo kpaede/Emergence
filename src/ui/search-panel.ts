@@ -1,3 +1,4 @@
+import {literatureActions} from '../graph/zotlit-actions';
 import {formatZotlitReference} from '../graph/zotlit-bibliography';
 import {literatureReference} from './literature-reference';
 import {Keymap} from 'obsidian';
@@ -12,7 +13,7 @@ import {synopsisNote} from './synopsis-note';
 
 export class SearchPanel {
  private results!: HTMLElement; private library!: HTMLElement; private version = -1; private limit = 30;
- private timer?: number; private request?: AbortController; private generation = 0; private lastQuery = '';
+ private timer?: number; private request?: AbortController; private generation = 0; private lastQuery = ''; private sourcePath = '';
  constructor(private controller: EmergenceController, private host: HTMLElement, private state: () => PanelState['search'], private explore: (path: string) => void) {}
  mount(): void {
   const search = input(this.host, 'Notizen und Zotero suchen', this.state().query, value => {this.state().query = value; this.limit = 30; this.draw();}) as HTMLInputElement;
@@ -24,17 +25,17 @@ export class SearchPanel {
   }
   this.results = this.host.createDiv({cls: 'em-search-results'});
   this.library = this.host.createDiv({cls: 'em-library-results', attr: {'aria-live': 'polite'}});
-  search.onkeydown = event => {if (event.key === 'Enter') {event.preventDefault(); (this.results.querySelector<HTMLAnchorElement>('a') ?? this.library.querySelector<HTMLAnchorElement>('a'))?.click();}};
+  search.onkeydown = event => {if (event.key === 'Enter') {event.preventDefault(); (this.results.querySelector<HTMLAnchorElement>('a') ?? this.library.querySelector<HTMLButtonElement>('[data-literature-action=library]'))?.click();}};
   this.update();
  }
  update(): void {
   const state = this.state(), search = this.host.querySelector<HTMLInputElement>('input[type=search]');
   if(search && search.value !== state.query) search.value = state.query;
   for(const box of this.host.querySelectorAll<HTMLInputElement>('input[type=radio]')) box.checked = box.value === state.mode;
-  if (this.version !== this.controller.graph.snapshot.version || this.lastQuery !== state.query) {this.version = this.controller.graph.snapshot.version; this.draw();}
+  if (this.version !== this.controller.graph.snapshot.version || this.lastQuery !== state.query || this.sourcePath !== this.controller.activePath) {this.version = this.controller.graph.snapshot.version; this.draw();}
  }
  private draw(): void {
-  this.results.empty(); const query = this.state().query.trim();
+  this.results.empty(); const query = this.state().query.trim(),sourceChanged=this.sourcePath!==this.controller.activePath;this.sourcePath=this.controller.activePath;
   if (!query) {this.cancel(); this.library.empty(); this.lastQuery = this.state().query; return;}
   const c = this.controller, graph = c.graph.snapshot;
   const hits = new ConceptRegistry(graph).search(query, graph.nodes.length).map(h => h.concept);
@@ -53,11 +54,11 @@ export class SearchPanel {
    row.createDiv({text: concept.exists ? concept.id : 'Noch nicht angelegt', cls: 'em-path'});
   }
   if (hits.length > this.limit) button(this.results, 'Weitere Notizen', () => {this.limit += 30; this.draw();});
-  if (this.lastQuery !== this.state().query || !this.library.childElementCount) {this.lastQuery = this.state().query; this.findLibrary(query, 30);}
+  if (this.lastQuery !== this.state().query || sourceChanged || !this.library.childElementCount) {this.lastQuery = this.state().query; this.findLibrary(query, 30);}
  }
  private cancel(): void {this.request?.abort(); this.request = undefined; if(this.timer !== undefined)(this.host.ownerDocument.defaultView ?? window).clearTimeout(this.timer);this.timer = undefined;this.generation++;}
  private findLibrary(query: string, limit: number): void {
-  this.cancel(); const generation = this.generation;
+  this.cancel(); const generation = this.generation,source=this.controller.activePath;
   this.library.empty(); this.library.createEl('h3', {text: 'Zotero · alle Libraries', cls: 'em-search-heading'});
   const status = this.library.createDiv({text: 'Literatur wird gesucht …', cls: 'em-muted em-caption', attr: {role: 'status'}});
   const win = this.host.ownerDocument.defaultView ?? window;
@@ -68,7 +69,7 @@ export class SearchPanel {
     status.setText(hits.length ? `${hits.length}${hits.length === limit ? '+' : ''} Treffer` : 'Keine passenden Literaturangaben.');
     for (const item of hits) {
      const row = this.library.createDiv({cls:'em-search-hit'});
-     literatureReference(row,item,{open:()=>{void this.controller.run(()=>openZotlitLibrary(this.controller.app,{indexedKey:item.indexedKey}));},format:()=>this.controller.settings().citekeyFormat??'brackets',bibliography:reference=>formatZotlitReference(this.controller.app,this.controller.activePath,reference)});
+     literatureReference(row,item,{run:action=>{void this.controller.run(action);},load:()=>literatureActions(this.controller.app,item,source),open:()=>{void this.controller.run(()=>openZotlitLibrary(this.controller.app,{indexedKey:item.indexedKey}));},format:()=>this.controller.settings().citekeyFormat??'brackets',bibliography:reference=>formatZotlitReference(this.controller.app,source,reference)});
     }
     if(hits.length === limit)button(this.library,'Weitere Literatur',()=>this.findLibrary(query,limit + 30));
    }).catch(error => {if (generation === this.generation && !request.signal.aborted) status.setText(errorMessage(error));});

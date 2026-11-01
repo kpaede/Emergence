@@ -14,7 +14,7 @@ try{
  for(const test of comparisonCases().filter(c=>['musical-sparse'].includes(c.id))){
   const f=test.fixture; f.p.instructions=associationInstructions;f.p.templates.relations=associationTemplate;f.p.temperature=0.4;f.p.maxTokens=1024;f.options.fields=[...f.fields];f.options.perField=4;f.options.maxSuggestions=f.fields.length*4;f.options.excludeExistingTargets=true;f.g.edges=[{id:"existing-verdi",source:test.source,target:"Verdi, Giuseppe.md",field:"Überbau",layer:"breadcrumbs",explicit:true,provenance:"typed_link",occurrences:[]}];f.p.outputs[0].allowedEdgeTypes=[];
   const start=performance.now();
-  try{const result=await new DocumentAnalyzer(provider).analyze(test.source,f.content,f.g,f.p,settings,new AbortController().signal,()=>{},'','',f.options);
+  try{const result=await new DocumentAnalyzer(provider).analyze(test.source,f.content,f.g,f.p,settings,new AbortController().signal,()=>{},f.options);
    report.results.push({case:test.id,structuralPassed:result.status==='complete'&&f.fields.every(field=>result.suggestions.filter(s=>s.field===field).length<=4)&&result.suggestions.every(s=>s.reason===''&&!s.target.includes('Verdi, Giuseppe')&&!s.target.includes('Tetrade')),strictClassification:scoreAssignments(result,test),status:result.status,elapsedMs:result.elapsedMs,errors:result.errors,assignments:result.suggestions.map(s=>({field:s.field,target:s.target,kind:s.targetKind})),diagnostics:result.diagnostics});
   }catch(error){report.results.push({case:test.id,error:String(error),elapsedMs:Math.round(performance.now()-start)});}
   await writeFile(resolve('docs/association-comparison.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report.results.at(-1)));

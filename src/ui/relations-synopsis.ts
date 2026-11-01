@@ -19,8 +19,8 @@ export class RelationsSynopsis {
   this.geometry?.destroy();this.cancelFrame();const generation=++this.generation;this.host.empty();
   const model=this.model=new SynopsisGraph(snapshot,this.settings()),note=model.notes.get(focus);
   if(!note){this.host.createDiv({text:'Öffne eine Markdown-Notiz.',cls:'em-muted'});return;}
-  const diagram=this.diagram=this.host.createDiv({cls:'em-syn-diagram',attr:{'aria-label':'Relationssynopse'}});
-  const svg=diagram.ownerDocument.createElementNS('http://www.w3.org/2000/svg','svg');svg.addClass('em-syn-edges');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');diagram.append(svg);
+  const diagram=this.diagram=this.host.createDiv({cls:'em-syn-diagram',attr:{'aria-label':'Kontext'}});
+  const svg=diagram.createSvg('svg',{cls:'em-syn-edges',attr:{'aria-hidden':'true',focusable:'false'}});
   const makeSection=(relation:SynopsisRelation,parent:HTMLElement)=>{
    const section=parent.createEl('section',{cls:`em-syn-section em-syn-${relation}`,attr:{'data-syn-relation':relation}});
    const titleId=`em-syn-title-${crypto.randomUUID()}`;section.setAttribute('aria-labelledby',titleId);
@@ -55,13 +55,13 @@ export class RelationsSynopsis {
    const section=makeSection(relation,parent),list=section.createEl('ul',{cls:relation==='narrower'?'em-syn-children':relation==='similar'||relation==='friction'?'em-syn-lateral-items':'em-syn-register',attr:{'data-syn-list':relation}});
    const entries=model.entries(focus,relation,depths[relation]);
    const returns=model.returns(relation);if(returns)list.setAttribute('aria-description',`${returns} Rückverweise nicht erneut als neue Schritte angezeigt.`);
-   if(relation==='literature')for(const citation of model.citationReferences(focus)){const row=section.createDiv({cls:'em-syn-citation',attr:{'data-syn-citekey':citation.citekey??''}});literatureReference(row,citation,{open:()=>this.actions.literature?.(citation),format:()=>this.settings().citekeyFormat??'brackets',bibliography:this.actions.bibliography?reference=>this.actions.bibliography!(reference,focus):undefined});}
+   if(relation==='literature')for(const citation of model.citationReferences(focus)){const row=section.createDiv({cls:'em-syn-citation',attr:{'data-syn-citekey':citation.citekey??''}});literatureReference(row,citation,{open:()=>this.actions.literature?.(citation),format:()=>this.settings().citekeyFormat??'brackets',run:this.actions.run,load:this.actions.referenceActions?()=>this.actions.referenceActions!(citation,focus):undefined,bibliography:this.actions.bibliography?reference=>this.actions.bibliography!(reference,focus):undefined});}
    if(!entries.length)return;
-   const work:{entry:SynopsisEntry;list:HTMLElement;side:'left'|'right';parent?:HTMLAnchorElement;visualDepth:number}[]=entries.map((entry,index)=>({entry,list,visualDepth:0,side:relation==='friction'||relation==='narrower'&&index%2===0?'right':'left'}));
+   const work:{entry:SynopsisEntry;list:HTMLElement;side:'left'|'right';parent?:HTMLElement;visualDepth:number}[]=entries.map((entry,index)=>({entry,list,visualDepth:0,side:relation==='friction'||relation==='narrower'&&index%2===0?'right':'left'}));
    for(let index=0;index<work.length;index++){
     const {entry,list,side,parent,visualDepth}=work[index]!,li=list.createEl('li',{attr:{'data-syn-step':String(entry.step)}});const actions=relation==='literature'&&snapshot.edges.some(e=>e.layer==='zotlit'&&e.target===entry.note.id)&&this.actions.literature?{...this.actions,activate:(_note:import('../graph/synopsis-types').SynopsisNote,event:MouseEvent)=>{if(event.button!==1)this.actions.literature?.({path:entry.note.path});}}:this.actions;const reference=relation==='literature'?model.reference(entry.note.id):undefined;
-    let link:HTMLAnchorElement;
-    if(reference){const row=literatureReference(li,{...reference,title:reference.title??entry.note.title},{open:()=>this.actions.literature?.({...reference,path:entry.note.path}),format:()=>this.settings().citekeyFormat??'brackets',bibliography:this.actions.bibliography?reference=>this.actions.bibliography!(reference,focus):undefined});link=row.querySelector<HTMLAnchorElement>('a')!;link.addClass('em-syn-note');link.dataset.emNote=entry.note.id;link.id='em-syn-note-'+crypto.randomUUID();}
+    let link:HTMLElement;
+    if(reference){li.addClass('em-syn-literature-row');const row=literatureReference(li,{...reference,title:reference.title??entry.note.title},{open:()=>this.actions.literature?.({...reference,path:entry.note.path}),format:()=>this.settings().citekeyFormat??'brackets',run:this.actions.run,load:this.actions.referenceActions?()=>this.actions.referenceActions!(reference,focus):undefined,bibliography:this.actions.bibliography?reference=>this.actions.bibliography!(reference,focus):undefined});link=row.querySelector<HTMLElement>('.em-literature-title')!;link.addClass('em-syn-reference');link.dataset.emNote=entry.note.id;link.id='em-syn-note-'+crypto.randomUUID();}
     else link=synopsisNote(li,entry.note,actions);
     if(parent){link.dataset.synParent=parent.id;link.dataset.synSide=side;link.dataset.synRelation=relation;}
     if(entry.step>3)li.createSpan({text:`Schritt ${entry.step}`,cls:'em-syn-step-meta'});
@@ -79,6 +79,7 @@ export class RelationsSynopsis {
    const list=section.createEl('ul',{cls:'em-syn-register'});for(const target of targets)synopsisNote(list.createEl('li'),target,this.actions);
   }
   populate('literature',diagram);populate('links',diagram);
+  if(this.actions.backlinks){const entries=[...new Set(this.actions.backlinks(focus))].flatMap(id=>{const note=model.notes.get(id);return note?[note]:[];});const section=diagram.createEl('section',{cls:'em-syn-section em-syn-backlinks',attr:{'aria-label':'Rückverweise'}}),heading=section.createDiv({cls:'em-syn-head'});heading.createEl('h3',{text:'Rückverweise'}).createSpan({text:' '+entries.length,cls:'em-syn-count'});const list=section.createEl('ul',{cls:'em-syn-register'});for(const entry of entries)synopsisNote(list.createEl('li'),entry,this.actions);}
   this.geometry=new SynopsisGeometry(diagram,svg);renderPaths();this.geometry.schedule();
   if(sameFocus)this.host.scrollTop=scroll;else this.host.scrollTop=0;
   if(selected)this.host.querySelector<HTMLElement>(`[data-syn-depth="${selected}"]`)?.focus({preventScroll:true});

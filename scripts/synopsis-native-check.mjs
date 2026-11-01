@@ -3,10 +3,12 @@ import {mkdirSync,writeFileSync,readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {evaluate,command} from './obsidian-cli.mjs';
+const layoutOnly=process.argv.includes('--layout-only');
 const out=resolve('docs/relationssynopse');mkdirSync(out,{recursive:true});
 buildSync({entryPoints:['tests/synopsis-fixture.ts'],bundle:true,platform:'node',format:'cjs',outfile:'/tmp/emergence-synopsis-fixture.cjs'});
 const source=evaluate('app.plugins.plugins.emergence.controller.activePath');
-const hash=()=>createHash('sha256').update(readFileSync(resolve('../../..',source))).digest('hex'),before=hash();
+const vaultRoot=command('vault',['info=path']);
+const hash=()=>createHash('sha256').update(readFileSync(resolve(vaultRoot,source))).digest('hex'),before=layoutOnly?undefined:hash();
 const code=String.raw`(()=>{
  const v=app.workspace.getLeavesOfType('emergence-workspace')[0].view,p=v.graphPanel,w=require('@electron/remote').getCurrentWindow(),wc=w.webContents;
  const previous={body:document.body.className,bg:wc.getBackgroundThrottling(),tab:v.tab,focus:p.focusPath,follow:p.follow,explore:p.explore,synopsis:JSON.stringify(v.controller.settings().synopsis),active:v.controller.activePath,settings:JSON.stringify(v.controller.settings())};
@@ -65,6 +67,7 @@ const code=String.raw`(()=>{
 
   }
   cleanup();document.body.className=previous.body;
+  if(LAYOUT_ONLY){assert(!state.report.errors.length,'Runtime JavaScript error');return;}
   // Actual Obsidian editor navigation, followed by restoration of the original editor state.
   v.switchTab('graph');p.follow=true;p.focus(previous.active);p.explore=false;p.exploreBox.checked=false;
   const main=app.workspace.getMostRecentLeaf(app.workspace.rootSplit),originalFile=main.view.file,editorState=main.view.getEphemeralState?.();
@@ -85,18 +88,18 @@ const code=String.raw`(()=>{
   assert(state.report.unhandledRejections.every(message=>message==='provider destroyed'),'Neue unbehandelte Promise-Ablehnung');
  })().then(()=>{state.done=true;}).catch(e=>{state.failure=String(e.stack??e);state.done=true;}).finally(async()=>{
   cleanup();document.body.className=previous.body;window.removeEventListener('error',error);window.removeEventListener('unhandledrejection',rejection);wc.setBackgroundThrottling(previous.bg);
-  const c=v.controller;if(previous.synopsis===undefined)delete c.settings().synopsis;else c.settings().synopsis=JSON.parse(previous.synopsis);await c.persist();
+  const c=v.controller;if(!LAYOUT_ONLY){if(previous.synopsis===undefined)delete c.settings().synopsis;else c.settings().synopsis=JSON.parse(previous.synopsis);await c.persist();}
   const original=app.vault.getFileByPath(previous.active),main=app.workspace.getMostRecentLeaf(app.workspace.rootSplit);if(original&&main.view.file?.path!==original.path)await main.openFile(original,{active:true});
   p.explore=previous.explore;p.exploreBox.checked=previous.explore;p.follow=previous.follow;p.focusPath=previous.focus;p.semantic.invalidate();p.renderStructure();v.switchTab(previous.tab);state.report.settingsRestored=JSON.stringify(c.settings())===previous.settings;state.cleaned=true;
  });
  return true;
 })()`;
-evaluate(code.replaceAll('OUT',JSON.stringify(out)));
+evaluate(code.replaceAll('LAYOUT_ONLY',String(layoutOnly)).replaceAll('OUT',JSON.stringify(out)));
 let final;
 for(let i=0;i<240;i++){const state=evaluate('({done:window.__emSynCheck.done,cleaned:window.__emSynCheck.cleaned,failure:window.__emSynCheck.failure,report:window.__emSynCheck.report})');if(state.done&&state.cleaned){final=state;break;}await new Promise(r=>setTimeout(r,150));}
 if(!final)throw new Error('Native synopsis checks timed out; see window.__emSynCheck.');
-final.report.sourceNoteUnchanged=hash()===before;final.report.checkedAt=new Date().toISOString();
+final.report.sourceNoteUnchanged=layoutOnly?null:hash()===before;final.report.layoutOnly=layoutOnly;final.report.checkedAt=new Date().toISOString();
 writeFileSync(resolve(out,'native-checks.json'),JSON.stringify(final,null,2)+'\n');
 console.log(JSON.stringify({done:final.done,error:final.failure,cases:final.report.cases.map(c=>({width:c.width,theme:c.theme,scale:c.scale,notes:c.renderedNotes,crossings:c.crossings,overflow:c.horizontalOverflow})),navigation:final.report.navigation,explore:final.report.explore,persistence:final.report.persistence,sourceNoteUnchanged:final.report.sourceNoteUnchanged,screenshots:final.report.screenshots.length,environmentIssue:final.report.environmentIssue},null,2));
-if(final.failure||!final.report.sourceNoteUnchanged)throw new Error(final.failure??'Source note changed');
+if(final.failure||!layoutOnly&&!final.report.sourceNoteUnchanged)throw new Error(final.failure??'Source note changed');
 command('eval',['code=delete window.__emSynCheck']);

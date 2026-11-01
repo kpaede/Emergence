@@ -30,7 +30,7 @@ command('command', ['id=emergence:open-workspace']);
 const tabs = evaluate(`(()=>{const v=${view};return Array.from(v.contentEl.querySelectorAll('[role=tab]')).map(x=>x.textContent);})()`);
 const panelDimensions = evaluate(`(()=>{const v=${view};v.switchTab('graph');const cy=v.graphPanel.cy,canvas=v.graphPanel.canvas;return {width:canvas.clientWidth,height:canvas.clientHeight,renderedNodes:v.graphPanel.semanticHost.querySelectorAll('a.em-syn-note').length,renderedEdges:v.graphPanel.semantic.geometry?.last.segments.length??0,canvas:!!canvas.querySelector('svg')};})()`);
 if (panelDimensions.width <= 0 || !panelDimensions.canvas) throw new Error('Graph canvas has no width or did not render.');
-const navigation = evaluate(`(()=>{const v=${view},cy=v.graphPanel.cy,pan=JSON.stringify(cy.pan()),zoom=cy.zoom();for(const tab of ['analysis','inquiry','registry','review','graph'])v.switchTab(tab);return {panPreserved:JSON.stringify(cy.pan())===pan,zoomPreserved:cy.zoom()===zoom,tabs:${JSON.stringify(tabs)}};})()`);
+const navigation = evaluate(`(()=>{const v=${view},cy=v.graphPanel.cy,pan=JSON.stringify(cy.pan()),zoom=cy.zoom();for(const tab of ['analysis','search','graph'])v.switchTab(tab);return {panPreserved:JSON.stringify(cy.pan())===pan,zoomPreserved:cy.zoom()===zoom,tabs:${JSON.stringify(tabs)}};})()`);
 if (!navigation.panPreserved || !navigation.zoomPreserved) throw new Error('Tab navigation changed the camera.');
 const sidebar = evaluate(`app.workspace.getLeavesOfType('emergence-workspace')[0].getRoot()===app.workspace.rightSplit`);
 if (!sidebar) throw new Error('Emergence must be in the right sidebar, preserving the main note editor.');

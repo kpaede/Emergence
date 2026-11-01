@@ -10,7 +10,7 @@ describe('existing notes are matches, not new duplicate concepts', () => {
   for (const title of ['Taxonomie','Taxonomik']) {
    const g=graph();g.nodes.push({...g.nodes[1]!,id:'Vorhanden/Taxonomie.md',title:'Taxonomie',aliases:['Taxonomik']});
    const provider:LLMProvider={health:async()=>({models:[],thinking:false,metadata:{},version:''}),cancel:()=>{},chat:async()=>JSON.stringify({Überbau:[title]})};
-   const a=await new DocumentAnalyzer(provider).analyze('Quelle.md','---\nÜberbau:\n---\nEine Notiz.',g,profile(),defaults(),new AbortController().signal,()=>{},'','',{fields:['Überbau'],folders:['Anderer Suchbereich'],allowNew:true,maxSuggestions:4,perField:4,outputId:'relations'});
+   const a=await new DocumentAnalyzer(provider).analyze('Quelle.md','---\nÜberbau:\n---\nEine Notiz.',g,profile(),defaults(),new AbortController().signal,()=>{},{fields:['Überbau'],folders:['Anderer Suchbereich'],allowNew:true,maxSuggestions:4,perField:4,outputId:'relations'});
    expect(a.status).toBe('complete');expect(a.suggestions).toHaveLength(1);
    expect(a.suggestions[0]).toMatchObject({target:'Vorhanden/Taxonomie.md',targetKind:'existing',value:'[[Taxonomie]]'});
    expect(needsTargetChoice(a.suggestions[0]!)).toBe(false);
@@ -19,7 +19,7 @@ describe('existing notes are matches, not new duplicate concepts', () => {
  it('retains multiple existing files as one idea with an explicit choice, rather than dropping it or creating a third', async () => {
   const g=graph();for(const folder of ['A','B'])g.nodes.push({...g.nodes[1]!,id:folder+'/Taxonomie.md',title:'Taxonomie',aliases:[]});
   const provider:LLMProvider={health:async()=>({models:[],thinking:false,metadata:{},version:''}),cancel:()=>{},chat:async()=>JSON.stringify({Überbau:['Taxonomie']})};
-  const a=await new DocumentAnalyzer(provider).analyze('Quelle.md','---\nÜberbau:\n---\nEine Notiz.',g,profile(),defaults(),new AbortController().signal,()=>{},'','',{fields:['Überbau'],folders:['Neue Konzepte'],allowNew:true,maxSuggestions:4,perField:4,outputId:'relations'});
+  const a=await new DocumentAnalyzer(provider).analyze('Quelle.md','---\nÜberbau:\n---\nEine Notiz.',g,profile(),defaults(),new AbortController().signal,()=>{},{fields:['Überbau'],folders:['Neue Konzepte'],allowNew:true,maxSuggestions:4,perField:4,outputId:'relations'});
   expect(a.suggestions).toHaveLength(1);expect(a.suggestions[0]!.targetCandidates).toEqual(['A/Taxonomie.md','B/Taxonomie.md']);
   expect(a.suggestions[0]!.targetKind).toBe('existing');expect(needsTargetChoice(a.suggestions[0]!)).toBe(true);
  });

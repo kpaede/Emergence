@@ -3,16 +3,14 @@ import type {EmergenceController} from '../controller';
 import {GraphPanel} from './graph-panel';
 import {initialPanelState, type PanelContext, type Tab} from './panel';
 import {renderAnalysis} from './panels/analysis';
-import {renderInquiry} from './panels/inquiry';
 import {SearchPanel} from './search-panel';
 import {errorMessage} from '../util';
 import {DisclosureState} from './disclosure-state';
 
 export const VIEW_TYPE = 'emergence-workspace';
 const tabs: {id: Tab; label: string; full: string; icon: string}[] = [
- {id:'graph',label:'Graph',full:'Relationssynopse und native Ansichten',icon:'network'},
+ {id:'graph',label:'Graph',full:'Kontext und native Ansichten',icon:'network'},
  {id:'analysis',label:'Feldideen',full:'Breadcrumbs-Feldideen',icon:'text-search'},
- {id:'inquiry',label:'Recherche',full:'Beispiele und Kunstwerke recherchieren',icon:'list-plus'},
  {id:'search',label:'Suche',full:'Notizen und Zotero durchsuchen',icon:'search'},
 ];
 export class EmergenceView extends ItemView {
@@ -32,6 +30,7 @@ export class EmergenceView extends ItemView {
  private disclosures = new Map<Tab, DisclosureState>();
  private interactionHeld = false; private updatePending = false; private forcePending = false; private updateFrame?: number;
  constructor(leaf: WorkspaceLeaf, readonly controller: EmergenceController) {super(leaf);}
+ onNoteRename(oldPath:string,newPath:string):void{this.graphPanel?.onNoteRename(oldPath,newPath);this.fingerprint='';}
  getViewType(): string {return VIEW_TYPE;}
  getDisplayText(): string {return 'Emergence';}
  getIcon(): string {return 'network';}
@@ -98,7 +97,7 @@ export class EmergenceView extends ItemView {
    list.createEl('dt', {text: name}); list.createEl('dd', {text: value});
   }
   this.graphPanel?.update(); this.searchPanel?.update(); if (this.tab === 'graph' || this.tab === 'search') return;
-  const fingerprint = JSON.stringify([this.tab, g.version, c.review.revision, c.activePath, c.status, !!c.abort, c.applyingIdea, !!c.profilePromptSave, c.settings().activeProfile, c.inquiryHistory.length,c.currentResearch?.prompt,c.currentResearch?.answer]);
+  const fingerprint = JSON.stringify([this.tab, g.version, c.review.revision, c.activePath, c.status, !!c.abort, c.applyingIdea, !!c.profilePromptSave, c.settings().activeProfile]);
   if (!force && fingerprint === this.fingerprint) return; this.fingerprint = fingerprint;
   const panel = this.panels.get(this.tab)!, focused = panel.ownerDocument.activeElement;
   const editable = focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement || focused instanceof HTMLSelectElement ? focused : undefined;
@@ -112,7 +111,6 @@ export class EmergenceView extends ItemView {
   };
   const error = this.errors.get(tab); if (error) panel.createDiv({text: error, cls: 'em-message em-error', attr: {role: 'alert'}});
   if (tab === 'analysis') renderAnalysis(context);
-  if (tab === 'inquiry') renderInquiry(context);
   const restore = () => {
    if (!context.isCurrent()) return;
    expanded.restore(panel);

@@ -32,11 +32,7 @@ export const defaults = (): Settings => ({
  citekeyFormat: 'brackets',
  schemaVersion: 1, endpoint: 'http://127.0.0.1:11434', model: 'qwen3.5:9b', numCtx: 8192,
  timeoutMs: 180000, think: false, releaseModel: false, maxConcurrent: 1, rules: {},
- profiles: [defaultProfile()], activeProfile: 'strict', inquiryTemplates: [
-  {name: 'Widersprüche', prompt: 'Welche philosophischen Positionen widersprechen dieser These? Trenne lokale Belege und unbestätigtes Modellwissen.'},
-  {name: 'Kunstwerke', prompt: 'Nenne konkrete Kunstwerke zum aktuellen Begriff aus unterschiedlichen Kunstgattungen: bildende Kunst, Musik, Literatur, Theater, Musiktheater, Tanz, Film, Architektur und digitale Kunst. Nur einzelne Werktitel, keine Abhandlung.'},
-  {name: 'Beispiele', prompt: 'Nenne konkrete, unterschiedliche Beispiele zum aktuellen Begriff. Nur einzelne Beispiele, keine Abhandlung.'},
- ], maxGraphNodes: 1500, maxGraphEdges: 6000, conceptFolders: [], graphHeight: 560, layout: 'elk',
+ profiles: [defaultProfile()], activeProfile: 'strict', maxGraphNodes: 1500, maxGraphEdges: 6000, conceptFolders: [], graphHeight: 560, layout: 'elk',
  assignment: {allFolders: true, allowNewTargets: true, excludeExistingTargets: false, propertyFilter: 'none', properties: [], fieldsByNote: {}}, fieldDescriptions: {},
 });
 export function validateSettings(s: Settings): void {
@@ -57,16 +53,15 @@ export function validateSettings(s: Settings): void {
  assert(s.fieldDescriptions && typeof s.fieldDescriptions === 'object' && !Array.isArray(s.fieldDescriptions)
   && Object.values(s.fieldDescriptions).every(value => typeof value === 'string' && value.length <= 3000), 'Ungültige Feldbeschreibungen.');
  assert(s.conceptFolders.every(folder => folder === '/' || (!folder.startsWith('/') && !folder.includes('\\') && !folder.split('/').some(part => part === '..' || part === '.'))), 'Zielordner müssen relative Vaultpfade sein.');
- assert(Array.isArray(s.inquiryTemplates) && s.inquiryTemplates.every(t => t && typeof t.name === 'string' && typeof t.prompt === 'string'), 'Ungültige Recherchevorlagen.');
  assert(s.rules && typeof s.rules === 'object' && !Array.isArray(s.rules), 'Ungültige Semantiktabelle.');
  for (const [value, min, max] of [[s.numCtx, 2048, 131072], [s.timeoutMs, 1000, 1800000],
   [s.maxConcurrent, 1, 2], [s.maxGraphNodes, 50, 10000], [s.maxGraphEdges, 100, 50000], [s.graphHeight, 250, 2000]]) {
   assert(Number.isInteger(value) && value! >= min! && value! <= max!, 'Ungültiges numerisches Limit.');
  }
  if (s.synopsis!==undefined) {
-  assert(s.synopsis!==null&&typeof s.synopsis==='object'&&!Array.isArray(s.synopsis),'Ungültige Konfiguration der Relationssynopse.');
-  if(s.synopsis.depths!==undefined)assert(s.synopsis.depths!==null&&typeof s.synopsis.depths==='object'&&!Array.isArray(s.synopsis.depths)&&Object.entries(s.synopsis.depths).every(([key,value])=>synopsisRelations.includes(key as typeof synopsisRelations[number])&&[1,2,3,'all'].includes(value)),'Ungültige Sichttiefe der Relationssynopse.');
-  if(s.synopsis.fields!==undefined)assert(s.synopsis.fields!==null&&typeof s.synopsis.fields==='object'&&!Array.isArray(s.synopsis.fields)&&Object.entries(s.synopsis.fields).every(([key,value])=>synopsisRelations.includes(key as typeof synopsisRelations[number])&&stringArray(value)),'Ungültige Feldzuordnung der Relationssynopse.');
+  assert(s.synopsis!==null&&typeof s.synopsis==='object'&&!Array.isArray(s.synopsis),'Ungültige Kontextkonfiguration.');
+  if(s.synopsis.depths!==undefined)assert(s.synopsis.depths!==null&&typeof s.synopsis.depths==='object'&&!Array.isArray(s.synopsis.depths)&&Object.entries(s.synopsis.depths).every(([key,value])=>synopsisRelations.includes(key as typeof synopsisRelations[number])&&[1,2,3,'all'].includes(value)),'Ungültige Sichttiefe im Kontext.');
+  if(s.synopsis.fields!==undefined)assert(s.synopsis.fields!==null&&typeof s.synopsis.fields==='object'&&!Array.isArray(s.synopsis.fields)&&Object.entries(s.synopsis.fields).every(([key,value])=>synopsisRelations.includes(key as typeof synopsisRelations[number])&&stringArray(value)),'Ungültige Feldzuordnung im Kontext.');
  }
  if (s.graphStructure) assert(['up', 'down', 'left', 'right'].every(key => typeof s.graphStructure![key as 'up'] === 'string') && (s.graphStructure.examples === undefined || typeof s.graphStructure.examples === 'string') && Number.isInteger(s.graphStructure.depth) && s.graphStructure.depth >= 1 && s.graphStructure.depth <= 3, 'Ungültige Graphachsen.');
  assert(['elk', 'fcose', 'concentric'].includes(s.layout), 'Unbekanntes Layout.');
@@ -104,11 +99,11 @@ export function validateSettings(s: Settings): void {
 export function migrateSettings(input: unknown): Settings {
  const d = defaults();
  if (input === null || typeof input !== 'object') return d;
- const raw = input as Partial<Settings>;
+ const raw = {...input} as Partial<Settings> & {inquiryTemplates?:unknown};
+ delete raw.inquiryTemplates;
  assert(raw.schemaVersion === undefined || raw.schemaVersion === 1, 'Neuere Einstellungen können nicht verlustfrei geladen werden.');
  const s = {...d, ...raw, rules: raw.rules ?? {}, profiles: raw.profiles ?? d.profiles,
   assignment: {...d.assignment, allFolders: !(raw.conceptFolders?.length), ...raw.assignment}, fieldDescriptions: raw.fieldDescriptions ?? {}};
- if (!s.inquiryTemplates.some(t=>t.name==='Beispiele')) s.inquiryTemplates=[...s.inquiryTemplates, d.inquiryTemplates.find(t=>t.name==='Beispiele')!];
  validateSettings(s);
  return clone(s);
 }

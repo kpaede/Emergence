@@ -1,9 +1,12 @@
+// @vitest-environment jsdom
 import {describe, expect, it, vi} from 'vitest';
 import {defaults, migrateSettings, validateSettings} from '../src/config';
 import {parseAssignments, assignmentSchema} from '../src/llm/assignment-schema';
 import {prepareAssignments} from '../src/llm/assignment-context';
-import {contextEstimate, ensureBudget, renderTemplate, sectionMarkdown, estimateTextTokens} from '../src/llm/context';
+import {ensureBudget, renderTemplate, sectionMarkdown, estimateTextTokens} from '../src/llm/context';
 import {OllamaProvider, type LLMProvider} from '../src/llm/provider';
+import type {UrlTransport} from '../src/llm/request';
+import type {RequestUrlResponse} from 'obsidian';
 import {DocumentAnalyzer} from '../src/llm/analyzer';
 import {graph, profile} from './fixtures';
 import {evidenceSpans, resolveEvidence} from '../src/llm/evidence';
@@ -95,22 +98,19 @@ describe('chunking, schema and completion', () => {
   const abort = new AbortController(); abort.abort(); const result = await new DocumentAnalyzer(provider('{}')).analyze('Quelle.md', scopedText('Ziel'), graph(), profile(), defaults(), abort.signal, () => {});
   expect(result.status).toBe('cancelled'); expect(result.suggestions).toHaveLength(0);
  });
- it('free research has no writer, schema proposals or automatic promotion', async () => {
-  const analyzer = new DocumentAnalyzer(provider('Forschungsantwort')); const answer = await analyzer.inquire('Frage', 'Notiz', profile(), defaults(), new AbortController().signal);
-  expect(answer).toBe('Forschungsantwort'); expect('writer' in analyzer).toBe(false);
- });
+
 });
 describe('Ollama runtime protocol', () => {
- const mockTransport = (overrides: Record<string, unknown> = {}) => vi.fn<typeof fetch>(async (url, init) => {
-  const path = (typeof url === 'string' ? url : url instanceof URL ? url.href : url.url).split('/api/')[1]!;
+ const nativeResponse=(value:unknown,status=200):RequestUrlResponse=>{const text=typeof value==='string'?value:JSON.stringify(value),arrayBuffer=new TextEncoder().encode(text).buffer;return {status,headers:{},text,arrayBuffer,json:undefined};};
+ const mockTransport = (overrides: Record<string, unknown> = {}) => vi.fn<UrlTransport>(async request => {
+  const path = request.url.split('/api/')[1]!;
   const responses: Record<string, unknown> = {tags: {models: [{name: 'qwen3.5:9b'}]}, show: {capabilities: ['completion', 'thinking']}, version: {version: 'test'}, chat: {done: true, message: {content: 'Antwort'}}};
-  if (init?.signal?.aborted) throw new Error('aborted');
-  return new Response(JSON.stringify(path in overrides ? overrides[path] : responses[path]), {status: 200, headers: {'content-type': 'application/json'}});
+  return nativeResponse(path in overrides ? overrides[path] : responses[path]);
  });
  it('queries tags/show/chat, sends schema and token controls, no tools', async () => {
   const transport = mockTransport(), s = defaults(); const p = new OllamaProvider(() => s, transport);
   await p.chat({messages: [{role: 'user', content: 'Test'}], temperature: 0.2, maxTokens: 128, signal: new AbortController().signal, format: responseSchema});
-  const request = transport.mock.calls.find(c => typeof c[0] === 'string' && c[0].endsWith('/chat'))?.[1]?.body;
+  const request = transport.mock.calls.find(c => c[0].url.endsWith('/chat'))?.[0].body;
   if (typeof request !== 'string') throw new Error('missing request body');
   const body = JSON.parse(request) as Record<string, unknown>;
   expect(body.format).toEqual(responseSchema); expect(body.think).toBe(false); expect(body.stream).toBe(false); expect(body).not.toHaveProperty('tools'); expect(body.options).toEqual({num_ctx: 8192, num_predict: 128, temperature: 0.2, presence_penalty: 0, frequency_penalty: 0, repeat_penalty: 1});
@@ -123,50 +123,67 @@ describe('Ollama runtime protocol', () => {
   await new OllamaProvider(defaults, mockTransport()).chat({messages: [], temperature: 0, maxTokens: 128, signal: new AbortController().signal, onMetrics});
   expect(onMetrics).toHaveBeenCalledWith({loadMs: undefined, promptMs: undefined, generationMs: undefined, inputTokens: undefined, outputTokens: undefined});
  });
- it('does not bind the browser fetch function to the provider instance', async () => {
-  const transport = mockTransport();
-  const browserFetch = vi.fn(function (this: unknown, input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) {
-   if (this instanceof OllamaProvider) throw new TypeError('Illegal invocation');
-   return transport(input, init);
-  });
-  vi.stubGlobal('fetch', browserFetch);
-  try {expect((await new OllamaProvider(defaults).health()).models).toContain('qwen3.5:9b');}
-  finally {vi.unstubAllGlobals();}
+ it('uses the native request transport without ambient browser fetch or network credentials',async()=>{
+  const transport=mockTransport(),p=new OllamaProvider(defaults,transport);await p.health();
+  expect(transport.mock.calls.every(([request])=>request.throw===false&&request.url.startsWith('http://127.0.0.1:11434/'))).toBe(true);
+  expect(transport.mock.calls.every(([request])=>!('credentials'in request)&&!('signal'in request))).toBe(true);
  });
  it('diagnoses missing model without downloading', async () => {const transport = mockTransport({tags: {models: []}}); const p = new OllamaProvider(defaults, transport); await expect(p.health()).rejects.toThrow('Kein automatischer'); expect(transport).toHaveBeenCalledTimes(1);});
  it('rechecks model capabilities and cloud status when the local endpoint changes',async()=>{
   const s=defaults(),transport=mockTransport(),p=new OllamaProvider(()=>s,transport),options={messages:[],maxTokens:128,temperature:0,signal:new AbortController().signal};
   await p.chat(options);s.endpoint='http://127.0.0.1:11435';await p.chat(options);
-  const address=(url:Parameters<typeof fetch>[0])=>typeof url==='string'?url:url instanceof URL?url.href:url.url;const secondHost=transport.mock.calls.filter(([url])=>address(url).startsWith(s.endpoint));expect(secondHost.map(([url])=>address(url).split('/api/')[1])).toEqual(['tags','show','version','chat']);
+  const secondHost=transport.mock.calls.filter(([request])=>request.url.startsWith(s.endpoint));expect(secondHost.map(([request])=>request.url.split('/api/')[1])).toEqual(['tags','show','version','chat']);
   s.endpoint='http://127.0.0.1:11436';transport.mockImplementation(mockTransport({show:{remote_model:'cloud-only'}}));await expect(p.chat(options)).rejects.toThrow('Remote');
  });
  it('blocks remote models and incomplete generations', async () => {
   await expect(new OllamaProvider(defaults, mockTransport({show: {remote_host: 'external'}})).health()).rejects.toThrow('Remote');
   await expect(new OllamaProvider(defaults, mockTransport({chat: {done: true, done_reason: 'length', message: {content: 'Partial'}}})).chat({messages: [], maxTokens: 128, temperature: 0.2, signal: new AbortController().signal})).rejects.toThrow('unvollständig');
  });
- it('keeps a length-limited research reply, signals truncation, and still rejects partial structured output', async () => {
-  const onTruncated = vi.fn(), provider = new OllamaProvider(defaults, mockTransport({chat:{done:true, done_reason:'length', message:{content:'Eine begonnene Antwort'}}}));
-  const options = {messages:[],maxTokens:16,temperature:0,signal:new AbortController().signal,allowPartial:true,onTruncated};
-  expect(await provider.chat(options)).toBe('Eine begonnene Antwort'); expect(onTruncated).toHaveBeenCalledTimes(1);
-  await expect(provider.chat({...options,format:responseSchema})).rejects.toThrow('keine freigabefähige Analyse');
-  expect(onTruncated).toHaveBeenCalledTimes(1);
+ it('rejects incomplete, interrupted or empty model output',async()=>{
+  for(const chat of [{done:false,message:{content:'Teil'}},{done:true,done_reason:'length',message:{content:'Teil'}},{done:true,message:{content:'  '}}])await expect(new OllamaProvider(defaults,mockTransport({chat})).chat({messages:[],maxTokens:16,temperature:0,signal:new AbortController().signal})).rejects.toThrow();
  });
- it('rejects interrupted transport or empty text even when partial research is allowed', async () => {
-  for (const chat of [{done:false,message:{content:'Teil'}},{done:true,done_reason:'length',message:{content:'  '}}]) {
-   await expect(new OllamaProvider(defaults,mockTransport({chat})).chat({messages:[],maxTokens:16,temperature:0,signal:new AbortController().signal,allowPartial:true})).rejects.toThrow();
-  }
+ it('discards cancelled native responses and prevents overlapping physical model requests',async()=>{
+  const transport=mockTransport(),p=new OllamaProvider(defaults,transport),abort=new AbortController();await p.health();let finish!:(response:RequestUrlResponse)=>void;
+  transport.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));const task=p.chat({messages:[],maxTokens:128,temperature:0,signal:abort.signal});abort.abort();await expect(task).rejects.toThrow('abgebrochen');
+  await expect(p.chat({messages:[],maxTokens:128,temperature:0,signal:new AbortController().signal})).rejects.toThrow('vorherige lokale HTTP-Anfrage');
+  finish(nativeResponse({done:true,message:{content:'Late response'}}));await Promise.resolve();await Promise.resolve();transport.mockImplementation(mockTransport());expect(await p.chat({messages:[],maxTokens:128,temperature:0,signal:new AbortController().signal})).toBe('Antwort');
  });
- it('budgets research independently from classification without clipping the requested note', async () => {
-  const chat = vi.fn<LLMProvider['chat']>(async options => {options.onTruncated?.(); return 'Teilantwort';});
-  const analyzer = new DocumentAnalyzer({health:async()=>({models:[],thinking:false,metadata:{},version:''}),cancel:()=>{},chat}), truncated = vi.fn();
-  const s = defaults(), p = profile(); p.maxTokens = 768;
-  await analyzer.inquire('Frage', 'Vollständiger Kontext', p, s, new AbortController().signal, [], undefined, undefined, truncated);
-  expect(chat.mock.calls[0]![0].maxTokens).toBe(2048); expect(truncated).toHaveBeenCalledOnce();
-  const context = 'Notizkontext '.repeat(450);
-  await analyzer.inquire('Frage', context, p, {...s,numCtx:4096}, new AbortController().signal);
-  const options = chat.mock.calls[1]![0]; expect(options.maxTokens).toBeGreaterThanOrEqual(256); expect(options.maxTokens).toBeLessThan(2048);
-  expect(contextEstimate(options.messages, options.maxTokens)).toBeLessThanOrEqual(4096);
-  expect((JSON.parse(options.messages.at(-1)!.content) as {context:string}).context).toBe(context);
+ for(const interruption of ['abort','timeout']as const)it(`keeps pending requests isolated by normalized endpoint after ${interruption}`,async()=>{
+  const config=defaults(),original=config.endpoint,normal=mockTransport(),transport=vi.fn<UrlTransport>(request=>request.url===original+'/api/chat'?new Promise(()=>{}):normal(request)),p=new OllamaProvider(()=>config,transport),abort=new AbortController();await p.health();config.timeoutMs=1000;vi.useFakeTimers();
+  try{
+   const task=p.chat({messages:[],maxTokens:128,temperature:0,signal:abort.signal}),failed=expect(task).rejects.toThrow(/abgebrochen|Zeitlimit/u);
+   if(interruption==='abort')abort.abort();else await vi.advanceTimersByTimeAsync(1001);await failed;
+   config.endpoint=original+'/';await expect(p.chat({messages:[],maxTokens:128,temperature:0,signal:new AbortController().signal})).rejects.toThrow('an diesem Endpunkt');
+   config.endpoint='http://127.0.0.1:11435/';expect(await p.chat({messages:[],maxTokens:128,temperature:0,signal:new AbortController().signal})).toBe('Antwort');
+   config.endpoint=original;await expect(p.chat({messages:[],maxTokens:128,temperature:0,signal:new AbortController().signal})).rejects.toThrow('an diesem Endpunkt');
+  }finally{vi.useRealTimers();}
+ });
+ it('never labels an in-flight health result with changed endpoint or model, and checks the new host for cloud models',async()=>{
+  const config=defaults(),original=config.endpoint,other='http://127.0.0.1:11435',normal=mockTransport();let finish!:(value:RequestUrlResponse)=>void;
+  const transport=vi.fn<UrlTransport>(request=>request.url===original+'/api/version'?new Promise(resolve=>{finish=resolve;}):request.url===other+'/api/tags'?Promise.resolve(nativeResponse({models:[{name:'changed:model'}]})):request.url===other+'/api/show'?Promise.resolve(nativeResponse({remote_model:'cloud'})):normal(request));
+  const p=new OllamaProvider(()=>config,transport),work=p.health();for(let i=0;i<40&&!finish;i++)await Promise.resolve();expect(finish).toBeDefined();config.endpoint=other;config.model='changed:model';finish(nativeResponse({version:'old-host'}));await expect(work).rejects.toThrow('Modelleinstellungen');
+  expect(transport.mock.calls.slice(0,3).every(([request])=>request.url.startsWith(original+'/'))).toBe(true);expect(JSON.parse(transport.mock.calls[1]![0].body as string)).toEqual({model:'qwen3.5:9b'});
+  await expect(p.chat({messages:[],maxTokens:128,temperature:0,signal:new AbortController().signal})).rejects.toThrow('Remote');expect(transport.mock.calls.some(([request])=>request.url===other+'/api/show')).toBe(true);expect(transport.mock.calls.some(([request])=>request.url.endsWith('/api/chat'))).toBe(false);
+ });
+ it('rejects a model change during the tags request instead of checking another model under the old request',async()=>{
+  const config=defaults(),normal=mockTransport();let finish!:(value:RequestUrlResponse)=>void;const transport=vi.fn<UrlTransport>(request=>request.url.endsWith('/api/tags')?new Promise(resolve=>{finish=resolve;}):normal(request)),p=new OllamaProvider(()=>config,transport),work=p.health();
+  config.model='different:model';finish(nativeResponse({models:[{name:'different:model'}]}));await expect(work).rejects.toThrow('Modelleinstellungen');expect(transport).toHaveBeenCalledTimes(1);
+ });
+ it('treats a missing optional version endpoint as unknown, but rejects its timeout instead of claiming readiness',async()=>{
+  const normal=mockTransport(),missing:UrlTransport=request=>request.url.endsWith('/api/version')?Promise.resolve(nativeResponse('missing',404)):normal(request);expect((await new OllamaProvider(defaults,missing).health()).version).toBe('unbekannt');
+  const config=defaults();config.timeoutMs=1000;let reached=false;const hanging:UrlTransport=request=>request.url.endsWith('/api/version')?(reached=true,new Promise(()=>{})):normal(request),p=new OllamaProvider(()=>config,hanging);vi.useFakeTimers();
+  try{const work=p.health(),failed=expect(work).rejects.toThrow('Zeitlimit');for(let i=0;i<40&&!reached;i++)await Promise.resolve();expect(reached).toBe(true);await vi.advanceTimersByTimeAsync(1001);await failed;await expect(p.chat({messages:[],maxTokens:128,temperature:0,signal:new AbortController().signal})).rejects.toThrow('an diesem Endpunkt');}finally{vi.useRealTimers();}
+ });
+ it('honors provider cancellation during the optional version check and never starts a model request',async()=>{
+  const normal=mockTransport(),pending:UrlTransport=request=>request.url.endsWith('/version')?new Promise(()=>{}):normal(request),p=new OllamaProvider(defaults,pending),task=p.chat({messages:[],maxTokens:128,temperature:0,signal:new AbortController().signal});
+  for(let i=0;i<30&&normal.mock.calls.length<2;i++)await Promise.resolve();for(let i=0;i<10;i++)await Promise.resolve();p.cancel();await expect(task).rejects.toThrow('abgebrochen');expect(normal.mock.calls.some(([request])=>request.url.endsWith('/chat'))).toBe(false);
+ });
+ it('times out promptly even if the native host request never settles',async()=>{
+  const config=defaults(),transport=mockTransport(),p=new OllamaProvider(()=>config,transport);await p.health();config.timeoutMs=1000;vi.useFakeTimers();
+  try{transport.mockImplementation(()=>new Promise(()=>{}));const task=p.chat({messages:[],maxTokens:128,temperature:0,signal:new AbortController().signal});const rejected=expect(task).rejects.toThrow('Zeitlimit');await vi.advanceTimersByTimeAsync(1001);await rejected;expect(vi.getTimerCount()).toBe(0);}finally{vi.useRealTimers();}
+ });
+ it('rejects bad HTTP responses and oversized complete payloads',async()=>{
+  for(const value of [nativeResponse('no',503),nativeResponse('x'.repeat(2000001))]){const transport=mockTransport(),p=new OllamaProvider(defaults,transport);await p.health();transport.mockImplementation(async()=>value);await expect(p.chat({messages:[],maxTokens:128,temperature:0,signal:new AbortController().signal})).rejects.toThrow(/HTTP|Limit/u);}
  });
  it('requires detected thinking support', async () => {const s = defaults(); s.think = true; const p = new OllamaProvider(() => s, mockTransport({show: {capabilities: ['completion']}})); await expect(p.chat({messages: [], maxTokens: 128, temperature: 0.2, signal: new AbortController().signal})).rejects.toThrow('Thinking');});
 });

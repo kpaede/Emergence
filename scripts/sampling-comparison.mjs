@@ -15,7 +15,7 @@ try{
   const provider=new OllamaProvider(()=>settings,transport);
   for(const test of comparisonCases().filter(c=>c.id.startsWith('musical-'))){
    const f=test.fixture,start=performance.now();
-   try{const result=await new DocumentAnalyzer(provider).analyze(test.source,f.content,f.g,f.p,settings,new AbortController().signal,()=>{},'','',f.options);
+   try{const result=await new DocumentAnalyzer(provider).analyze(test.source,f.content,f.g,f.p,settings,new AbortController().signal,()=>{},f.options);
     report.results.push({temperature:0.7,presencePenalty:presence,seed,case:test.id,...scoreAssignments(result,test),elapsedMs:result.elapsedMs,errors:result.errors,assignments:result.suggestions.map(s=>({field:s.field,target:s.target})),diagnostics:result.diagnostics});
    }catch(error){report.results.push({temperature:0.7,presencePenalty:presence,seed,case:test.id,passed:false,error:String(error),elapsedMs:Math.round(performance.now()-start)});}
    await writeFile(file,JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report.results.at(-1)));
