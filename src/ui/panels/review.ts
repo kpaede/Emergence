@@ -2,12 +2,13 @@ import {button, ConfirmModal, input, select} from '../helpers';
 import {badge, disclosure, emptyState, noteContext, pagination, title, type PanelContext} from '../panel';
 import {renderSuggestion} from './review-card';
 import {renderFieldIdeas, renderIdeaContext} from './field-ideas';
+import {renderIdeaFields} from './idea-fields';
 
 export async function renderReview(ctx: PanelContext): Promise<void> {
  const {host, controller: c, state: {review: s}} = ctx, a = c.review.analysis;
- if (a?.perField) {
+ if (a?.perField || a?.associative) {
   host.addClass('em-analysis-compact'); title(host, 'Feldideen');
-  renderIdeaContext(host, a.source); renderFieldIdeas(host, ctx); return;
+  renderIdeaContext(host, a.source); if(a.associative)renderIdeaFields(host, ctx); renderFieldIdeas(host, ctx); return;
  }
  title(host, 'Vorschläge prüfen', 'Erst einzeln entscheiden, dann den Änderungsvergleich bestätigen.');
  if (!a) {

@@ -6,7 +6,7 @@ import type {SettingsContext} from './context';
 
 export function outputSettings(ctx: SettingsContext, profile: Profile, selected: string, choose: (id: string) => void): void {
  const {host} = ctx, outputs = profile.outputs.filter(o => o.kind === 'relations'), output = outputs.find(o => o.id === selected) ?? outputs[0];
- host.createDiv({text: 'Die Notizanalyse liefert ausschließlich Breadcrumbs-Feld → Zielnotiz. Neue Zielbegriffe sind Teil dieser Zuordnungen; es gibt keine zusätzlichen Text- oder Begriffsausgaben.', cls: 'em-muted em-caption'});
+ host.createDiv({text: 'Die Notizanalyse liefert eine gemeinsame Liste assoziierter Begriffe. Du ordnest sie anschließend selbst den Breadcrumbs-Feldern zu.', cls: 'em-muted em-caption'});
  if (!output) {
   button(host, 'Beziehungsmodul aktivieren', () => {
    profile.outputs.push({id: 'relations', kind: 'relations', enabled: true, maxSuggestions: 5, eligibleNodeTypes: [], allowedEdgeTypes: [], targetProperty: '', dataType: 'wikilink-list', writeMode: 'review', language: profile.language, minEvidence: 'medium', promptTemplate: '', visibility: true, requiresManualReview: true});

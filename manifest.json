@@ -1,7 +1,7 @@
 {
   "id": "emergence",
   "name": "Emergence",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "minAppVersion": "1.14.0",
   "description": "Kontextansicht, Notiz- und Zotero-Suche sowie lokale KI-Feldideen für persönliche Wissensarbeit.",
   "author": "kpaede",

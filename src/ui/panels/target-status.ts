@@ -10,7 +10,7 @@ export function renderTargetStatus(name: HTMLElement, row: HTMLElement, s: Sugge
  const existing = s.targetKind === 'existing', multiple = (s.targetCandidates?.length ?? 0) > 1;
  row.dataset.targetKind = existing ? 'existing' : 'new';
  const label = s.targetLabel && multiple && !s.targetSelected ? s.targetLabel : targetTitle(s.target);
- const title = name.createEl(existing && !needsTargetChoice(s) ? 'a' : 'span', {text: label, cls: `em-idea-target-title${existing ? ' is-existing' : ''}`, attr: {title: s.target}});
+ const title = name.createEl(existing && !needsTargetChoice(s) ? 'a' : 'span', {text: label, cls: `em-idea-target-title${existing ? ' is-existing' : ''}`});
  if (title instanceof HTMLAnchorElement) {
   title.href = '#'; title.dataset.href = s.target; title.addClass('internal-link');
   title.onclick = event => {event.preventDefault(); void ctx.run(async () => {
@@ -22,7 +22,6 @@ export function renderTargetStatus(name: HTMLElement, row: HTMLElement, s: Sugge
   show.onclick = () => toggleTargetChoice(s, ctx); show.disabled = !!ctx.state.analysis.ideaEdit;
  } else {
   const status = badge(name, existing ? 'Vorhanden' : 'Neu'); status.addClass(existing ? 'em-target-existing' : 'em-target-new');
-  status.title = existing ? `Vorhandene Notiz: ${s.target}` : 'Neuer Wikilink; es wird keine Datei angelegt.';
  }
 }
 export function renderTargetChoices(row: HTMLElement, s: Suggestion, ctx: PanelContext): void {

@@ -3,14 +3,15 @@ import {SynopsisGraph,synopsisDepths} from '../graph/synopsis';
 import {synopsisLabels,type SynopsisDepth,type SynopsisEntry,type SynopsisRelation} from '../graph/synopsis-types';
 import {literatureReference} from './literature-reference';
 import {synopsisNote,type SynopsisLinkActions} from './synopsis-note';
-import {iconButton} from './panel';
+import {iconButton, labelWithoutTooltip} from './panel';
 import {SynopsisGeometry} from './synopsis-geometry';
+import {SynopsisEditing, type SynopsisEditingActions} from './synopsis-editing';
 
 /** Seven relation groups share one node component, typography and depth control. */
 export class RelationsSynopsis {
  geometry?:SynopsisGeometry; model?:SynopsisGraph;
  private generation=0; private frame?:number; private diagram?:HTMLElement; private focus=''; private fingerprint='';
- constructor(private host:HTMLElement,private settings:()=>Settings,private changeDepth:(relation:SynopsisRelation,depth:SynopsisDepth)=>void,private actions:SynopsisLinkActions,private addRelation?:(relation:SynopsisRelation,source:string)=>void,private addField?:(field:string,source:string)=>void){host.addClass('em-relations-synopsis');}
+ constructor(private host:HTMLElement,private settings:()=>Settings,private changeDepth:(relation:SynopsisRelation,depth:SynopsisDepth)=>void,private actions:SynopsisLinkActions,private addRelation?:(relation:SynopsisRelation,source:string)=>void,private addField?:(field:string,source:string)=>void,private editingActions?:SynopsisEditingActions){host.addClass('em-relations-synopsis');}
  render(snapshot:GraphSnapshot,focus:string):void{
   const depths=synopsisDepths(this.settings()),fingerprint=JSON.stringify([snapshot.version,focus,depths,this.settings().synopsis?.fields,this.settings().graphStructure]);
   if(fingerprint===this.fingerprint){this.geometry?.schedule();return;} this.fingerprint=fingerprint;
@@ -19,16 +20,17 @@ export class RelationsSynopsis {
   this.geometry?.destroy();this.cancelFrame();const generation=++this.generation;this.host.empty();
   const model=this.model=new SynopsisGraph(snapshot,this.settings()),note=model.notes.get(focus);
   if(!note){this.host.createDiv({text:'Öffne eine Markdown-Notiz.',cls:'em-muted'});return;}
-  const diagram=this.diagram=this.host.createDiv({cls:'em-syn-diagram',attr:{'aria-label':'Kontext'}});
-  const svg=diagram.createSvg('svg',{cls:'em-syn-edges',attr:{'aria-hidden':'true',focusable:'false'}});
+  const editing=new SynopsisEditing(model,this.settings(),focus,this.editingActions);
+  const diagram=this.diagram=this.host.createDiv({cls:'em-syn-diagram'});
+  const svg=diagram.createSvg('svg',{cls:'em-syn-edges',attr:{'aria-hidden':'true',focusable:'false',width:'100%',height:'0'}});
   const makeSection=(relation:SynopsisRelation,parent:HTMLElement)=>{
    const section=parent.createEl('section',{cls:`em-syn-section em-syn-${relation}`,attr:{'data-syn-relation':relation}});
    const titleId=`em-syn-title-${crypto.randomUUID()}`;section.setAttribute('aria-labelledby',titleId);
-   const heading=section.createDiv({cls:'em-syn-head'}),title=heading.createEl('h3',{text:synopsisLabels[relation],attr:{id:titleId}});
-   const count=model.neighbors(focus,relation).length+(relation==='literature'?model.citationNotice(focus):0);title.createSpan({text:` ${count}`,cls:'em-syn-count',attr:{'aria-label':`${count} direkte Verbindungen`}});
+   const heading=section.createDiv({cls:'em-syn-head'}),titleGroup=heading.createDiv({cls:'em-syn-title'}),title=titleGroup.createEl('h3',{text:synopsisLabels[relation],attr:{id:titleId}});
+   const count=model.neighbors(focus,relation).length+(relation==='literature'?model.citationNotice(focus):0);title.createSpan({text:` ${count}`,cls:'em-syn-count'});
    const controls=heading.createDiv({cls:'em-syn-controls'});
-   if(['broader','narrower','similar','friction','examples'].includes(relation)){const add=iconButton(controls,'plus',`${synopsisLabels[relation]} ergänzen`,()=>this.addRelation?.(relation,focus));add.dataset.synAdd=relation;add.disabled=!note.exists||!model.fields[relation].length||!this.addRelation;if(!model.fields[relation].length)add.title='Zuerst ein vorhandenes Breadcrumbs-Feld zuordnen.';}
-   const label=controls.createEl('label',{cls:'em-syn-depth'}),select=label.createEl('select',{attr:{'aria-label':`Sichttiefe ${synopsisLabels[relation]}`,'data-syn-depth':relation}});
+   if(['broader','narrower','similar','friction','examples'].includes(relation)){const add=iconButton(titleGroup,'plus',`${synopsisLabels[relation]} ergänzen`,()=>this.addRelation?.(relation,focus),false);add.dataset.synAdd=relation;add.disabled=!note.exists||!model.fields[relation].length||!this.addRelation;editing.section(section,model.fields[relation]);}
+   const label=controls.createEl('label',{cls:'em-syn-depth'});labelWithoutTooltip(label,`Sichttiefe ${synopsisLabels[relation]}`);const select=label.createEl('select',{attr:{'data-syn-depth':relation,'aria-labelledby':label.getAttribute('aria-labelledby')!}});
    for(const value of [1,2,3,'all'] as const)select.createEl('option',{value:String(value),text:value==='all'?'∞':String(value)});
    select.value=String(depths[relation]);select.onchange=()=>this.changeDepth(relation,select.value==='all'?'all':Number(select.value) as 1|2|3);
    return section;
@@ -41,7 +43,7 @@ export class RelationsSynopsis {
    const start=performance.now();let added=0;
    for(;;){const next=iterator.next();if(next.done){pending.remove();this.geometry?.schedule();return;}
     const path=next.value,li=parents.createEl('li',{cls:'em-syn-parent-path'});
-    path.notes.forEach((ancestor,i)=>{if(i)li.createSpan({text:' › ',cls:'em-syn-crumb',attr:{'aria-hidden':'true'}});const link=synopsisNote(li,ancestor,this.actions);if(i===path.notes.length-1)link.dataset.synParentTerminal='';});
+    path.notes.forEach((ancestor,i)=>{if(i)li.createSpan({text:' › ',cls:'em-syn-crumb',attr:{'aria-hidden':'true'}});const link=synopsisNote(li,ancestor,this.actions);if(i===path.notes.length-1)link.dataset.synParentTerminal='';editing.term(link,path.notes[i+1]?.id??focus,ancestor.id,model.fields.broader);});
     if(path.cycle)li.createSpan({text:' (Rückverweis)',cls:'em-syn-meta'});
     added++;if(added>=100||performance.now()-start>12)break;
    }
@@ -63,20 +65,21 @@ export class RelationsSynopsis {
     let link:HTMLElement;
     if(reference){li.addClass('em-syn-literature-row');const row=literatureReference(li,{...reference,title:reference.title??entry.note.title},{open:()=>this.actions.literature?.({...reference,path:entry.note.path}),format:()=>this.settings().citekeyFormat??'brackets',run:this.actions.run,load:this.actions.referenceActions?()=>this.actions.referenceActions!(reference,focus):undefined,bibliography:this.actions.bibliography?reference=>this.actions.bibliography!(reference,focus):undefined});link=row.querySelector<HTMLElement>('.em-literature-title')!;link.addClass('em-syn-reference');link.dataset.emNote=entry.note.id;link.id='em-syn-note-'+crypto.randomUUID();}
     else link=synopsisNote(li,entry.note,actions);
-    if(parent){link.dataset.synParent=parent.id;link.dataset.synSide=side;link.dataset.synRelation=relation;}
+    if(parent){link.dataset.synParent=parent.id;link.dataset.synSide=side;link.dataset.synRelation=relation;}else link.dataset.synDirect=relation;
     if(entry.step>3)li.createSpan({text:`Schritt ${entry.step}`,cls:'em-syn-step-meta'});
     link.setAttribute('aria-description',`${synopsisLabels[relation]}, Schritt ${entry.step}${parent?`, über ${parent.textContent}`:''}${entry.repeated?', Rückverweis oder bereits erreichbare Notiz':''}`);
+    if(['narrower','similar','friction','examples'].includes(relation))editing.term(link,parent?.dataset.emNote??focus,entry.note.id,model.fields[relation]);
     if(entry.children.length){li.addClass('em-syn-has-steps');const nested=visualDepth<3?li.createEl('ul',{cls:'em-syn-nested',attr:{'data-side':side,'data-relation':relation}}):list;for(const child of entry.children)work.push({entry:child,list:nested,side,parent:link,visualDepth:Math.min(3,visualDepth+1)});}
    }
   };
   populate('similar',lateral);populate('friction',lateral);populate('narrower',diagram);
   populate('examples',diagram);
-  for(const field of model.unassignedFields){
-   const targets=model.fieldNeighbors(focus,field);if(!targets.length)continue;
-   const section=diagram.createEl('section',{cls:'em-syn-section em-syn-extra',attr:{'data-syn-field':field,'aria-label':field}}),heading=section.createDiv({cls:'em-syn-head'});
-   heading.createEl('h3',{text:field}).createSpan({text:' '+targets.length,cls:'em-syn-count'});
-   const controls=heading.createDiv({cls:'em-syn-controls'}),add=iconButton(controls,'plus',field+' ergänzen',()=>this.addField?.(field,focus));add.disabled=!note.exists||!this.addField;
-   const list=section.createEl('ul',{cls:'em-syn-register'});for(const target of targets)synopsisNote(list.createEl('li'),target,this.actions);
+  for(const field of model.extraFields(focus)){
+   const targets=model.fieldNeighbors(focus,field);
+   const titleId='em-syn-extra-'+crypto.randomUUID(),section=diagram.createEl('section',{cls:'em-syn-section em-syn-extra',attr:{'data-syn-field':field,'aria-labelledby':titleId}}),heading=section.createDiv({cls:'em-syn-head'});
+   const titleGroup=heading.createDiv({cls:'em-syn-title'});titleGroup.createEl('h3',{text:field,attr:{id:titleId}}).createSpan({text:' '+targets.length,cls:'em-syn-count'});
+   const add=iconButton(titleGroup,'plus',field+' ergänzen',()=>this.addField?.(field,focus),false);add.disabled=!note.exists||!this.addField;editing.section(section,[field]);
+   const list=section.createEl('ul',{cls:'em-syn-register'});for(const target of targets){const link=synopsisNote(list.createEl('li'),target,this.actions);editing.term(link,focus,target.id,[field]);}
   }
   populate('literature',diagram);populate('links',diagram);
   if(this.actions.backlinks){const entries=[...new Set(this.actions.backlinks(focus))].flatMap(id=>{const note=model.notes.get(id);return note?[note]:[];});const section=diagram.createEl('section',{cls:'em-syn-section em-syn-backlinks',attr:{'aria-label':'Rückverweise'}}),heading=section.createDiv({cls:'em-syn-head'});heading.createEl('h3',{text:'Rückverweise'}).createSpan({text:' '+entries.length,cls:'em-syn-count'});const list=section.createEl('ul',{cls:'em-syn-register'});for(const entry of entries)synopsisNote(list.createEl('li'),entry,this.actions);}

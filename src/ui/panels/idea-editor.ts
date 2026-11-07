@@ -27,7 +27,7 @@ export function renderIdeaEditor(row: HTMLElement, s: Suggestion, ctx: PanelCont
    ctx.controller.editIdea(s.id, draft.value); ctx.state.analysis.ideaEdit = undefined;
    const updated = ctx.controller.review.analysis?.suggestions.find(idea => idea.id === s.id);
    if (updated && needsTargetChoice(updated)) ctx.state.analysis.targetChoice = s.id;
-   ctx.repaint(); focus(ctx, `idea-accept-${s.id}`);
+   ctx.repaint(); focus(ctx, `${ctx.controller.review.analysis?.associative ? 'idea-select' : 'idea-accept'}-${s.id}`);
   } catch (error) {draft.error = errorMessage(error); ctx.repaint(); focus(ctx, `idea-input-${s.id}`);}
  };
  editor.oninput = () => {

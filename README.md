@@ -13,7 +13,7 @@ Ein Obsidian-Plugin für philosophische Begriffsarbeit: Breadcrumbs-Beziehungen 
 
 ## Installation
 
-Aus [Release 0.0.2](https://github.com/kpaede/Emergence/releases/tag/0.0.2) die drei Dateien `main.js`, `manifest.json` und `styles.css` herunterladen und unter `<Vault>/.obsidian/plugins/emergence/` ablegen. Anschließend unter **Einstellungen → Community-Plugins** aktivieren. Der Release enthält zusätzlich SHA-256-Prüfsummen. Bis zur Aufnahme ins Community-Verzeichnis erfolgt die Installation manuell.
+Aus [Release 0.0.3](https://github.com/kpaede/Emergence/releases/tag/0.0.3) die drei Dateien `main.js`, `manifest.json` und `styles.css` herunterladen und unter `<Vault>/.obsidian/plugins/emergence/` ablegen. Anschließend unter **Einstellungen → Community-Plugins** aktivieren. Der Release enthält zusätzlich SHA-256-Prüfsummen. Bis zur Aufnahme ins Community-Verzeichnis erfolgt die Installation manuell.
 
 ### Aus dem Quellcode
 
@@ -36,7 +36,7 @@ Die Tabs stehen in dieser Reihenfolge: **Graph** (Netzwerk), **Feldideen** (Text
 
 Die Ansicht **Kontext** ordnet die aktuelle Notiz in der Mitte an: Überordnung darüber, Unterordnung darunter, Ähnlichkeit links und Reibung rechts. Beispiele, Literatur und freie Verweise stehen in eigenen Registern. Die Namen der zugehörigen Breadcrumbs-Felder werden unter **Felder und Quellen** über native Auswahlmenüs mit Häkchen zugeordnet. Mehrere Felder pro Gruppe bleiben möglich; Literatur und freie Verweise zeigen ihre festen Quellen. Emergence legt dafür keine neuen Frontmatter-Felder an.
 
-Weitere vorhandene Breadcrumbs-Felder wie **Konzept**, **Werk**, **Komponist_in**, **Autor_in**, **Künstler_in** und **Regisseur_in** erscheinen bei vorhandenen Verbindungen in eigenen Registern unter den Beispielen. Ihre Gegenrichtungen stammen aus der Breadcrumbs-Konfiguration. Ein generischer „Werk“-Link wird nicht willkürlich allen Urheberrollen zugewiesen. Die zusätzlichen Register haben ebenfalls eine Plus-Aktion für ihr tatsächliches Frontmatter-Feld.
+**Konzept**, **Komponist_in**, **Autor_in**, **Künstler_in**, **Regisseur_in**, **Librettist_in** und weitere über **Werk** konfigurierte Urheberrollen erscheinen in eigenen Registern unter den Beispielen, wenn die zentrale Notiz im Frontmatter-Feld `tags` einen Untertag von `Werk` hat, etwa `Werk/Musiktheater/Oper` oder `Werk/Film`. Dabei stehen alle diese Felder gemeinsam zur Verfügung, auch leer. Andere zusätzliche Felder wie **Werk** erscheinen bei vorhandenen Verbindungen. Ihre Gegenrichtungen stammen aus der Breadcrumbs-Konfiguration. Ein generischer „Werk“-Link wird nicht willkürlich allen Urheberrollen zugewiesen.
 
 Jede der sieben Hauptgruppen hat eine eigene Sichttiefe: **1, 2, 3 oder ∞**. Mehrfachüberordnungen bleiben als vollständige Ahnenpfade erhalten. Rückverweise werden begrenzt, damit Kreise keine endlosen Listen erzeugen. Viele Einträge werden durch vertikales Scrollen zugänglich. Unter **Freie Verweise** stehen zusätzlich **Rückverweise** aus Obsidians eigenem Linkindex: alle verlinkenden Markdown-Notizen einmalig, einschließlich Properties-Links. Dafür wird kein Frontmatter-Feld angelegt.
 
@@ -44,7 +44,9 @@ Jede der sieben Hauptgruppen hat eine eigene Sichttiefe: **1, 2, 3 oder ∞**. M
 
 Beim Umbenennen einer Notiz aktualisiert sich auch die zentrale Beschriftung unmittelbar, einschließlich des Erkundungsmodus und umbenannter übergeordneter Ordner. Ein Klick öffnet die Notiz. Mit **Im Graphen erkunden** verschiebt ein Klick nur den Graphfokus. Mittelklick öffnet Notizen trotzdem in einem neuen Tab. Bestehende und noch fehlende Notizen verwenden Obsidian-Linkstile und die Werte des aktiven Themes.
 
-Das **Plus** bei den fünf Breadcrumbs-Gruppen ergänzt nach Auswahl genau einen Wikilink im zugeordneten Frontmatter-Feld. Bestehende Notizen werden wiederverwendet; fehlende Begriffe erzeugen nur einen Link. Bei mehreren gleichnamigen Dateien wird ein eindeutiges Ziel gewählt. Literatur und freie Verweise haben kein Plus: Sie stammen aus ZotLit beziehungsweise normalen Textlinks.
+Das **Plus** steht direkt neben dem jeweiligen Gruppentitel und ergänzt immer eine Beziehung in der zentralen Notiz. Der Dialog nennt die betroffene Notiz ausdrücklich. Einzelne Begriffe haben kein Plus; bei ihnen erscheint beim Überfahren links ein **Ziehgriff**, der die dahinterliegende Linie verdeckt. Ohne Hover bleibt die Linie vollständig sichtbar. Begriffe und Ziehgriffe zeigen keine Tooltips. Bestehende Notizen werden wiederverwendet; fehlende Begriffe erzeugen nur einen Link. Bei mehreren gleichnamigen Dateien wird ein eindeutiges Ziel gewählt. Literatur und freie Verweise stammen aus ZotLit beziehungsweise normalen Textlinks und bleiben ohne diese Bearbeitungsaktionen.
+
+Ziehe einen Begriff am Griff auf eine andere Breadcrumbs-Gruppe, um seine Zuordnung zu verschieben. Bei mehreren zugeordneten Feldern wählst du anschließend das konkrete Zielfeld. Emergence entfernt die ursprüngliche Verbindung und ergänzt den Link im Zielfeld der zentralen Notiz. Auch explizit gespeicherte Gegenrichtungen werden in den Notizen geändert, denen sie gehören. Alle betroffenen Änderungen werden vor dem Schreiben geprüft; bei einem Schreibkonflikt werden bereits ausgeführte Schritte zurückgenommen. Der Notiztext bleibt erhalten.
 
 Im Dropdown **Ansicht** steht **Kontext** (HTML/SVG) an erster Stelle und ist vorausgewählt. Es ist jeweils genau eine Ansicht sichtbar; sie füllt die verbleibende Seitenpanelfläche ohne zusätzlichen Fensterrahmen. Zusätzlich sind die **originalen Ansichten** der aktivierten Plugins auswählbar:
 
@@ -60,12 +62,12 @@ Für Zitate der aktuellen Notiz verwendet Emergence ZotLits vorhandene CSL-Daten
 
 ### Feldideen
 
-Die Analyse dient als Assoziationshilfe: bis zu **vier Begriffe je ausgewähltem Breadcrumbs-Feld**, das bereits im Frontmatter der aktuellen Notiz vorkommt. Die KI soll diese Felder füllen, keine Begleittexte oder beliebigen neuen Beziehungstypen erfinden.
+Die Analyse dient als Assoziationshilfe: Die KI erzeugt eine **gemeinsame Liste unzugeordneter Begriffe**. Alle für die Analyse verfügbaren Breadcrumbs-Felder aus dem Frontmatter und ihre Beschreibungen dienen als Denkanstöße. Die Zuordnung zu einem Feld entscheidest du selbst; die KI speichert keine Verbindungen.
 
-1. Unter **Analyse einstellen** Felder auswählen und ihre Bedeutung beschreiben. Die Beschreibungen sind editierbar; fremde Feldnamen werden nicht stillschweigend interpretiert.
+1. Breadcrumbs-Felder im Frontmatter der aktuellen Notiz bereitstellen, auch leer. Unter **Analyse einstellen** ihre Bedeutung beschreiben. Die Beschreibungen sind editierbar; fremde Feldnamen werden nicht stillschweigend interpretiert.
 2. Den Suchbereich für bestehende Zielbegriffe wählen: alle Notizen, bestimmte Ordner und/oder Notizen mit bestimmten Frontmatter-Schlüsseln. „Mindestens ein Breadcrumbs-Feld“ ist ein möglicher Filter. Diese Auswahl betrifft die Analyse, nicht die globale Suche.
 3. Optional Wikipedia oder die Websuche hinzuziehen und **Ideen vorschlagen** starten.
-4. Vorschläge direkt in den Feldgruppen mit **✓** übernehmen oder **×** ablehnen. Der Stift bearbeitet den Begriff in der Zeile; Enter bestätigt, Escape verwirft die Bearbeitung.
+4. Einen Begriff am **Ziehgriff** auf eines der oben angezeigten Felder ziehen. Alternativ erst seinen Griff und dann das Zielfeld auswählen; das funktioniert auch per Tastatur. **×** verwirft einen Vorschlag. Der Stift bearbeitet den Begriff in der Zeile; Enter bestätigt, Escape verwirft die Bearbeitung.
 
 Profilanweisungen und Prompts sind editierbar. Vorhandene Ziele werden gekennzeichnet und bevorzugt verlinkt. Kurze Wikilinks wie `[[Taxonomie]]` werden verwendet, sofern sie das Ziel eindeutig auflösen; andernfalls ist ein qualifizierter Pfad nötig. Ein neuer Vorschlag erzeugt keine neue Notizdatei.
 

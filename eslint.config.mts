@@ -41,7 +41,7 @@ export default defineConfig(
 
  {
   // Native DOM regression fixtures run in jsdom, where Obsidian's createEl helpers do not exist.
-  files: ['tests/disclosure-state.test.ts','tests/helpers/dom.ts','tests/literature-reference.test.ts'],
+  files: ['tests/disclosure-state.test.ts','tests/helpers/dom.ts','tests/literature-reference.test.ts','tests/term-assignment-ui.test.ts'],
   rules: {'obsidianmd/prefer-create-el': 'off'},
  },
 );

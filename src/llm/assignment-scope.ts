@@ -1,6 +1,7 @@
 import type {Concept, GraphSnapshot} from '../types';
 import {normalize} from '../graph/registry';
 import {parseFrontmatter} from '../review/frontmatter';
+import {fieldAllowedForSource, frontmatterTags} from '../graph/field-scope';
 
 export function inFolders(path: string, folders: string[]): boolean {
  return !folders.length || folders.some(folder => {
@@ -9,7 +10,7 @@ export function inFolders(path: string, folders: string[]): boolean {
 }
 export function sourceFields(content: string, graph: GraphSnapshot): string[] {
  const {data} = parseFrontmatter(content);
- return graph.fields.filter(field => Object.prototype.hasOwnProperty.call(data, field));
+ return graph.fields.filter(field => Object.prototype.hasOwnProperty.call(data, field) && fieldAllowedForSource(field, frontmatterTags(data.tags), graph));
 }
 export function scopedTargets(source: string, graph: GraphSnapshot, folders: string[], properties: string[] = [], excludeExisting = false): Concept[] {
  const connected = new Set<string>();

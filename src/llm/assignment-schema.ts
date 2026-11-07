@@ -36,3 +36,16 @@ export function parseFieldIdeas(text: string, schema: ReturnType<typeof fieldIde
  assert(validate(value), 'Antwort enthält ungültige Feldideen oder unerlaubte Zusatztexte.');
  return {suggestions: Object.entries(value).flatMap(([field, targets]) => targets.map(target => ({field, target, evidence: 'T'})))};
 }
+
+/** Associations have no field until the user chooses a destination. */
+export function associativeIdeasSchema(limit: number) {
+ return {type: 'object', additionalProperties: false, required: ['ideas'], properties: {
+  ideas: {type: 'array', maxItems: limit, uniqueItems: true, items: {type: 'string', minLength: 1, maxLength: 512}},
+ }};
+}
+export function parseAssociativeIdeas(text: string, schema: object): AssignmentResponse {
+ const value: unknown = JSON.parse(text);
+ const validate = new Ajv({strict: true, allErrors: true}).compile<{ideas: string[]}>(schema);
+ assert(validate(value), 'Antwort enthält ungültige Begriffe oder unerlaubte Feldzuordnungen.');
+ return {suggestions: value.ideas.map(target => ({field: '', target, evidence: 'T'}))};
+}

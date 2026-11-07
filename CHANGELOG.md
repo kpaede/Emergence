@@ -1,3 +1,13 @@
+# 0.0.3
+
+- Feldideen liefern eine gemeinsame Liste assoziierter Begriffe ohne automatische Feldzuordnung. Begriffe werden per Drag-and-drop oder über Begriffsauswahl und Zielfeld übernommen.
+- Ziehgriffe im Graphen verschieben bestehende Breadcrumbs-Zuordnungen und aktualisieren die betroffenen Frontmatter-Felder, einschließlich explizit gespeicherter Gegenrichtungen. Aliase und unbeteiligte Notizdaten bleiben erhalten; Schreibkonflikte werden geprüft und bereits ausgeführte Schritte bei Fehlern zurückgenommen.
+- Plus-Aktionen stehen ausschließlich am Gruppentitel und beziehen sich immer auf die zentrale Notiz. Der Eingabedialog nennt die betroffene Notiz ausdrücklich.
+- Konzept und Urheberfelder erscheinen gemeinsam bei Notizen mit einem Untertag von `Werk` im Frontmatter-Feld `tags`. Andere zusätzliche Felder erscheinen bei vorhandenen Verbindungen. Die Feldideen berücksichtigen dieselbe Einschränkung.
+- Sichtbare Ziehgriffe verdecken die dahinterliegende Linie; ohne Hover bleibt die Linie sichtbar. Tooltips an Begriffen und Griffen entfernt, Screenreader-Beschriftungen erhalten.
+- SVG-Verbindungen an die neuen Bedienelemente angepasst; initialen Überlauf in schmalen Panels und Unterbrechungen beim Ziehen verhindert.
+- 267 Regressionstests bestanden; sechs optionale Modelltests im Standardlauf übersprungen. Isolierter Obsidian-Oberflächentest bei 280, 360 und 480 Pixeln ohne Änderungen an echten Notizen bestanden.
+
 # 0.0.2
 
 - Die bisherige Relationssynopse heißt jetzt **Kontext**; gespeicherte Zuordnungen und Sichttiefen bleiben erhalten.

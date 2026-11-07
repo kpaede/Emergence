@@ -1,3 +1,23 @@
+# Prüfstand: Release 0.0.3
+
+Stand: 7. November 2026. Die nachfolgenden neuen Prüfungen gelten für Release **0.0.3**; der ältere Prüfbericht zu 0.0.2 bleibt darunter als historischer Stand erhalten.
+
+## Änderungen und neue Prüfungen
+
+Feldideen werden als gemeinsame Liste unzugeordneter Begriffe erzeugt. Alle verfügbaren Feldbeschreibungen dienen als Denkanstöße; das JSON-Schema akzeptiert keine Feldzuordnungen. Erst das ausdrücklich ausgewählte Zielfeld bestimmt die gespeicherte Beziehung. Vorhandene Zielnotizen, mehrdeutige Namen, Begriffsänderungen und die gezielte Rücknahme bleiben unterstützt.
+
+Bestehende Graphbegriffe können am Griff auf ein Breadcrumbs-Feld verschoben werden. Ein einmal pro Darstellung aufgebauter Index ordnet sichtbare Beziehungen ihren explizit gespeicherten Ursprüngen zu. Auch Gegenrichtungen werden in den tatsächlich verantwortlichen Notizen geändert. Alle Änderungen werden vor dem Schreiben vorbereitet; konkurrierende Änderungen werden geprüft, frühere Schreibschritte bei einem späteren Konflikt zurückgenommen. Notizkörper und unbeteiligte Properties bleiben unverändert. Eine vollständige Rücknahme ist bei einem zusätzlichen Konflikt während der Rücknahme selbst nicht garantiert; in diesem Fall nennt die Fehlermeldung die zu prüfenden Notizen.
+
+Das Plus am Gruppentitel ergänzt ausschließlich bei der zentralen Notiz; der Dialog zeigt deren Namen. Einzelne Begriffe besitzen keine Plus-Aktion. Konzept und Urheberrollen stehen bei Frontmatter-Tags unter `Werk/…` gemeinsam zur Verfügung. Andere leere Zusatzregister bleiben ausgeblendet. Die Einschränkung wird auch vor dem Schreiben anhand der aktuellen Frontmatter-Tags geprüft. Tooltips an Begriffen und Ziehgriffen entfallen, zugängliche Beschriftungen bleiben erhalten. Sichtbare Griffe verdecken nur ihren Linienabschnitt; die SVG-Geometrie bleibt erhalten.
+
+- `npm test`: **267 bestanden**, sechs optionale Modelltests übersprungen. Neue Prüfungen decken Assoziationsschema, manuelle Feldwahl, Drag-and-drop und Tastaturauswahl, Schreiben und Rücknahme, Aliase, Gegenrichtungen über mehrere Notizen, konkurrierende Änderungen sowie Frontmatter-Tag-Grenzen ab. Schreibtests verwenden synthetische Notizen im Arbeitsspeicher.
+- `npm run typecheck`, `npm run lint` und `npm run build`: erfolgreich; Lint ohne Fehler und Warnungen.
+- `npm run test:term-assignment-ui`: getrennt gerenderter synthetischer Graph in Obsidian bei **280/360/480 Pixeln** ohne horizontalen Überlauf. Gruppen-Plus schreibt laut aufgezeichnetem Callback ausschließlich zur zentralen Notiz; keine Einzelbegriff-Plusse. Drag-and-drop, SVG-Endpunkte, verdeckte Linie bei sichtbarem Griff und Werk-Tag-Sichtbarkeit geprüft. Keine echten Notizen geschrieben, keine Modelle aufgerufen, Benutzerkonfiguration und vorherige Analyse unverändert. Der Test erstellt temporäre Aufnahmen außerhalb des Repositorys.
+
+Die LLM-Ausgabe des neuen Assoziationsschemas ist mit Provider-Testdoubles geprüft. Ein neuer tatsächlicher Modelllauf ist für diesen Release nicht als durchgeführt dokumentiert. Die älteren Modell- und Integrationsergebnisse unten gelten weiterhin ausschließlich für ihren damaligen Quellstand. Lokale Konfiguration und Vault-bezogene Berichte werden nicht veröffentlicht.
+
+---
+
 # Prüfstand: Feldideen, Graph und Literaturaktionen
 
 Stand: 1. November 2026. Dieser Prüfstand gehört zum Quellstand für Release **0.0.2**. Der frühere Tag 0.0.1 bleibt unverändert.

@@ -7,7 +7,7 @@ import type {WikipediaUiState} from './wikipedia';
 export type Tab = 'search' | 'graph' | 'analysis';
 export interface PanelState {
  analysis: WikipediaUiState & WebSearchUiState & {folders?: string; properties?: string; filter?: 'none' | 'breadcrumbs' | 'custom'; descriptionField?: string; descriptions?: Record<string, string>; fieldsOpen?: boolean; descriptionsOpen?: boolean; scopeOpen?: boolean;
-  connection?: 'checking' | 'success' | 'error'; connectionMessage?: string; targetChoice?: string; ideaEdit?: {id: string; value: string; error?: string}; profileDrafts?: Record<string, ProfilePromptDraft>};
+  connection?: 'checking' | 'success' | 'error'; connectionMessage?: string; targetChoice?: string; selectedIdea?: string; ideaEdit?: {id: string; value: string; error?: string}; profileDrafts?: Record<string, ProfilePromptDraft>};
  search: {query: string; mode: 'open' | 'explore'};
  review: {query: string; status: string; page: number; expanded: string};
 }
@@ -16,9 +16,16 @@ export interface PanelContext {
  host: HTMLElement; controller: EmergenceController; state: PanelState;
  navigate(tab: Tab): void; repaint(): void; run(action: () => unknown): Promise<void>; isCurrent(): boolean;
 }
-export function iconButton(parent: HTMLElement, icon: string, label: string, action: () => void): HTMLButtonElement {
- const b = parent.createEl('button', {cls: 'clickable-icon', attr: {'aria-label': label, type: 'button'}});
- setIcon(b, icon); setTooltip(b, label); b.onclick = action; return b;
+export function labelWithoutTooltip(element: HTMLElement, text: string): void {
+ const id = 'em-label-' + crypto.randomUUID();
+ element.createSpan({text, cls: 'em-sr-only', attr: {id}});
+ element.setAttribute('aria-labelledby', id);
+}
+export function iconButton(parent: HTMLElement, icon: string, label: string, action: () => void, tooltip = true): HTMLButtonElement {
+ const b = parent.createEl('button', {cls: 'clickable-icon', attr: {type: 'button'}});
+ setIcon(b, icon);
+ if (tooltip) {b.setAttribute('aria-label', label); setTooltip(b, label);} else labelWithoutTooltip(b, label);
+ b.onclick = action; return b;
 }
 export function title(parent: HTMLElement, text: string, description = ''): HTMLElement {
  const section = parent.createDiv({cls: 'em-section-heading'}); section.createEl('h3', {text});

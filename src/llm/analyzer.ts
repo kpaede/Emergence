@@ -4,7 +4,7 @@ import {ContextBudgetError} from './context';
 import {prepareLongContext} from './long-context';
 import {assignmentDocument} from './assignment-document';
 import type {ModelMetrics} from '../types';
-import {parseAssignments, parseFieldIdeas, type fieldIdeasSchema} from './assignment-schema';
+import {parseAssignments, parseFieldIdeas, parseAssociativeIdeas, type fieldIdeasSchema} from './assignment-schema';
 import {prepareAssignments, type AssignmentOptions} from './assignment-context';
 import {sourceFields} from './assignment-scope';
 import {assignmentTarget, alreadyAssigned} from './assignment-result';
@@ -27,6 +27,7 @@ export class DocumentAnalyzer {
   options.fields = options.fields.filter(field => !output.allowedEdgeTypes.length || output.allowedEdgeTypes.includes(field));
   const result: AnalysisResult = {id, source, sourceVersion, suggestions: [], candidates: [], artifacts: [], completed: 0, total: 0, status: 'complete', errors: [], discarded: 0};
   if (options.perField) {result.fields = [...options.fields]; result.perField = options.perField;}
+  if (options.associative) {result.fields = [...options.fields]; result.associative = true;}
   if (signal.aborted) {result.status = 'cancelled'; return result;}
   let prepared:ReturnType<typeof prepareAssignments>,preparationRequests=0,sourceParts=1,sourceMode:'full'|'overview'='full';const preparationMetrics:ModelMetrics[]=[];
   try{prepared=prepareAssignments(source,content,graph,profile,settings,options);}
@@ -46,12 +47,12 @@ export class DocumentAnalyzer {
   for (let index = 0; index < prepared.sections.length; index++) {
    if (signal.aborted) {result.status = 'cancelled'; break;}
    const section = prepared.sections[index]!, context = prepared.contexts[index]!;
-   progress(`${prepared.contexts.length === 1 ? 'Notiz wird zugeordnet' : `Feldgruppe ${index + 1}/${prepared.contexts.length}`} · ${context.fields.join(', ')}`);
+   progress(`${options.associative ? 'Begriffe werden assoziiert' : prepared.contexts.length === 1 ? 'Notiz wird zugeordnet' : `Feldgruppe ${index + 1}/${prepared.contexts.length}`} · ${context.fields.join(', ')}`);
    try {
     result.diagnostics.requests++;
     const response = await this.provider.chat({messages: context.messages, temperature: profile.temperature,
      maxTokens: context.maxTokens, format: context.format, signal, onMetrics: metrics => result.diagnostics!.model.push(metrics)});
-    const parsed = options.perField ? parseFieldIdeas(response, context.format as ReturnType<typeof fieldIdeasSchema>) : parseAssignments(response, context.format);
+    const parsed = options.associative ? parseAssociativeIdeas(response, context.format) : options.perField ? parseFieldIdeas(response, context.format as ReturnType<typeof fieldIdeasSchema>) : parseAssignments(response, context.format);
     assert(!signal.aborted, 'Analyse abgebrochen.');
     for (const assignment of parsed.suggestions) {
      assert(!/^N\d+$/u.test(assignment.target) || context.refs.has(assignment.target), 'Unbekannte Ziel-ID.');
@@ -62,9 +63,9 @@ export class DocumentAnalyzer {
      const evidence = assignment.evidence === 'T' ? prepared.title : resolveEvidence(assignment.evidence, context.evidence, section.content);
      result.suggestions.push({id: crypto.randomUUID(), analysisId: id, source, sourceVersion, operation: 'add',
       target: target.path, targetKind: target.kind, field: assignment.field, property: assignment.field,
-      value: options.perField ? shortWikilink(target.path) : `[[${target.path.replace(/\.md$/u, '')}]]`, reason: '', evidence, confidence: 'medium', status: 'pending', outputId: output.id,
+      value: options.perField || options.associative ? shortWikilink(target.path) : `[[${target.path.replace(/\.md$/u, '')}]]`, reason: '', evidence, confidence: 'medium', status: 'pending', outputId: output.id,
       contract: 'breadcrumbs-v2', evidenceSource: assignment.evidence === 'T' ? 'title' : 'content', ...(target.label ? {targetLabel: target.label} : {})});
-     if (options.perField) refreshTargetMatch(result.suggestions.at(-1)!, graph);
+     if (options.perField || options.associative) refreshTargetMatch(result.suggestions.at(-1)!, graph);
     }
     result.completed++;
    } catch (error) {result.errors.push(errorMessage(error)); result.status = signal.aborted ? 'cancelled' : 'partial'; break;}

@@ -5,6 +5,9 @@ import {planFrontmatter, splitFrontmatter, parseFrontmatter, removeAddedLink, pl
 import {validateSuggestion} from './validator';
 import {fullWikilink, shortWikilink, preferredWikilink} from './wikilink';
 import {needsTargetChoice} from './target-matches';
+import {moveManualLinks} from './move-link';
+import type {StoredRelation} from '../graph/synopsis-assignments';
+import {fieldAllowedForSource, frontmatterTags} from '../graph/field-scope';
 
 export interface FileVersion {mtime: number; size: number}
 export interface WriterIO {
@@ -29,15 +32,27 @@ export class FrontmatterWriter {
   private settings: () => Settings, private profile: () => Profile, readonly journal: JournalEntry[]) {}
  private signature(): string {return JSON.stringify({settings: this.settings(), fields: this.graph().fields, rules: this.graph().rules, inferenceRules: this.graph().inferenceRules, groups: this.graph().groups, edges: this.graph().edges, partial: this.graph().partial});}
  invalidate(): void {this.previews.clear();}
- async applyIdea(id: string): Promise<JournalEntry> {
+ async moveLinks(origins: StoredRelation[], source: string, property: string, target: string): Promise<void> {
+  assert(!this.busy, 'Schreibvorgang läuft bereits.'); this.busy = true; this.invalidate();
+  try {
+   const entries = await moveManualLinks(this.io, this.graph(), () => this.signature(), origins, source, property, target);
+   this.journal.push(...entries); if (this.journal.length > 20) this.journal.splice(0, this.journal.length - 20);
+   try {await this.io.saveJournal(this.journal); for (const entry of entries) await this.io.refresh(entry.path);}
+   catch (error) {for (const entry of entries) entry.status = 'refresh-failed'; throw new Error(`Begriff wurde verschoben; Aktualisierung fehlgeschlagen. ${String(error)}`);}
+  } finally {this.busy = false;}
+ }
+ async applyIdea(id: string, field?: string): Promise<JournalEntry> {
   assert(!this.busy, 'Schreibvorgang läuft bereits.');
   this.review.refreshTargets(this.graph());
-  const analysis = this.review.analysis, idea = analysis?.suggestions.find(s => s.id === id);
-  assert(analysis?.status === 'complete' && analysis.perField && idea?.status === 'pending' && idea.contract === 'breadcrumbs-v2', 'Keine übernehmbare Beziehungsidee.');
+  const analysis = this.review.analysis, pending = analysis?.suggestions.find(s => s.id === id);
+  assert(analysis?.status === 'complete' && (analysis.perField || analysis.associative) && pending?.status === 'pending' && pending.contract === 'breadcrumbs-v2', 'Keine übernehmbare Beziehungsidee.');
+  assert(!analysis.associative || field && analysis.fields?.includes(field), 'Bitte ein Breadcrumbs-Feld als Ziel auswählen.');
+  const idea = field ? {...pending, field, property: field} : pending;
   assert(!needsTargetChoice(idea), 'Bitte eine vorhandene Zielnotiz auswählen.');
   this.busy = true; this.invalidate();
   try {
    const revision = this.review.revision, signature = this.signature(), before = await this.io.read(idea.source);
+   assert(fieldAllowedForSource(idea.field, frontmatterTags(parseFrontmatter(before).data.tags), this.graph()), 'Dieses Feld ist nur für Notizen mit einem Frontmatter-Tag unter Werk verfügbar.');
    assert(Object.prototype.hasOwnProperty.call(parseFrontmatter(before).data, idea.field), 'Das Breadcrumbs-Feld ist nicht mehr im Frontmatter vorhanden.');
    assert(idea.value === fullWikilink(idea.target) || idea.value === shortWikilink(idea.target), 'Wiki-Link stimmt nicht mit der Zielnotiz überein.');
    const s = {...idea, value: preferredWikilink(idea, link => this.io.resolve(link, idea.source)), status: 'accepted' as const, sourceVersion: await hash(before)};
@@ -68,6 +83,7 @@ export class FrontmatterWriter {
   this.busy=true;this.invalidate();
   try{
    const before=await this.io.read(source),signature=this.signature(),targetVersion=this.io.version(target);
+   assert(fieldAllowedForSource(property,frontmatterTags(parseFrontmatter(before).data.tags),this.graph()),'Dieses Feld ist nur für Notizen mit einem Frontmatter-Tag unter Werk verfügbar.');
    assert(targetKind==='existing'?!!targetVersion:!targetVersion,'Die Zielnotiz hat inzwischen einen anderen Status.');
    const value=preferredWikilink({target,targetKind},link=>this.io.resolve(link,source));
    const plan=planManualLink(before,property,value,target,link=>this.io.resolve(link,source)),beforeHash=await hash(before),afterHash=await hash(plan.after);
@@ -87,7 +103,7 @@ export class FrontmatterWriter {
   assert(!this.busy, 'Schreibvorgang läuft bereits.'); this.busy = true; this.invalidate();
   try {
    const entry = this.journal.find(j => j.id === id);
-   assert(entry && entry.status !== 'undone' && entry.changes.length === 1, 'Keine einzeln rücknehmbare Idee.');
+   assert(entry && entry.kind !== 'move' && entry.status !== 'undone' && entry.changes.length === 1, 'Keine einzeln rücknehmbare Idee.');
    const change = entry.changes[0]!, before = await this.io.read(entry.path);
    const after = removeAddedLink(before, change.property, change.value ?? fullWikilink(change.target), entry.beforeFrontmatter);
    await this.io.process(entry.path, current => {assert(current === before, 'Notiz während der Rücknahme verändert.'); return after;});

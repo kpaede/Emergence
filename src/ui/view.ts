@@ -28,7 +28,7 @@ export class EmergenceView extends ItemView {
  private fingerprint = '';
  private tabId = crypto.randomUUID();
  private disclosures = new Map<Tab, DisclosureState>();
- private interactionHeld = false; private updatePending = false; private forcePending = false; private updateFrame?: number;
+ private interactionHeld = false; private dragging = false; private updatePending = false; private forcePending = false; private updateFrame?: number;
  constructor(leaf: WorkspaceLeaf, readonly controller: EmergenceController) {super(leaf);}
  onNoteRename(oldPath:string,newPath:string):void{this.graphPanel?.onNoteRename(oldPath,newPath);this.fingerprint='';}
  getViewType(): string {return VIEW_TYPE;}
@@ -65,15 +65,23 @@ export class EmergenceView extends ItemView {
    if ((event.key === 'Enter' || event.key === ' ') && event.target instanceof HTMLElement && event.target.closest('button, summary, select, input[type=checkbox]')) this.interactionHeld = true;
   }, {capture: true});
   const release = () => {
+   if (this.dragging) return;
    this.interactionHeld = false;
    if (!this.updatePending || this.updateFrame !== undefined) return;
    this.updateFrame = win.requestAnimationFrame(() => {this.updateFrame = undefined; const force = this.forcePending; this.updatePending = this.forcePending = false; this.update(force);});
   };
+  this.registerDomEvent(this.contentEl, 'dragstart', event => {
+   this.dragging = true; this.interactionHeld = true;
+   queueMicrotask(() => {if (event.defaultPrevented) {this.dragging = false; release();}});
+  }, {capture: true});
+  const endDrag = () => {this.dragging = false; release();};
+  this.registerDomEvent(doc, 'dragend', endDrag);
+  this.registerDomEvent(doc, 'drop', endDrag);
   this.registerDomEvent(doc, 'pointerup', release, {capture: true});
   this.registerDomEvent(doc, 'pointercancel', release, {capture: true});
   this.registerDomEvent(doc, 'keyup', release, {capture: true});
   this.registerDomEvent(this.contentEl, 'change', release, {capture: true});
-  this.registerDomEvent(win, 'blur', release);
+  this.registerDomEvent(win, 'blur', endDrag);
   this.register(() => {if (this.updateFrame !== undefined) win.cancelAnimationFrame(this.updateFrame);});
   this.unsubscribe = this.controller.subscribe(() => this.update()); this.switchTab('graph');
  }

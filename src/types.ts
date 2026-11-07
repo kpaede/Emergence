@@ -74,7 +74,7 @@ export interface AnalysisResult {
  artifacts: {outputId: string; content: string}[]; completed: number; total: number;
  status: 'complete' | 'partial' | 'cancelled'; errors: string[];
  elapsedMs?: number; discarded?: number;
- fields?: string[]; perField?: number;
+ fields?: string[]; perField?: number; associative?: boolean;
  wikipedia?: WikipediaContext;
  diagnostics?: {sourceMode?:'full'|'overview';sourceParts?:number;requests: number; titlesTotal: number; titlesSent: number; titleMode?: 'full' | 'local'; estimatedTokens?: number; ignoredLines: number; preparationMs: number; model: ModelMetrics[]};
 }
@@ -83,6 +83,7 @@ export interface WikipediaContext {query: string; status: 'ready' | 'empty' | 'e
 export interface WikipediaRequest {enabled?: boolean; term?: string}
 export interface ModelMetrics {loadMs?: number; promptMs?: number; generationMs?: number; inputTokens?: number; outputTokens?: number}
 export interface JournalEntry {
+ kind?: 'move';
  id: string; path: string; time: number; beforeHash: string; afterHash: string;
  beforeFrontmatter: string; afterFrontmatter: string; status: 'applied' | 'undone' | 'refresh-failed';
  changes: {property: string; target: string; value?: string}[];

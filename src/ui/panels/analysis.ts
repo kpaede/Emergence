@@ -10,12 +10,14 @@ import {errorMessage} from '../../util';
 import type {AssignmentBlocker} from '../../llm/assignment-readiness';
 import {scopedTargets} from '../../llm/assignment-scope';
 import {renderFieldIdeas, renderIdeaContext} from './field-ideas';
+import {renderIdeaFields} from './idea-fields';
 import {renderAnalysisProfile, hasPromptDraft, savePromptDraft, previewProfile} from './analysis-profile';
 import {renderWikipediaOption, renderWikipediaContext, wikipediaRequest} from '../wikipedia';
 
 export function renderAnalysis(ctx: PanelContext): void {
  const {host, controller: c} = ctx;
  host.addClass('em-analysis-compact'); title(host, 'Feldideen'); renderIdeaContext(host, c.activePath);
+ renderIdeaFields(host, ctx);
  const blockers = c.assignmentBlockers(), ready = !blockers.length;
  const actions = host.createDiv({cls: 'em-actions em-analysis-actions'});
  // The setup element is in place before an event can invoke this handler.
@@ -45,7 +47,7 @@ export function renderAnalysis(ctx: PanelContext): void {
  const a = c.review.analysis;
  if (a&&a.source===c.activePath) {
   const summary = host.createDiv({cls: 'em-analysis-result'});
-  if (a.perField) renderFieldIdeas(summary, ctx);
+  if (a.perField || a.associative) renderFieldIdeas(summary, ctx);
   else {
    title(summary, 'Zuordnungsvorschläge');
    badge(summary, a.status === 'complete' ? 'Ungeprüft' : a.status === 'partial' ? 'Unvollständig' : 'Abgebrochen');
@@ -61,7 +63,7 @@ export function renderAnalysis(ctx: PanelContext): void {
 function renderDiagnostics(ctx: PanelContext): void {
  const {host, controller: c} = ctx, a = c.review.analysis;
  const options = disclosure(host, 'Verbindung und Details', false, 'analysis-diagnostics'), state = ctx.state.analysis;
- options.createDiv({text: `${c.settings().model} · lokal · ${c.analysisFields.length} Felder · bis zu vier Ideen je Feld`, cls: 'em-muted em-caption'});
+ options.createDiv({text: `${c.settings().model} · lokal · ${c.analysisFields.length} Felder als Denkanstöße · gemeinsame Begriffsliste`, cls: 'em-muted em-caption'});
  if (!c.assignmentBlockers().length) {
   const assignment = c.assignmentOptions(), total = scopedTargets(c.activePath, c.graph.snapshot, assignment.folders, assignment.targetProperties, assignment.excludeExistingTargets).length;
   options.createDiv({text: `${total} vorhandene Notizen in der Titelliste`, cls: 'em-muted em-caption'});

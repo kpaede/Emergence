@@ -14,6 +14,8 @@ import {existingTargetMatches} from './review/target-matches';
 import {profilePrompts, withProfilePrompts, type ProfilePrompts} from './llm/profile-prompts';
 import {validateSettings} from './config';
 import {WikipediaProvider, type WikipediaLookup} from './llm/wikipedia';
+import {synopsisAssignments} from './graph/synopsis-assignments';
+import {fieldAllowedForSource, frontmatterTags} from './graph/field-scope';
 
 import {WebSearchProvider, searchQuery, type WebSearchLookup, type WebSearchRequest, type WebSearchContext} from './llm/web-search';
 
@@ -69,7 +71,8 @@ export class EmergenceController {
  get analysisFields(): string[] {return this.analysisFieldsFor(this.activePath);}
  analysisFieldsFor(source: string): string[] {
   const file = this.app.vault.getFileByPath(source), frontmatter = file ? this.app.metadataCache.getFileCache(file)?.frontmatter ?? {} : {};
-  return this.graph.snapshot.fields.filter(field => Object.prototype.hasOwnProperty.call(frontmatter, field));
+  return this.graph.snapshot.fields.filter(field => Object.prototype.hasOwnProperty.call(frontmatter, field)
+   && fieldAllowedForSource(field, frontmatterTags(frontmatter.tags), this.graph.snapshot));
  }
  async selectAnalysisFields(fields: string[], source = this.activePath): Promise<void> {
   assert(source.endsWith('.md'), 'Zuerst eine Markdown-Notiz öffnen.');
@@ -98,17 +101,29 @@ export class EmergenceController {
   try{await this.saveIdeaSource(source);await this.writer.addManualLink(source,property,target,targetKind);this.status=`${property}: Link ergänzt`;}
   finally{this.applyingIdea=false;this.notify();}
  }
- async applyIdea(id: string): Promise<void> {
+ async moveSynopsisLink(focus: string, source: string, target: string, fields: string[], property: string): Promise<void> {
+  assert(!this.applyingIdea && !this.abort && !this.profilePromptSave, 'Eine Aktion läuft bereits.');
+  this.applyingIdea = true; this.notify();
+  try {
+   const origins = synopsisAssignments(this.graph.snapshot, this.settings(), source, target, fields);
+   assert(origins.length, 'Die ursprüngliche Zuordnung ist nicht mehr vorhanden.');
+   for (const path of new Set([focus, ...origins.map(origin => origin.source)])) await this.saveIdeaSource(path);
+   const current = synopsisAssignments(this.graph.snapshot, this.settings(), source, target, fields);
+   assert(JSON.stringify(current) === JSON.stringify(origins), 'Die Zuordnung wurde inzwischen verändert. Bitte erneut verschieben.');
+   await this.writer.moveLinks(current, focus, property, target); this.status = `${property}: Begriff verschoben`;
+  } finally {this.applyingIdea = false; this.notify();}
+ }
+ async applyIdea(id: string, field?: string): Promise<void> {
   assert(!this.applyingIdea && !this.abort && !this.profilePromptSave, 'Eine Aktion läuft bereits.');
   const s = this.review.analysis?.suggestions.find(s => s.id === id); assert(s && s.source === this.activePath, 'Öffne zuerst die zugehörige Notiz.');
   this.applyingIdea = true; this.status = 'Link wird ergänzt …'; this.notify();
-  try {await this.saveIdeaSource(s.source); const entry = await this.writer.applyIdea(id); this.lastIdeaEntry = entry.id; this.status = `${s.field}: Link übernommen`;}
+  try {await this.saveIdeaSource(s.source); const entry = await this.writer.applyIdea(id, field); this.lastIdeaEntry = entry.id; this.status = `${field ?? s.field}: Link übernommen`;}
   finally {this.applyingIdea = false; this.notify();}
  }
  editIdea(id: string, input: string): void {
   assert(!this.applyingIdea && !this.abort, 'Eine Aktion läuft bereits.');
   const a = this.review.analysis, s = a?.suggestions.find(s => s.id === id);
-  assert(a?.perField && s?.status === 'pending', 'Die Idee ist nicht mehr verfügbar.');
+  assert((a?.perField || a?.associative) && s?.status === 'pending', 'Die Idee ist nicht mehr verfügbar.');
   const raw = input.trim(), title = (/^\[\[([^[\]#|\r\n]+)\]\]$/u.exec(raw)?.[1] ?? raw).replace(/\.md$/u, '').trim();
   assert(title && title.length <= 512 && !/[[\]#|:\r\n\0/\\]/u.test(title) && title !== '.' && title !== '..', 'Bitte einen einzelnen Begriff ohne Pfad eingeben.');
   const selected = title === targetTitle(s.target) ? this.app.vault.getFileByPath(s.target) : null;
@@ -151,7 +166,7 @@ export class EmergenceController {
   const missing = fields.filter(field => !this.graph.snapshot.rules[field]?.description.trim());
   assert(!missing.length, `Feldbeschreibung fehlt: ${missing.join(', ')}.`);
   return {fields: [...fields], folders: s.assignment.allFolders || !s.conceptFolders.length ? [] : [...s.conceptFolders], allowNew: s.assignment.allowNewTargets,
-   maxSuggestions: fields.length * 4, perField: 4, outputId: output.id,
+   maxSuggestions: fields.length * 4, associative: true, outputId: output.id,
    excludeExistingTargets: s.assignment.excludeExistingTargets,
    targetProperties: s.assignment.propertyFilter === 'breadcrumbs' ? this.graph.snapshot.fields : s.assignment.propertyFilter === 'custom' ? [...s.assignment.properties] : []};
  }
@@ -180,7 +195,7 @@ export class EmergenceController {
   assert(!this.abort && !this.applyingIdea && !this.profilePromptSave, 'Eine Anfrage oder Profilspeicherung läuft bereits.');
   this.captureActive();
   const file = this.app.vault.getFileByPath(this.activePath); assert(file?.extension === 'md', 'Zuerst eine Markdown-Notiz öffnen.');
-  this.assignmentOptions(); this.review.clear(); const abort=this.abort = new AbortController(); this.status = 'Zuordnung wird vorbereitet'; this.notify();
+  this.assignmentOptions(); this.review.clear(); const abort=this.abort = new AbortController(); this.status = 'Assoziationen werden vorbereitet'; this.notify();
   const generation = this.generation,started=performance.now();
   try {
    const editor = this.app.workspace.activeEditor;
@@ -189,7 +204,7 @@ export class EmergenceController {
    const result: AnalysisResult = await this.analyzer.analyze(file.path, content, this.graph.snapshot, this.profile, this.settings(), abort.signal,
     progress => {if(!abort.signal.aborted){this.status = progress; this.notify();}}, {...this.assignmentOptions(content),...(wikipedia?{wikipedia}:{}),...(webSearch?{webSearch}:{})});
    result.elapsedMs=Math.round(performance.now()-started);
-   if (generation === this.generation) {this.review.set(result); this.status = `${result.status === 'complete' ? 'Zuordnung abgeschlossen' : 'Zuordnung unvollständig'} · ${result.suggestions.length} Vorschläge`; this.ollamaStatus = 'erreichbar';}
+   if (generation === this.generation) {this.review.set(result); this.status = `${result.status === 'complete' ? 'Assoziationen abgeschlossen' : 'Assoziationen unvollständig'} · ${result.suggestions.length} Vorschläge`; this.ollamaStatus = 'erreichbar';}
   } catch (error) {this.status = errorMessage(error); throw error;}
   finally {if(this.abort===abort)this.abort = undefined; this.notify();}
  }

@@ -57,12 +57,12 @@ export class SynopsisGeometry {
    for (const p of parentTerms) wire(p.x,p.y,rail,p.y);
   }
   for (const [relation, side] of [['similar','left'],['friction','right']] as const) {
-   const terms = [...this.diagram.querySelectorAll<HTMLElement>(`[data-syn-list="${relation}"] > li > a`)].map(el=>point(el,side,relation)); if (!terms.length) continue;
+   const terms = [...this.diagram.querySelectorAll<HTMLElement>(`[data-syn-direct="${relation}"]`)].map(el=>point(el,side,relation)); if (!terms.length) continue;
    const rail = side==='left' ? 3 : this.diagram.clientWidth-3, fy=f.top+f.height/2-base.top;
    wire(side==='left'?f.left-base.left:f.right-base.left,fy,rail,fy); wire(rail,fy,rail,Math.max(...terms.map(p=>p.y)));
    for (const p of terms) wire(rail,p.y,p.x,p.y);
   }
-  const children = [...this.diagram.querySelectorAll<HTMLElement>('[data-syn-list="narrower"] > li > a')].map((el,i)=>point(el,i%2===0?'right':'left','narrower'));
+  const children = [...this.diagram.querySelectorAll<HTMLElement>('[data-syn-direct="narrower"]')].map((el,i)=>point(el,i%2===0?'right':'left','narrower'));
   if (children.length) {
    wire(center,f.bottom-base.top,center,Math.max(...children.map(p=>p.y)));
    for (const p of children) wire(center,p.y,p.x,p.y);

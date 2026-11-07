@@ -1,4 +1,5 @@
 import {fieldRelations, type FieldRelations} from './field-relations';
+import {fieldAllowedForSource, isWorkField} from './field-scope';
 import type {GraphSnapshot, Settings, LiteratureReference} from '../types';
 import {defaultSynopsisDepths, synopsisRelations, type AncestorPath, type SynopsisDepth, type SynopsisEntry, type SynopsisNote, type SynopsisRelation} from './synopsis-types';
 
@@ -79,6 +80,11 @@ export class SynopsisGraph {
   return [...this.adjacency.get(relation)?.get(id) ?? []];
  }
  fieldNeighbors(id:string,field:string):SynopsisNote[]{return [...this.fieldRelations.get(field)?.get(id)??[]].flatMap(id=>this.notes.has(id)?[this.notes.get(id)!]:[]);}
+ extraFields(source: string): string[] {
+  const tags = this.snapshot.nodes.find(node => node.id === source)?.tags ?? [];
+  return this.unassignedFields.filter(field => isWorkField(field, this.snapshot)
+   ? fieldAllowedForSource(field, tags, this.snapshot) : !!this.fieldRelations.get(field)?.get(source)?.size);
+ }
  returns(relation:SynopsisRelation):number{return this.returnCounts.get(relation)??0;}
  reference(id:string):LiteratureReference|undefined{return this.references.get(id);}
  citationReferences(id:string):ReadonlyArray<LiteratureReference>{return this.virtualCitations.get(id)??[];}

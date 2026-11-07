@@ -64,7 +64,7 @@ describe('Breadcrumbs assignments, not free associations', () => {
   const g = graph(); g.fields = ['belongs_to']; g.rules = {belongs_to: {...unknownRule('belongs_to'), description: 'Das übergeordnete Fachgebiet.'}};
   const request = prepareAssignments('Quelle.md', '# Quelle', g, profile(), defaults(), {...options(), fields: ['belongs_to']});
   expect(request.contexts[0]!.messages[1]!.content).toContain('belongs_to: Das übergeordnete Fachgebiet.');
-  expect(request.contexts[0]!.format.properties.suggestions.items).toHaveProperty('properties.field.enum', ['belongs_to']);
+  expect(request.contexts[0]!.format).toHaveProperty('properties.suggestions.items.properties.field.enum', ['belongs_to']);
  });
  it('restricts existing targets to the selected folders including nested notes', () => {
   const g = graph(); const targets = scopedTargets('Quelle.md', g, ['Ordner']);

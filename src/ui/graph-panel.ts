@@ -1,7 +1,7 @@
 import {Keymap, type WorkspaceLeaf} from 'obsidian';
 import type {EmergenceController} from '../controller';
 import {button} from './helpers';
-import {disclosure, iconButton} from './panel';
+import {disclosure, iconButton, labelWithoutTooltip} from './panel';
 import {RelationsSynopsis} from './relations-synopsis';
 import {SynopsisAddModal} from './synopsis-add';
 import {synopsisSourceSettings,type SynopsisSourceControls} from './synopsis-settings';
@@ -27,7 +27,7 @@ export class GraphPanel {
   const row=this.synopsisControls.createEl('label',{cls:'em-check-row em-graph-explore'});this.exploreBox=row.createEl('input',{type:'checkbox'});row.appendText('Im Graphen erkunden');
   this.exploreBox.onchange=()=>{this.explore=this.exploreBox.checked;if(!this.explore){this.follow=true;this.focus(c.activePath);}};
   const controls=disclosure(this.synopsisControls,'Felder und Quellen');controls.addEventListener('toggle',()=>this.resize());this.refreshSources=synopsisSourceSettings(controls,c,()=>{this.semantic.invalidate();this.renderStructure();});
-  this.canvas=this.host.createDiv({cls:'em-graph em-synopsis-canvas',attr:{role:'region','aria-label':'Kontext'}});
+  this.canvas=this.host.createDiv({cls:'em-graph em-synopsis-canvas',attr:{role:'region'}});labelWithoutTooltip(this.canvas,'Kontext');
   this.semanticHost=this.canvas.createDiv();
   this.semantic=new RelationsSynopsis(this.semanticHost,c.settings,(relation,depth)=>this.setDepth(relation,depth),{
    referenceActions:(reference,source)=>literatureActions(c.app,reference,source),
@@ -37,7 +37,10 @@ export class GraphPanel {
    activate:(note,event)=>this.activateSynopsisNote(note,event),inspect:note=>this.inspectSynopsisNote(note),
    literature:target=>{void c.run(()=>import('../graph/zotlit').then(m=>m.openZotlitLibrary(c.app,target)));},
    hover:(note,event,anchor)=>c.app.workspace.trigger('hover-link',{event,source:'emergence-synopsis',hoverParent:{hoverPopover:null},targetEl:anchor,linktext:note.linktext,sourcePath:note.sourcePath}),
-  },(relation,source)=>this.add(relation,source),(field,source)=>this.add('examples',source,field));
+  },(relation,source)=>this.add(relation,source),(field,source)=>this.add('examples',source,field),{
+   ready:()=>!c.applyingIdea&&!c.abort&&!c.profilePromptSave,
+   move:(focus,source,target,fields,property)=>{void c.run(()=>c.moveSynopsisLink(focus,source,target,fields,property));},
+  });
   this.details=this.host.createDiv({cls:'em-details'});this.details.hidden=true;
   this.nativeHost=this.host.createDiv({cls:'em-native-views'});this.nativeViews=new NativeViews(c.app,this.leaf,this.nativeHost);
   this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(this.canvas);this.observer.observe(this.host);this.update();

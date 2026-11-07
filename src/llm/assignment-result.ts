@@ -19,10 +19,10 @@ export function assignmentTarget(assignment: Assignment, refs: Map<string, Conce
  const title = targetText.replace(/\.md$/u, '');
  if (!title || /[[\]#|\n\r\0/\\:]/u.test(title) || /^N\d+$/u.test(title) || title === '.' || title === '..') return;
  const matches = matchingTargets(title, targets);
- if (matches.length === 1) return {path: matches[0]!.id, kind: 'existing', ...(options.perField ? {label: title} : {})};
- if (matches.length > 1) return options.perField ? {path: matches[0]!.id, kind: 'existing', label: title} : undefined;
+ if (matches.length === 1) return {path: matches[0]!.id, kind: 'existing', ...((options.perField || options.associative) ? {label: title} : {})};
+ if (matches.length > 1) return (options.perField || options.associative) ? {path: matches[0]!.id, kind: 'existing', label: title} : undefined;
  const elsewhere = matchingTargets(title, graph.nodes.filter(n => n.exists && n.id !== source && n.id.endsWith('.md')));
- if (options.perField && elsewhere.length) return {path: elsewhere[0]!.id, kind: 'existing', label: title};
+ if ((options.perField || options.associative) && elsewhere.length) return {path: elsewhere[0]!.id, kind: 'existing', label: title};
  if (title.length > 100) return;
  if (!options.allowNew) return;
  // A relation has one target. Do not invent a comparison note for two endpoints.

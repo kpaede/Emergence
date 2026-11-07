@@ -350,3 +350,28 @@
 
 /* Expanding citation actions must not make a later row pull the viewport upwards. */
 .em-relations-synopsis, .em-panel-search { overflow-anchor: none; }
+
+/* Relation actions sit beside their labels; handles do not shift links on hover. */
+.em-relations-synopsis .em-syn-title { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.em-relations-synopsis .em-syn-title > h3 { min-width: 0; overflow-wrap: anywhere; }
+.em-relations-synopsis .em-syn-title > .clickable-icon { flex: none; width: 22px; height: 24px; padding: 3px; --icon-size: 13px; }
+.em-relations-synopsis .em-syn-lateral .em-syn-title { grid-row: 1; align-self: start; }
+.em-syn-term { display: inline-block; position: relative; max-width: 100%; padding-inline-start: 18px; text-align: start; vertical-align: top; }
+.em-workspace .em-term-handle { flex: none; padding: 2px; min-width: 18px; width: 18px; height: 22px; cursor: grab; --icon-size: 14px; }
+.em-term-handle:active { cursor: grabbing; }
+.em-syn-term > .em-term-handle { position: absolute; top: 0; opacity: 0; }
+.em-syn-term > .em-term-handle { inset-inline-start: 0; }
+.em-syn-term:hover > .clickable-icon, .em-syn-term:focus-within > .clickable-icon { opacity: 1; }
+.em-syn-term:hover > .em-term-handle, .em-syn-term:focus-within > .em-term-handle { background-color: var(--background-primary); box-shadow: 0 0 0 2px var(--background-primary); }
+.em-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.em-term-dragging { opacity: .5; }
+.em-term-drop { border-radius: var(--radius-s); min-height: 38px; }
+.em-workspace .em-term-drop-active { outline: 2px solid var(--interactive-accent); outline-offset: -2px; background: var(--background-modifier-hover); }
+.em-idea-fields { position: sticky; top: 0; z-index: 2; padding-block: var(--size-4-2); margin-bottom: var(--size-4-3); background: var(--background-primary); }
+.em-idea-field-targets { display: flex; flex-wrap: wrap; gap: var(--size-2-2); margin-top: var(--size-2-2); }
+.em-workspace .em-idea-field-target { height: auto; min-height: 32px; padding: 6px 10px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; border: 1px dashed var(--background-modifier-border); box-shadow: none; }
+.em-idea-pool .em-idea-unassigned { grid-template-columns: 18px minmax(0, 1fr) auto auto; }
+.em-idea-pool .em-idea-unassigned:has(.em-idea-accept) { grid-template-columns: 18px minmax(0, 1fr) auto auto auto; }
+.em-idea-selected { background: var(--background-modifier-hover); border-radius: var(--radius-s); }
+.em-idea-selected > .em-term-handle { color: var(--interactive-accent); }
+@media (hover: none) { .em-syn-term > .clickable-icon { opacity: 1; } .em-syn-term > .em-term-handle { background-color: var(--background-primary); box-shadow: 0 0 0 2px var(--background-primary); } }

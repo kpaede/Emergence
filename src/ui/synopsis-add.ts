@@ -13,7 +13,7 @@ interface TargetChoice {path:string;title:string;exists:boolean}
 export class SynopsisAddModal extends SuggestModal<TargetChoice>{
  private field='';private submitting=false;
  constructor(private controller:EmergenceController,private relation:SynopsisRelation,private source:string,private fixedField?:string){
-  super(controller.app);this.limit=25;this.setTitle(`${fixedField??synopsisLabels[relation]} ergänzen`);this.setPlaceholder('Vorhandene Notiz suchen oder neuen Begriff eingeben');this.emptyStateText='Begriff eingeben';
+  super(controller.app);this.limit=25;this.setTitle(`${fixedField??synopsisLabels[relation]} für „${targetTitle(source)}“ ergänzen`);this.setPlaceholder('Vorhandene Notiz suchen oder neuen Begriff eingeben');this.emptyStateText='Begriff eingeben';
   this.setInstructions([{command:'↑↓',purpose:'auswählen'},{command:'Enter',purpose:'Link ergänzen'},{command:'Esc',purpose:'abbrechen'}]);
  }
  async onOpen():Promise<void>{

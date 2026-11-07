@@ -14,7 +14,7 @@ export class ReviewManager {
  }
  get analysis(): AnalysisResult | undefined {return this.result ? clone(this.result) : undefined;}
  refreshTargets(graph: GraphSnapshot): void {
-  if (!this.result?.perField) return;
+  if (!this.result?.perField && !this.result?.associative) return;
   let changed = false;
   for (const s of this.result.suggestions) if (s.status === 'pending') changed = refreshTargetMatch(s, graph) || changed;
   if (changed) this.revision++;
