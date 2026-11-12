@@ -11,7 +11,7 @@ async function check(out,theme){
  const shot=async name=>{wc.invalidate();await wait(70);const r=v.contentEl.getBoundingClientRect();const png=await w.capturePage({x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.width),height:Math.min(Math.round(r.height),w.getContentBounds().height-Math.round(r.y))});require('fs').writeFileSync(out+'/'+name,png.toPNG());report.screenshots.push(name);};
  try{
   wc.setBackgroundThrottling(false);if(theme){if(theme!=='Default'&&!Object.hasOwn(app.customCss.themes,theme))throw Error('Theme is not installed.');app.customCss.styleEl.textContent=theme==='Default'?'':await app.vault.adapter.read(app.vault.configDir+'/themes/'+theme+'/theme.css');}const tabs=[...v.contentEl.querySelectorAll('.em-tabs>[role=tab]')];
-  assert('threeLabelledTabs',JSON.stringify(tabs.map(b=>b.textContent))===JSON.stringify(['Graph','Feldideen','Suche']));
+  assert('fiveLabelledTabs',JSON.stringify(tabs.map(b=>b.textContent))===JSON.stringify(['Graph','Feldideen','Mermaid','Argdown','Suche']));
   assert('researchRemoved',!v.contentEl.querySelector('.em-panel-inquiry')&&typeof c.inquire==='undefined'&&!('inquiryTemplates'in c.settings()));
   p.viewSelect.value='synopsis';p.viewSelect.dispatchEvent(new Event('change',{bubbles:true}));v.switchTab('graph');tabs[0].focus();tabs[0].dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert('keyboardNextTab',v.tab==='analysis');tabs[1].dispatchEvent(new KeyboardEvent('keydown',{key:'End',bubbles:true}));assert('keyboardLastTab',v.tab==='search');
   assert('linkedSingleSelection',tabs.filter(b=>b.tabIndex===0).length===1&&tabs.filter(b=>b.getAttribute('aria-selected')==='true').length===1&&tabs.every(b=>!!document.getElementById(b.getAttribute('aria-controls'))));

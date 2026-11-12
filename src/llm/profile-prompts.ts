@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import type {Profile} from '../types';
 import {assert, clone} from '../util';
 import {placeholders, renderTemplate} from './context';
@@ -9,7 +10,7 @@ export function profilePrompts(profile: Profile): ProfilePrompts {
  return {instructions:profile.instructions,relations:profile.templates.relations,outputId:output?.id??'',outputPrompt:output?.promptTemplate??''};
 }
 export function withProfilePrompts(profile: Profile, text: ProfilePrompts): Profile {
- assert(profilePrompts(profile).outputId===text.outputId,'Das Beziehungsmodul hat sich geändert. Bitte den Promptentwurf erneut laden.');
+ assert(profilePrompts(profile).outputId===text.outputId,tr("fieldIdeas.the_relation_module_has_changed_reload_the_prompt_draft"));
  const values=Object.fromEntries(placeholders.map(key=>[key,`[${key}]`]));
  for(const template of [text.instructions,text.relations,text.outputPrompt])renderTemplate(template,values);
  const next=clone(profile);next.instructions=text.instructions;next.templates.relations=text.relations;

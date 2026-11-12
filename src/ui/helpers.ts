@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import {Modal, type App} from 'obsidian';
 import {errorMessage} from '../util';
 
@@ -17,23 +18,23 @@ export function select(parent: HTMLElement, label: string, values: Record<string
 export class ConfirmModal extends Modal {
  private submitting = false;
  constructor(app: App, private title: string, private before: string, private after: string,
-  private confirm: () => Promise<void>, private cancel: () => void = () => {}, private caption = 'Bestätigen und übernehmen') {super(app);}
+  private confirm: () => Promise<void>, private cancel: () => void = () => {}, private caption = tr("common.confirm_and_apply")) {super(app);}
  onOpen(): void {
   this.setTitle(this.title);
   this.modalEl.addClass('em-confirm-modal');
-  this.contentEl.createEl('p', {text: `Prüfe den vollständigen Vergleich. Erst „${this.caption}“ führt die angezeigten Änderungen aus.`});
+  this.contentEl.createEl('p', {text: tr("common.review_the_complete_comparison_only_applies_the_displayed_changes", {value1: this.caption})});
   const diff = this.contentEl.createDiv({cls: 'em-diff'});
-  const left = diff.createDiv(); left.createEl('h4', {text: 'Vorher'}); left.createEl('pre', {text: this.before || '(kein Frontmatter)'});
-  const right = diff.createDiv(); right.createEl('h4', {text: 'Nachher'}); right.createEl('pre', {text: this.after || '(kein Frontmatter)'});
-  this.contentEl.createDiv({text: 'Auch YAML-Umformatierungen sind sichtbar. Der übrige Notizinhalt bleibt unverändert.', cls: 'em-muted em-caption'});
+  const left = diff.createDiv(); left.createEl('h4', {text: tr("common.before")}); left.createEl('pre', {text: this.before || tr("labels.no_frontmatter")});
+  const right = diff.createDiv(); right.createEl('h4', {text: tr("common.after")}); right.createEl('pre', {text: this.after || tr("labels.no_frontmatter")});
+  this.contentEl.createDiv({text: tr("common.yaml_reformatting_is_also_shown_the_rest_of_the_note_remains"), cls: 'em-muted em-caption'});
   const error = this.contentEl.createDiv({cls: 'em-error', attr: {role: 'alert'}});
   const actions = this.contentEl.createDiv({cls: 'modal-button-container'});
-  const cancel = button(actions, 'Abbrechen', () => this.close());
+  const cancel = button(actions, tr("common.cancel"), () => this.close());
   const apply = button(actions, this.caption, () => {
    if (this.submitting) return; this.submitting = true; apply.disabled = true;
    cancel.disabled = true;
-   apply.setText('Wird übernommen …');
-   void this.confirm().then(() => this.close()).catch(e => {error.setText(errorMessage(e) + '\nSchließe den Dialog und prüfe den aktuellen Stand.'); this.submitting = false; apply.disabled = true; apply.setText('Bestätigung gesperrt'); cancel.disabled = false;});
+   apply.setText(tr("common.applying"));
+   void this.confirm().then(() => this.close()).catch(e => {error.setText(tr("common.close_the_dialog_and_check_the_current_state", {value1: errorMessage(e)})); this.submitting = false; apply.disabled = true; apply.setText(tr("common.confirmation_blocked")); cancel.disabled = false;});
   }); apply.addClass('mod-cta');
  }
  onClose(): void {this.cancel(); this.contentEl.empty();}

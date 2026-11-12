@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import {Events, type App, type View, type WorkspaceLeaf, type ViewState, type TFile, type OpenViewState} from 'obsidian';
 import {errorMessage} from '../util';
 
@@ -5,7 +6,7 @@ interface NativeView extends View {open?(host:HTMLElement):Promise<void>;close?(
 interface Registry {getViewCreatorByType?(type:string):((leaf:WorkspaceLeaf)=>NativeView)|undefined}
 interface HostApp extends App {viewRegistry?:Registry;plugins?:{plugins?:Record<string,unknown>};internalPlugins?:{plugins?:Record<string,{enabled?:boolean;instance?:unknown}>}}
 interface Slot {type:string;provider:unknown;section:HTMLElement;host:HTMLElement;view?:NativeView;leaf?:WorkspaceLeaf;closed:boolean;path:string;ready:Promise<void>;observer?:ResizeObserver;zoomTimer?:number}
-const definitions=[{type:'bc-matrix-view',label:'Breadcrumbs · Matrix',plugin:'breadcrumbs'},{type:'bc-tree-view',label:'Breadcrumbs · Baum',plugin:'breadcrumbs'},{type:'zotlit-references',label:'ZotLit · Literaturverzeichnis',plugin:'zotlit'},{type:'localgraph',label:'Obsidian · Lokaler Graph',plugin:'graph'}];
+const definitions=[{type:'bc-matrix-view',get label() {return tr("graph.breadcrumbs_matrix");},plugin:'breadcrumbs'},{type:'bc-tree-view',get label() {return tr("graph.breadcrumbs_tree");},plugin:'breadcrumbs'},{type:'zotlit-references',get label() {return tr("graph.zotlit_bibliography");},plugin:'zotlit'},{type:'localgraph',get label() {return tr("graph.obsidian_local_graph");},plugin:'graph'}];
 
 /** Guarded adapter to registered original renderers. No workspace leaves are created or moved. */
 export class NativeViews {
@@ -29,9 +30,9 @@ export class NativeViews {
   if(!slot){
    const section=this.host.createDiv({attr:{'data-native-view':definition.type}}),inner=section.createDiv({cls:'em-native-host workspace-leaf'});
    slot={type:definition.type,provider,section,host:inner,closed:false,path:'',ready:Promise.resolve()};this.slots.set(definition.type,slot);
-   const current=slot;slot.ready=this.mount(current,factory).catch(async error=>{try{await current.view?.close?.();}catch{ /* Native mount may already have released the component. */ }current.view=undefined;if(!current.closed){current.host.empty();current.host.createDiv({text:'Native Ansicht konnte nicht geladen werden: '+errorMessage(error),cls:'em-muted em-caption',attr:{role:'status'}});}});
+   const current=slot;slot.ready=this.mount(current,factory).catch(async error=>{try{await current.view?.close?.();}catch{ /* Native mount may already have released the component. */ }current.view=undefined;if(!current.closed){current.host.empty();current.host.createDiv({text:tr("graph.native_view_could_not_be_loaded", {value1: errorMessage(error)}),cls:'em-muted em-caption',attr:{role:'status'}});}});
   }
-  if(slot.type==='localgraph'&&slot.path!==source){slot.path=source;const current=slot;void slot.ready.then(async()=>{if(current.view&&!current.closed&&current.path===this.source){await current.view.setState({file:current.path},{history:false});this.centerLocal(current);}}).catch(error=>{if(!current.closed){current.host.empty();current.host.createDiv({text:'Lokaler Graph konnte nicht auf die aktuelle Notiz gesetzt werden: '+errorMessage(error),cls:'em-muted em-caption',attr:{role:'status'}});}});}
+  if(slot.type==='localgraph'&&slot.path!==source){slot.path=source;const current=slot;void slot.ready.then(async()=>{if(current.view&&!current.closed&&current.path===this.source){await current.view.setState({file:current.path},{history:false});this.centerLocal(current);}}).catch(error=>{if(!current.closed){current.host.empty();current.host.createDiv({text:tr("graph.local_graph_could_not_be_set_to_the_current_note", {value1: errorMessage(error)}),cls:'em-muted em-caption',attr:{role:'status'}});}});}
  }
  /** Once after layout settles, frame the current note at a readable native scale. Never a recurring zoom lock. */
  private centerLocal(slot:Slot):void{
@@ -66,7 +67,7 @@ export class NativeViews {
  }
  private async mount(slot:Slot,factory:(leaf:WorkspaceLeaf)=>NativeView):Promise<void>{
   slot.leaf=this.facade(slot);const view=slot.view=factory(slot.leaf);
-  if(typeof view.open!=='function'||typeof view.close!=='function')throw new Error('Diese Obsidian-Version unterstützt den benötigten View-Lebenszyklus nicht.');
+  if(typeof view.open!=='function'||typeof view.close!=='function')throw new Error(tr("graph.this_obsidian_version_does_not_support_the_required_view_lifecycle"));
   await view.open(slot.host);if(slot.closed)return;
   slot.observer=new ResizeObserver(()=>{if(!slot.closed)view.onResize();});slot.observer.observe(slot.host);view.onResize();
  }

@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import type {SynopsisGraph} from '../graph/synopsis';
 import type {Settings} from '../types';
 import {SynopsisAssignmentIndex} from '../graph/synopsis-assignments';
@@ -36,7 +37,7 @@ export class SynopsisEditing {
   if (!origins.length || !this.actions) return;
   anchor.draggable = false;
   const wrapper = anchor.parentElement!.createSpan({cls: 'em-syn-term'}); anchor.before(wrapper);
-  termHandle(wrapper, `Begriff verschieben: ${anchor.textContent}`, {kind: 'relation', focus: this.focus, source, target, fields}, () => this.actions!.ready());
+  termHandle(wrapper, tr("messages.moveConcept",{name:anchor.textContent??''}), {kind: 'relation', focus: this.focus, source, target, fields}, () => this.actions!.ready());
   wrapper.append(anchor);
  }
 }

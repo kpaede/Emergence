@@ -19,7 +19,7 @@ async function check(OUT){
  try{
   v.switchTab('graph');assert('synopsisPreselected',p.viewSelect.value==='synopsis'&&manager.slots.size===0);p.follow=true;p.focus(c.activePath);
   const tabs=[...v.contentEl.querySelectorAll('.em-tabs > [role=tab]')],types=[...p.viewSelect.options].map(o=>o.value);
-  assert('tabs',JSON.stringify(tabs.map(t=>t.textContent))===JSON.stringify(['Graph','Feldideen','Suche'])&&tabs.every((t,i)=>t.querySelector('.lucide-'+['network','text-search','search'][i])));
+  assert('tabs',JSON.stringify(tabs.map(t=>t.textContent))===JSON.stringify(['Graph','Feldideen','Mermaid','Argdown','Suche'])&&tabs.every((t,i)=>t.querySelector('.lucide-'+['network','text-search','workflow','git-fork','search'][i])));
   assert('onlySynopsisAndNativeChoices',JSON.stringify(types)===JSON.stringify(['synopsis','bc-matrix-view','bc-tree-view','zotlit-references',...(app.internalPlugins.plugins.graph.enabled?['localgraph']:[])]));
   const controls=p.synopsisControls.querySelector('details'),wasOpen=controls.open;controls.open=true;await wait(50);
   assert('singleSourceDisclosure',!controls.querySelector('details')&&!controls.querySelector('select[multiple]')&&controls.querySelectorAll('.em-syn-source-choice').length===5);

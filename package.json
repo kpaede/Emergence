@@ -1,7 +1,7 @@
 {
   "name": "emergence",
-  "version": "0.0.3",
-  "description": "Lokaler Multiplex-Wissensgraph und kontrollierte KI-Vorschläge für Obsidian",
+  "version": "0.0.4",
+  "description": "Lokaler Multiplex-Wissensgraph und kontrollierte KI-Vorschl\u00e4ge f\u00fcr Obsidian",
   "main": "main.js",
   "type": "module",
   "scripts": {
@@ -36,11 +36,31 @@
     "release:check": "node scripts/check-release.mjs",
     "test:literature-ui": "node scripts/literature-native-check.mjs",
     "test:literature-scroll": "node scripts/literature-scroll-native-check.mjs",
-    "test:term-assignment-ui": "node scripts/term-assignment-native-check.mjs"
+    "test:term-assignment-ui": "node scripts/term-assignment-native-check.mjs",
+    "test:mermaid-ui": "node scripts/mermaid-native-check.mjs",
+    "test:mermaid-editing-ui": "node scripts/mermaid-editing-native-check.mjs",
+    "test:mermaid-gestures-ui": "node scripts/mermaid-gestures-native-check.mjs",
+    "test:mermaid-library-ui": "node scripts/mermaid-library-native-check.mjs",
+    "test:argdown-ui": "node scripts/argdown-native-check.mjs",
+    "test:argdown-context-ui": "node scripts/argdown-context-native-check.mjs",
+    "test:diagram-library-ui": "node scripts/diagram-library-native-check.mjs",
+    "test:argdown-presentation-ui": "node scripts/argdown-presentation-native-check.mjs",
+    "test:argdown-derivation-ui": "node scripts/argdown-derivation-native-check.mjs",
+    "test:argdown-reliability-ui": "node scripts/argdown-reliability-native-check.mjs",
+    "test:argdown-selection-ui": "node scripts/argdown-selection-native-check.mjs",
+    "test:i18n-ui": "node scripts/i18n-native-check.mjs",
+    "test:preferences-ui": "node scripts/preferences-native-check.mjs",
+    "test:argdown-direction-ui": "node scripts/argdown-direction-native-check.mjs"
+  },
+  "overrides": {
+    "lodash-es": "4.18.1"
   },
   "keywords": [],
   "license": "0-BSD",
   "devDependencies": {
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.13",
     "@eslint/js": "^9.39.4",
     "@types/cytoscape": "^3.21.9",
     "@types/jsdom": "^30.0.0",
@@ -58,11 +78,14 @@
     "vitest": "^5.0.5"
   },
   "dependencies": {
+    "@argdown/core": "^2.0.1",
+    "@hpcc-js/wasm-graphviz": "^1.30.0",
     "ajv": "^8.20.0",
     "cytoscape": "^3.34.4",
     "cytoscape-elk": "^2.3.0",
     "cytoscape-fcose": "^2.2.0",
     "elkjs": "0.9.3",
+    "i18next": "^27.1.1",
     "yaml": "^2.9.1"
   }
 }

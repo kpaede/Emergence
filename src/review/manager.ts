@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import type {AnalysisResult, GraphSnapshot, Profile, Suggestion} from '../types';
 import {assert, clone} from '../util';
 import {validateSuggestion} from './validator';
@@ -34,35 +35,35 @@ export class ReviewManager {
   this.result.sourceVersion = version; this.appliedIdeas.delete(journalId); this.revision++;
  }
  setCandidateStatus(id: string, status: 'proposed' | 'keep-for-later' | 'rejected'): void {
-  const c = this.result?.candidates.find(c => c.id === id); assert(c, 'Kandidat fehlt.'); c.status = status;
+  const c = this.result?.candidates.find(c => c.id === id); assert(c, tr("labels.candidate_is_missing")); c.status = status;
  }
  proposeCandidateLink(id: string, target: string, field: string, property: string, outputId: string): void {
-  const result = this.result; assert(result?.status === 'complete', 'Nur vollständige Analysen können Wikilinks vorschlagen.');
-  const candidate = result.candidates.find(c => c.id === id); assert(candidate && candidate.status !== 'rejected', 'Kandidat fehlt oder wurde abgelehnt.');
+  const result = this.result; assert(result?.status === 'complete', tr("common.only_complete_analyses_can_suggest_wiki_links"));
+  const candidate = result.candidates.find(c => c.id === id); assert(candidate && candidate.status !== 'rejected', tr("common.the_candidate_is_missing_or_was_rejected"));
   result.suggestions.push({id: crypto.randomUUID(), analysisId: result.id, source: result.source, sourceVersion: result.sourceVersion,
    operation: 'add', target, targetKind: 'unresolved', field, property, value: `[[${target.replace(/\.md$/u, '')}]]`,
    reason: candidate.reason, evidence: candidate.evidence, confidence: 'medium', status: 'pending', outputId});
   this.revision++;
  }
  decide(id: string, decision: 'accepted' | 'rejected', graph: GraphSnapshot, content: string, profile: Profile): void {
-  const s = this.result?.suggestions.find(s => s.id === id); assert(s, 'Vorschlag fehlt.');
+  const s = this.result?.suggestions.find(s => s.id === id); assert(s, tr("labels.suggestion_is_missing"));
   if (decision === 'accepted') {
-   assert(this.result?.status === 'complete', 'Teilweise oder abgebrochene Analysen können nichts schreiben.');
-   assert(!validateSuggestion(s, graph, content, profile).some(i => i.level === 'block'), 'Vorschlag enthält blockierende Validierungsfehler.');
+   assert(this.result?.status === 'complete', tr("common.partial_or_cancelled_analyses_cannot_write_data"));
+   assert(!validateSuggestion(s, graph, content, profile).some(i => i.level === 'block'), tr("common.the_suggestion_has_blocking_validation_errors"));
   }
   s.status = decision; this.revision++;
  }
  edit(id: string, patch: Pick<Suggestion, 'target' | 'targetKind' | 'field' | 'property' | 'value'> & Partial<Pick<Suggestion, 'targetLabel' | 'targetCandidates' | 'targetSelected'>>): void {
-  const s = this.result?.suggestions.find(s => s.id === id); assert(s, 'Vorschlag fehlt.');
+  const s = this.result?.suggestions.find(s => s.id === id); assert(s, tr("labels.suggestion_is_missing"));
   if (!Object.prototype.hasOwnProperty.call(patch, 'targetSelected')) s.targetSelected = true;
   Object.assign(s, patch); s.status = 'pending'; this.revision++;
  }
  rejectPending(): void {for (const s of this.result?.suggestions ?? []) if (s.status === 'pending') s.status = 'rejected'; this.revision++;}
  accepted(): Suggestion[] {
-  assert(this.result?.status === 'complete', 'Nur vollständige Analysen können freigegeben werden.');
-  assert(this.result.suggestions.every(s => s.status !== 'pending'), 'Ungeprüfte Vorschläge blockieren die Freigabe.');
+  assert(this.result?.status === 'complete', tr("common.only_complete_analyses_can_be_approved"));
+  assert(this.result.suggestions.every(s => s.status !== 'pending'), tr("common.unreviewed_suggestions_block_approval"));
   const accepted = this.result.suggestions.filter(s => s.status === 'accepted');
-  assert(accepted.length > 0, 'Keine akzeptierten Änderungen.');
+  assert(accepted.length > 0, tr("common.no_accepted_changes"));
   return clone(accepted);
  }
 }

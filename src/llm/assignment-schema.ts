@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import Ajv from 'ajv';
 import {assert} from '../util';
 
@@ -20,7 +21,7 @@ export function assignmentSchema(fields: string[], targets: string[], evidence: 
 export function parseAssignments(text: string, schema: object): AssignmentResponse {
  const value: unknown = JSON.parse(text);
  const validate = new Ajv({strict: true, allErrors: true}).compile<AssignmentResponse>(schema);
- assert(validate(value), 'Antwort enthält ungültige Zuordnungen oder unerlaubte Zusatztexte.');
+ assert(validate(value), tr("fieldIdeas.the_response_contains_invalid_assignments_or_disallowed_extra_text"));
  return value;
 }
 
@@ -33,7 +34,7 @@ export function fieldIdeasSchema(fields: string[], perField: number) {
 export function parseFieldIdeas(text: string, schema: ReturnType<typeof fieldIdeasSchema>): AssignmentResponse {
  const value: unknown = JSON.parse(text);
  const validate = new Ajv({strict: true, allErrors: true}).compile<Record<string, string[]>>(schema);
- assert(validate(value), 'Antwort enthält ungültige Feldideen oder unerlaubte Zusatztexte.');
+ assert(validate(value), tr("fieldIdeas.the_response_contains_invalid_field_ideas_or_disallowed_extra_text"));
  return {suggestions: Object.entries(value).flatMap(([field, targets]) => targets.map(target => ({field, target, evidence: 'T'})))};
 }
 
@@ -46,6 +47,6 @@ export function associativeIdeasSchema(limit: number) {
 export function parseAssociativeIdeas(text: string, schema: object): AssignmentResponse {
  const value: unknown = JSON.parse(text);
  const validate = new Ajv({strict: true, allErrors: true}).compile<{ideas: string[]}>(schema);
- assert(validate(value), 'Antwort enthält ungültige Begriffe oder unerlaubte Feldzuordnungen.');
+ assert(validate(value), tr("fieldIdeas.the_response_contains_invalid_concepts_or_disallowed_field_assignments"));
  return {suggestions: value.ideas.map(target => ({field: '', target, evidence: 'T'}))};
 }

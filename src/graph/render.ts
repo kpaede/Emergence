@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import cytoscape, {type Core, type ElementDefinition, type LayoutOptions} from 'cytoscape';
 import elk from 'cytoscape-elk';
 import fcose from 'cytoscape-fcose';
@@ -47,7 +48,7 @@ export function graphElements(graph: GraphSnapshot, active: string, settings: Se
   if (count++ >= settings.maxGraphEdges) break;
   const key = JSON.stringify([e.source, e.target].sort()); pairs.set(key, [...pairs.get(key) ?? [], e]);
  }
- const elements: ElementDefinition[] = selected.map(n => ({group: 'nodes', data: {id: n.id, label: n.exists || n.citation ? n.title : `${n.title} (noch nicht angelegt)`}, classes: `${n.id === active ? 'active-note' : ''} ${n.citation ? 'citation-node' : n.exists ? '' : 'unresolved-node'}`}));
+ const elements: ElementDefinition[] = selected.map(n => ({group: 'nodes', data: {id: n.id, label: n.exists || n.citation ? n.title : tr("graph.not_created_yet", {value1: n.title})}, classes: `${n.id === active ? 'active-note' : ''} ${n.citation ? 'citation-node' : n.exists ? '' : 'unresolved-node'}`}));
  for (const [id, edges] of pairs) {const [source, target] = [edges[0]!.source, edges[0]!.target].sort();
   elements.push({group: 'edges', data: {id: 'pair:' + id, source, target, raw: edges, label: ''}});
  }
@@ -136,7 +137,7 @@ export function runLayout(cy: Core, graph: GraphSnapshot, name: Settings['layout
   const finish = () => {window.clearTimeout(timer); layoutGraph?.destroy();};
   try {
    const layout = elements.layout({...options, fit: layoutGraph ? false : fit} as LayoutOptions);
-   timer = window.setTimeout(() => {layout.stop(); finish(); reject(new Error('Layout-Zeitlimit erreicht; globale Suche und Datenansicht bleiben verfügbar.'));}, 25000);
+   timer = window.setTimeout(() => {layout.stop(); finish(); reject(new Error(tr("graph.layout_timed_out_global_search_and_data_view_remain_available")));}, 25000);
    layout.one('layoutstop', () => {
     if (!cy.destroyed() && isCurrent()) {
      if (layoutGraph) for (const n of layoutGraph.nodes()) cy.getElementById(n.id()).position(n.position());

@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import {assert} from '../util';
 
 export interface EvidenceSpan {id: string; start: number; end: number; text: string}
@@ -21,6 +22,6 @@ export function evidenceSpans(content: string, offset = 0): EvidenceSpan[] {
 }
 export function resolveEvidence(id: string, spans: EvidenceSpan[], content: string): string {
  const span = spans.find(s => s.id === id);
- assert(span && span.text.trim() && content.includes(span.text), 'Unbekannte oder ungültige Belegstelle.');
+ assert(span && span.text.trim() && content.includes(span.text), tr("fieldIdeas.unknown_or_invalid_evidence_location"));
  return span.text;
 }

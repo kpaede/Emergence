@@ -1,3 +1,4 @@
+import {t as tr} from '../../i18n';
 import type {Suggestion} from '../../types';
 import {errorMessage} from '../../util';
 import {targetTitle} from '../../review/wikilink';
@@ -19,7 +20,7 @@ export function renderIdeaEditor(row: HTMLElement, s: Suggestion, ctx: PanelCont
  if (draft?.id !== s.id) return false;
  row.addClass('em-idea-editing');
  const cell = row.createDiv({cls: 'em-idea-name'});
- const editor = cell.createEl('input', {type: 'text', cls: 'em-idea-editor', attr: {'aria-label': 'Begriff bearbeiten', title: 'Enter: speichern · Esc: abbrechen'}});
+ const editor = cell.createEl('input', {type: 'text', cls: 'em-idea-editor', attr: {'aria-label': tr("fieldIdeas.edit_concept_2"), title: tr("fieldIdeas.enter_save_esc_cancel")}});
  editor.value = draft.value; editor.dataset.emFocus = `idea-input-${s.id}`; editor.spellcheck = false;
  const cancel = () => {ctx.state.analysis.ideaEdit = undefined; ctx.repaint(); focus(ctx, `idea-edit-${s.id}`);};
  const save = () => {
@@ -39,8 +40,8 @@ export function renderIdeaEditor(row: HTMLElement, s: Suggestion, ctx: PanelCont
   if (event.key === 'Enter') {event.preventDefault(); event.stopPropagation(); save();}
   if (event.key === 'Escape') {event.preventDefault(); event.stopPropagation(); cancel();}
  };
- const confirm = iconButton(row, 'check', 'Begriff speichern', save); confirm.dataset.emFocus = `idea-save-${s.id}`;
- iconButton(row, 'x', 'Bearbeitung abbrechen', cancel);
+ const confirm = iconButton(row, 'check', tr("fieldIdeas.save_concept"), save); confirm.dataset.emFocus = `idea-save-${s.id}`;
+ iconButton(row, 'x', tr("labels.cancel_editing"), cancel);
  if (draft.error) {
   const id = `idea-error-${s.id}`;
   editor.setAttribute('aria-invalid', 'true'); editor.setAttribute('aria-describedby', id);

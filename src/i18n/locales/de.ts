@@ -1,0 +1,11 @@
+import {messages} from './de/messages';
+import {labels} from './de/labels';
+import type {en} from './en';
+import {preferences} from './de/preferences';
+import {common} from './de/common';
+import {settings} from './de/settings';
+import {argdown} from './de/argdown';
+import {graph} from './de/graph';
+import {fieldIdeas} from './de/fieldIdeas';
+import {mermaid} from './de/mermaid';
+export const de: Record<keyof typeof en,string> = {...messages,...labels,...preferences,...common,...settings,...argdown,...graph,...fieldIdeas,...mermaid};

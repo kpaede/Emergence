@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import type {BreadcrumbsInference, Edge, RelationRule} from '../types';
 import {unknownRule} from '../config';
 import {errorMessage} from '../util';
@@ -23,7 +24,7 @@ export function readBreadcrumbs(api: BCAPI | undefined, paths: string[], overrid
  const edges: Edge[] = [], diagnostics: string[] = [];
  const fields = api?.fields.map(f => f.label).filter(f => typeof f === 'string') ?? [];
  const rules = Object.fromEntries(fields.map(label => [label, overrides[label] ?? unknownRule(label)]));
- if (!api) diagnostics.push('Breadcrumbs-API fehlt. Normale Obsidian-Links bleiben verfügbar.');
+ if (!api) diagnostics.push(tr("graph.the_breadcrumbs_api_is_missing_regular_obsidian_links_remain_available"));
  const known = new Set(paths), seen = new Set<string>(), unresolvedPaths = new Set<string>();
  const queue = api ? [...paths] : [], visited = new Set(queue);
  for (let index = 0; index < queue.length; index++) {
@@ -50,7 +51,7 @@ export function readBreadcrumbs(api: BCAPI | undefined, paths: string[], overrid
    if (diagnostics.length < 30) diagnostics.push(`Breadcrumbs ${path}: ${errorMessage(error)}`);
   } finally { list?.free?.(); }
  }
- if (unresolvedPaths.size) diagnostics.push(`${unresolvedPaths.size} Breadcrumbs-Ziele sind noch nicht angelegt; ihre typisierten Wiki-Link-Beziehungen bleiben sichtbar.`);
+ if (unresolvedPaths.size) diagnostics.push(tr("graph.breadcrumbs_targets_do_not_exist_yet_their_typed_wiki_link_relations", {value1: unresolvedPaths.size}));
  return {edges, fields, rules, inferenceRules: readInferenceRules(api, fields), unresolvedPaths: [...unresolvedPaths], groups: api?.field_groups.map(g => ({label: g.label, fields: [...g.fields]})) ?? [], diagnostics};
 }
 /** Read the configured builder chains, never infer field meaning from neighboring notes. */

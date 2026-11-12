@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import type {EmergenceController} from '../controller';
 import {connectionPaths} from '../graph/paths';
 import {ConceptRegistry} from '../graph/registry';
@@ -10,17 +11,17 @@ export class GraphPaths {
  render(): void {
   const host = this.host, graph = this.controller.graph.snapshot;
   host.empty();
-  const search = input(host, 'Verbindung zu …', this.query, value => {this.query = value; this.find(matches);}) as HTMLInputElement;
-  search.type = 'search'; search.placeholder = 'Zielbegriff suchen';
+  const search = input(host, tr("labels.connection_to"), this.query, value => {this.query = value; this.find(matches);}) as HTMLInputElement;
+  search.type = 'search'; search.placeholder = tr("labels.search_target_concept");
   const matches = host.createDiv({cls: 'em-path-matches'});
   this.find(matches);
-  select(host, 'Maximale Schritte', {'2': '2', '4': '4', '6': '6', '10': '10'}, String(this.depth), value => {this.depth = Number(value); this.render();});
-  host.createDiv({text: 'Kürzeste Breadcrumbs-Pfade · beide Richtungen', cls: 'em-muted'});
+  select(host, tr("graph.maximum_steps"), {'2': '2', '4': '4', '6': '6', '10': '10'}, String(this.depth), value => {this.depth = Number(value); this.render();});
+  host.createDiv({text: tr("graph.shortest_breadcrumbs_paths_both_directions"), cls: 'em-muted'});
   if (!this.target) return;
   const target = graph.nodes.find(n => n.id === this.target);
   host.createEl('h4', {text: target?.title ?? this.target});
   const result = connectionPaths(graph, this.focus(), this.target, this.depth);
-  if (!result.paths.length) host.createDiv({text: result.limited ? 'Suchgrenze erreicht. Die Suche konnte nicht vollständig abgeschlossen werden.' : result.depthLimited ? `Kein Pfad innerhalb von ${this.depth} Schritten gefunden.` : 'Kein Breadcrumbs-Pfad gefunden.', cls: 'em-muted'});
+  if (!result.paths.length) host.createDiv({text: result.limited ? tr("graph.search_limit_reached_the_search_could_not_be_completed") : result.depthLimited ? tr("graph.no_path_found_within_steps", {value1: this.depth}) : tr("graph.no_breadcrumbs_path_found"), cls: 'em-muted'});
   for (const path of result.paths) {
    const list = host.createEl('ol', {cls: 'em-connection-path'});
    path.nodes.forEach((id, index) => {
@@ -30,7 +31,7 @@ export class GraphPaths {
     synopsisNote(step, {id,title:concept?.title ?? id,path:concept?.exists?id:undefined,linktext:id,sourcePath:this.focus(),exists:!!concept?.exists}, {activate:(_note,event)=>this.explore(id,event),inspect:()=>this.explore(id)});
    });
   }
-  if (result.more || result.limited && result.paths.length) host.createDiv({text: 'Bis zu fünf kürzeste Pfade angezeigt; weitere Verbindungen möglich.', cls: 'em-muted'});
+  if (result.more || result.limited && result.paths.length) host.createDiv({text: tr("graph.showing_up_to_five_shortest_paths_more_connections_may_exist"), cls: 'em-muted'});
  }
  private find(matches: HTMLElement): void {
   matches.empty(); if (!this.query.trim()) return;

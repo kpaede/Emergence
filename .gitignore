@@ -24,6 +24,9 @@ data.json
 # Local vault checks, generated reports, screenshots and source exports
 /docs/*
 !/docs/VALIDATION.md
+!/docs/LOCALIZATION.md
+!/docs/PREFERENCES.md
+!/docs/ARGDOWN_GUIDE_AUDIT.md
 
 # Generated release artifacts
 /dist/

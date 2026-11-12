@@ -1,0 +1,8 @@
+import {describe,expect,it} from 'vitest';
+import {defaults,validateSettings,migrateSettings} from '../src/config';
+import {featureEnabled,anyFeatureEnabled,features,featureForTab,knowledgeFeaturesEnabled} from '../src/features';
+describe('Optional workspace features',()=>{
+ it('keeps every existing area enabled for new and migrated installations',()=>{for(const settings of [defaults(),migrateSettings(null),migrateSettings({...defaults(),features:undefined})])for(const feature of features)expect(featureEnabled(settings,feature)).toBe(true);expect(featureForTab('analysis')).toBe('fieldIdeas');});
+ it('allows all areas to be disabled and distinguishes diagram editors from knowledge indexing',()=>{const s=defaults();s.features={graph:false,fieldIdeas:false,search:false,mermaid:false,argdown:false};expect(anyFeatureEnabled(s)).toBe(false);expect(knowledgeFeaturesEnabled(s)).toBe(false);s.features.mermaid=true;expect(anyFeatureEnabled(s)).toBe(true);expect(knowledgeFeaturesEnabled(s)).toBe(false);s.features.search=true;expect(knowledgeFeaturesEnabled(s)).toBe(true);validateSettings(s);});
+ it('preserves feature choices and authored settings across migration and validates imported toggles',()=>{const s=defaults();s.features={mermaid:false};const before=JSON.stringify(s),next=migrateSettings(s);expect(next.features).toEqual({mermaid:false});expect(featureEnabled(next,'graph')).toBe(true);expect(next.profiles).toEqual(s.profiles);expect(JSON.stringify(s)).toBe(before);for(const features of [null,[],{graph:'no'},{unknown:true}])expect(()=>validateSettings({...s,features} as unknown as ReturnType<typeof defaults>)).toThrow();});
+});

@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import {shortenWeb, webRule, type WebSearchContext} from './web-search';
 import type {Concept, GraphSnapshot, Profile, Settings, WikipediaContext} from '../types';
 import type {Message} from './provider';
@@ -30,7 +31,7 @@ Antworte nur mit JSON: suggestions mit field, target (ausgeschriebener Zieltitel
 export function assignmentContext(source: string, section: Section, graph: GraphSnapshot, profile: Profile, settings: Settings,
  options: AssignmentOptions, targets: Concept[], title: string, originalContent: string, totalTargets = targets.length, document=assignmentDocument(originalContent)) {
  const fields = [...new Set(options.fields)].filter(field => graph.fields.includes(field));
- assert(fields.length, 'Bitte zuerst die Breadcrumbs-Felder für diese Notiz auswählen.');
+ assert(fields.length, tr("fieldIdeas.select_the_breadcrumbs_fields_for_this_note_first"));
  const evidence = options.overview?[]:document.evidence;
  const sourceNode = graph.nodes.find(n => n.id === source);
  const existing = graph.edges.filter(e => e.layer === 'breadcrumbs' && e.explicit && e.source === source && (options.excludeExistingTargets || fields.includes(e.field)))
@@ -39,7 +40,7 @@ export function assignmentContext(source: string, section: Section, graph: Graph
  const currentFields = Object.fromEntries(fields.filter(field => Object.prototype.hasOwnProperty.call(properties, field)).map(field => [field, properties[field]]));
  const rules = fields.map(field => {const rule = graph.rules[field]; return {field, ...(rule?.description ? {meaning: rule.description} : {}),
   ...(rule?.inverse ? {inverse: rule.inverse} : {}), ...(rule?.symmetric ? {symmetric: true} : {}), ...(rule?.transitive ? {transitive: true} : {})};});
- assert(rules.every(r => r.meaning), 'Für die gewählten Felder fehlen Bedeutungsbeschreibungen.');
+ assert(rules.every(r => r.meaning), tr("fieldIdeas.the_selected_fields_have_no_meaning_descriptions"));
  const maxTokens = options.associative ? Math.min(profile.maxTokens, Math.max(256, options.maxSuggestions * 32 + 128)) : options.perField ? Math.min(profile.maxTokens, Math.max(256, fields.length * options.perField * 32 + 128))
   : settings.think ? profile.maxTokens : Math.min(profile.maxTokens, Math.max(160, options.maxSuggestions * 80 + 40));
  const make = (includeTitles: boolean, wikiCharacters=1800, webCharacters=6000) => {
@@ -86,7 +87,7 @@ export function assignmentContext(source: string, section: Section, graph: Graph
  try {ensureBudget(context.messages, settings, maxTokens, context.format);}
  catch(error) {
   if(!(error instanceof ContextBudgetError))throw error;
-  throw new ContextBudgetError(`${options.wikipedia?.status==='ready'?'Notiz, Feldbeschreibungen und Wikipedia-Auszug':'Notiz und Feldbeschreibungen'} benötigen geschätzt ${contextEstimate(context.messages, maxTokens, context.format)} Tokens einschließlich Ausgabe und Reserve (Kontext ${settings.numCtx}). Das Titelregister wird bereits lokal abgeglichen. Bitte längere Prompts prüfen oder den Modellkontext erhöhen.`);
+  throw new ContextBudgetError(tr("fieldIdeas.require_an_estimated_tokens_including_output_and_reserve_context_the_title", {value1: options.wikipedia?.status==='ready'?tr("fieldIdeas.note_field_descriptions_and_wikipedia_excerpt"):tr("fieldIdeas.note_and_field_descriptions"), value2: contextEstimate(context.messages, maxTokens, context.format), value3: settings.numCtx}));
  }
  return {...context, inputBound: tokenBound(context.messages), estimatedTokens: contextEstimate(context.messages, maxTokens, context.format)};
 }
@@ -94,13 +95,13 @@ export function assignmentContext(source: string, section: Section, graph: Graph
 export function prepareAssignments(source: string, content: string, graph: GraphSnapshot, profile: Profile, settings: Settings, options: AssignmentOptions) {
  const {parts} = parseFrontmatter(content), offset = parts.full.length,document=assignmentDocument(content);
  const proseTokens=estimateTextTokens(document.evidence.map(span=>span.text).join(''));
- if(!options.overview&&proseTokens+512>settings.numCtx)throw new ContextBudgetError(`Notiz und Feldbeschreibungen benötigen geschätzt mehr als ${settings.numCtx} Tokens. Eine Arbeitszusammenfassung ist erforderlich.`);
+ if(!options.overview&&proseTokens+512>settings.numCtx)throw new ContextBudgetError(tr("fieldIdeas.the_note_and_field_descriptions_need_more_than_approximately_tokens_a", {value1: settings.numCtx}));
  const title = source.split('/').at(-1)!.replace(/\.md$/u, '');
  const targets = scopedTargets(source, graph, options.folders, options.targetProperties, options.excludeExistingTargets);
  targets.sort((a,b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
- assert(options.fields.length, 'Bitte zuerst die Breadcrumbs-Felder für diese Notiz auswählen.');
+ assert(options.fields.length, tr("fieldIdeas.select_the_breadcrumbs_fields_for_this_note_first"));
  const missing = options.fields.filter(field => !graph.rules[field]?.description.trim());
- assert(!missing.length, `Feldbeschreibung fehlt: ${missing.join(', ')}. Bitte vor der Analyse ergänzen.`);
+ assert(!missing.length, tr("fieldIdeas.missing_field_description_add_it_before_analysis", {value1: missing.join(', ')}));
  // Each group sees the whole note. Split fields for bounded output or context; never create isolated suggestions from fragments.
  const section: Section = {index: 0, start: offset, end: content.length, content: parts.body, heading: title};
  const contexts:ReturnType<typeof assignmentContext>[]=[],sections:Section[]=[];

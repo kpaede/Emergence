@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import type {App} from 'obsidian';
 import {bibliographicReference,type BibliographicItem} from './bibliography';
 import type {Concept, Edge, GraphSnapshot, LiteratureReference} from '../types';
@@ -79,12 +80,12 @@ function services(app: App): Services | undefined {
 /** Guarded adapter for ZotLit 2.2's own Library selection action. */
 export async function openZotlitLibrary(app: App, target: {path?: string; citekey?: string; indexedKey?: string}): Promise<void> {
  const s = services(app);
- assert(s?.showInLibrary && typeof s.showInLibrary.show === 'function', 'Die ZotLit Library ist nicht verfügbar. ZotLit aktivieren oder aktualisieren.');
+ assert(s?.showInLibrary && typeof s.showInLibrary.show === 'function', tr("graph.the_zotlit_library_is_unavailable_enable_or_update_zotlit"));
  let key: string | undefined = target.indexedKey;
  if (!key && target.citekey) {
   const resolutions = await s.bridge.runPromise<{resolve(key: string): Resolution}>(s.citationLookup.read({citekeys: [target.citekey]}));
   const resolution = resolutions.resolve(target.citekey);
-  assert(resolution?.kind === 'unique', resolution?.kind === 'ambiguous' ? 'Der Citekey ist in ZotLit mehrdeutig. Bitte dort auflösen.' : 'Der Citekey ist in ZotLit noch nicht aufgelöst.');
+  assert(resolution?.kind === 'unique', resolution?.kind === 'ambiguous' ? tr("graph.the_citekey_is_ambiguous_in_zotlit_resolve_it_there") : tr("graph.the_citekey_has_not_been_resolved_in_zotlit_yet"));
   key = resolution.item.indexedKey;
  } else if (!key && target.path) {
   const keys = s.bridge.runSync<Iterable<string>>(s.noteIndex.getIndexedItemKeys);
@@ -93,19 +94,19 @@ export async function openZotlitLibrary(app: App, target: {path?: string; citeke
    const notes = s.bridge.runSync<readonly {path: string}[]>(s.noteIndex.getNotesByItemKey(candidate));
    if (notes.some(note => note.path === target.path)) matches.push(candidate);
   }
-  assert(matches.length <= 1, 'Diese Literaturnotiz ist mehreren ZotLit-Einträgen zugeordnet. Bitte in ZotLit klären.');
+  assert(matches.length <= 1, tr("graph.this_literature_note_is_assigned_to_multiple_zotlit_entries_resolve_this"));
   key = matches[0];
  }
- assert(key, 'Für diese Literaturangabe ist kein ZotLit-Eintrag verknüpft.');
+ assert(key, tr("graph.no_zotlit_entry_is_linked_to_this_reference"));
  await s.bridge.runPromise(s.showInLibrary.show(key));
 }
 export interface ZotlitSearchHit {indexedKey: string; title: string; citekey: string; detail: string; notes: string[]}
 /** Override the lookup's scope per request, without changing ZotLit's saved settings. */
 export async function searchZotlitLibrary(app: App, query: string, limit: number, signal: AbortSignal): Promise<ZotlitSearchHit[]> {
  const s = services(app);
- assert(s?.itemLookup && s.libraryScope, 'ZotLit-Suche nicht verfügbar.');
+ assert(s?.itemLookup && s.libraryScope, tr("graph.zotlit_search_is_unavailable"));
  const scope = s.bridge.runSync<{all: {available: readonly unknown[]} | null}>(s.libraryScope.state);
- assert(scope.all?.available.length, 'Zotero-Datenbank in ZotLit noch nicht verfügbar.');
+ assert(scope.all?.available.length, tr("graph.the_zotero_database_is_not_available_in_zotlit_yet"));
  if (signal.aborted) return [];
  const session = s.itemLookup.openSession?.() ?? s.itemLookup; let closed = false;
  const close = () => {if (!closed) {closed = true; session.close?.();}};
@@ -118,7 +119,7 @@ export async function searchZotlitLibrary(app: App, query: string, limit: number
 }
 export class ZotlitGraphAdapter {
  data = {nodes: [] as Concept[], edges: [] as Edge[]};
- state: NonNullable<GraphSnapshot['zotlit']> = {status: 'unavailable', message: 'ZotLit-Zitatindex nicht verfügbar.', edges: 0};
+ state: NonNullable<GraphSnapshot['zotlit']> = {status: 'unavailable', message: tr("graph.the_zotlit_citation_index_is_unavailable"), edges: 0};
  private bound?: Services;
  private stops: (() => void)[] = [];
  private timer?: number;
@@ -131,10 +132,10 @@ export class ZotlitGraphAdapter {
   const s = services(this.app);
   if (s !== this.bound) {
    this.unbind(); this.bound = s; this.lastRefresh = 0;
-   if (!s) {this.data = {nodes: [], edges: []}; this.state = {status: 'unavailable', message: 'ZotLit-Zitatindex nicht verfügbar.', edges: 0}; return;}
-   this.state = {status: 'loading', message: 'ZotLit-Zitatindex wird verbunden …', edges: 0};
+   if (!s) {this.data = {nodes: [], edges: []}; this.state = {status: 'unavailable', message: tr("graph.the_zotlit_citation_index_is_unavailable"), edges: 0}; return;}
+   this.state = {status: 'loading', message: tr("labels.connecting_zotlit_citation_index"), edges: 0};
    try {for (const stream of [s.citationIndex.events, s.citationLookup.changes, s.noteIndex.changes,...(s.settings?[s.settings.changes]:[]),...(s.profile?[s.profile.changes]:[])]) this.stops.push(s.bridge.subscribe(stream, () => this.schedule()));}
-   catch {this.unbind(); this.bound = undefined; this.state = {status: 'error', message: 'ZotLit-Schnittstelle nicht kompatibel.', edges: 0}; return;}
+   catch {this.unbind(); this.bound = undefined; this.state = {status: 'error', message: tr("graph.the_zotlit_interface_is_incompatible"), edges: 0}; return;}
   }
   if (s && Date.now() - this.lastRefresh > 30000 && !this.abort) void this.refresh(s);
  }
@@ -164,10 +165,10 @@ export class ZotlitGraphAdapter {
    this.data = citationGraph({occurrences, resolutions, items, notes,
     paths: new Set(this.app.vault.getFiles().map(file => file.path)), resolvedLinks: this.app.metadataCache.resolvedLinks,
     resolveLink: (link, source) => this.app.metadataCache.getFirstLinkpathDest(link, source)?.path});
-   this.state = {status: coverage.coverage === 'complete' ? 'ready' : 'loading', message: coverage.coverage === 'complete' ? 'ZotLit-Zitatindex verbunden.' : 'ZotLit-Zitatindex wird noch aufgebaut.', edges: this.data.edges.length};
+   this.state = {status: coverage.coverage === 'complete' ? 'ready' : 'loading', message: coverage.coverage === 'complete' ? tr("labels.zotlit_citation_index_connected") : tr("labels.the_zotlit_citation_index_is_still_being_built"), edges: this.data.edges.length};
   } catch {
    if (s !== this.bound || this.disposed) return;
-   this.data = {nodes: [], edges: []}; this.state = {status: 'error', message: 'ZotLit-Zitatindex konnte nicht gelesen werden.', edges: 0};
+   this.data = {nodes: [], edges: []}; this.state = {status: 'error', message: tr("graph.the_zotlit_citation_index_could_not_be_read"), edges: 0};
   } finally {window.clearTimeout(timeout); if (this.abort === abort) this.abort = undefined;}
   if (!this.disposed && s === this.bound) this.changed();
  }

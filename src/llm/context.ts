@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import type {Settings} from '../types';
 import {assert} from '../util';
 import type {Message} from './provider';
@@ -6,14 +7,14 @@ import {templateVariables} from '../config';
 export const placeholders = templateVariables;
 export function renderTemplate(template: string, values: Record<string, string>): string {
  return template.replace(/\{\{\s*([^{}]+?)\s*\}\}/gu, (_match, key: string) => {
-  assert(placeholders.includes(key) && Object.prototype.hasOwnProperty.call(values, key), `Unbekannter oder fehlender Platzhalter: ${key}`);
+  assert(placeholders.includes(key) && Object.prototype.hasOwnProperty.call(values, key), tr("fieldIdeas.unknown_or_missing_placeholder", {value1: key}));
   return values[key]!;
  });
 }
 export interface Section {index: number; start: number; end: number; content: string; heading: string}
 /** Hard bounds preserve every character, including giant paragraphs and fenced code. */
 export function sectionMarkdown(content: string, maxCharacters: number): Section[] {
- assert(maxCharacters >= 100, 'Kontextbudget zu klein.');
+ assert(maxCharacters >= 100, tr("labels.context_budget_too_small"));
  const sections: Section[] = []; let start = 0, heading = '';
  while (start < content.length) {
   let end = Math.min(start + maxCharacters, content.length);
@@ -52,5 +53,5 @@ export function contextEstimate(messages: Message[], outputTokens: number, struc
 export class ContextBudgetError extends Error {}
 export function ensureBudget(messages: Message[], settings: Settings, outputTokens: number, structured: boolean | object = false): void {
  const total = contextEstimate(messages, outputTokens, structured);
- if(total>settings.numCtx)throw new ContextBudgetError(`Geschätztes Kontextbudget überschritten (${total} einschließlich Ausgabe und Reserve > ${settings.numCtx}).`);
+ if(total>settings.numCtx)throw new ContextBudgetError(tr("fieldIdeas.estimated_context_budget_exceeded_including_output_and_reserve", {value1: total, value2: settings.numCtx}));
 }

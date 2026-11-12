@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import type {AnalysisResult, GraphSnapshot, Profile, Settings} from '../types';
 import type {LLMProvider} from './provider';
 import {ContextBudgetError} from './context';
@@ -19,7 +20,7 @@ export class DocumentAnalyzer {
   signal: AbortSignal, progress: (message: string) => void, configured?: AssignmentOptions): Promise<AnalysisResult> {
   const started = performance.now(), id = crypto.randomUUID(), sourceVersion = await hash(content);
   const output = profile.outputs.find(o => o.enabled && o.kind === 'relations');
-  assert(output, 'Im Analyseprofil muss ein Beziehungsmodul aktiviert sein.');
+  assert(output, tr("fieldIdeas.enable_a_relation_module_in_the_analysis_profile"));
   const options: AssignmentOptions = configured ?? {fields: sourceFields(content, graph), folders: settings.assignment.allFolders ? [] : settings.conceptFolders,
    allowNew: settings.assignment.allowNewTargets, maxSuggestions: Math.min(output.maxSuggestions, 8), outputId: output.id,
    excludeExistingTargets: settings.assignment.excludeExistingTargets,
@@ -47,15 +48,15 @@ export class DocumentAnalyzer {
   for (let index = 0; index < prepared.sections.length; index++) {
    if (signal.aborted) {result.status = 'cancelled'; break;}
    const section = prepared.sections[index]!, context = prepared.contexts[index]!;
-   progress(`${options.associative ? 'Begriffe werden assoziiert' : prepared.contexts.length === 1 ? 'Notiz wird zugeordnet' : `Feldgruppe ${index + 1}/${prepared.contexts.length}`} · ${context.fields.join(', ')}`);
+   progress(`${options.associative ? tr("fieldIdeas.associating_concepts") : prepared.contexts.length === 1 ? tr("labels.assigning_note") : tr("messages.fieldGroup",{index:index+1,total:prepared.contexts.length})} · ${context.fields.join(', ')}`);
    try {
     result.diagnostics.requests++;
     const response = await this.provider.chat({messages: context.messages, temperature: profile.temperature,
      maxTokens: context.maxTokens, format: context.format, signal, onMetrics: metrics => result.diagnostics!.model.push(metrics)});
     const parsed = options.associative ? parseAssociativeIdeas(response, context.format) : options.perField ? parseFieldIdeas(response, context.format as ReturnType<typeof fieldIdeasSchema>) : parseAssignments(response, context.format);
-    assert(!signal.aborted, 'Analyse abgebrochen.');
+    assert(!signal.aborted, tr("labels.analysis_cancelled"));
     for (const assignment of parsed.suggestions) {
-     assert(!/^N\d+$/u.test(assignment.target) || context.refs.has(assignment.target), 'Unbekannte Ziel-ID.');
+     assert(!/^N\d+$/u.test(assignment.target) || context.refs.has(assignment.target), tr("fieldIdeas.unknown_target_id"));
      const target = assignmentTarget(assignment, context.refs, prepared.targets, graph, source, options);
      if (!target || target.path === source || alreadyAssigned(source, target.path, assignment.field, graph, content, options.excludeExistingTargets)
       || result.suggestions.some(s => s.target === target.path && (!options.perField || s.field === assignment.field))

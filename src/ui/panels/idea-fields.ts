@@ -1,3 +1,4 @@
+import {t as tr} from '../../i18n';
 import type {Suggestion} from '../../types';
 import {validateSuggestion} from '../../review/validator';
 import {needsTargetChoice} from '../../review/target-matches';
@@ -20,11 +21,11 @@ export function renderIdeaFields(host: HTMLElement, ctx: PanelContext): void {
  if (!pending.some(s => s.id === state.selectedIdea)) state.selectedIdea = undefined;
  const selected = pending.find(s => s.id === state.selectedIdea);
  const fields = c.analysisFields.filter(field => !a?.associative || a.source !== c.activePath || a.fields?.includes(field));
- const box = host.createDiv({cls: 'em-idea-fields', attr: {'aria-label': 'Breadcrumbs-Felder zum Zuordnen'}});
- box.createDiv({text: selected ? 'Feld für den ausgewählten Begriff wählen' : 'Begriffe auf ein Feld ziehen oder erst Begriff, dann Feld auswählen.', cls: 'em-muted em-caption'});
+ const box = host.createDiv({cls: 'em-idea-fields', attr: {'aria-label': tr("fieldIdeas.breadcrumbs_fields_for_assignment")}});
+ box.createDiv({text: selected ? tr("fieldIdeas.choose_a_field_for_the_selected_concept") : tr("fieldIdeas.drag_concepts_onto_a_field_or_select_a_concept_first_and"), cls: 'em-muted em-caption'});
  const list = box.createDiv({cls: 'em-idea-field-targets'});
  for (const field of fields) {
-  const target = list.createEl('button', {text: field, cls: 'em-idea-field-target', attr: {type: 'button', 'data-idea-field': field, 'aria-label': `${field}: Begriff zuordnen`}});
+  const target = list.createEl('button', {text: field, cls: 'em-idea-field-target', attr: {type: 'button', 'data-idea-field': field, 'aria-label': tr("messages.assignField",{field})}});
   target.disabled = !ideaReady(ctx);
   target.title = c.graph.snapshot.rules[field]?.description ?? field;
   const assign = (s: Suggestion) => {
@@ -42,5 +43,5 @@ export function renderIdeaFields(host: HTMLElement, ctx: PanelContext): void {
     if (term.kind === 'idea') {const s = pending.find(s => s.id === term.id); if (s) assign(s);}
    });
  }
- if (!fields.length) box.createDiv({text: 'Breadcrumbs-Felder im Frontmatter ergänzen.', cls: 'em-muted em-caption'});
+ if (!fields.length) box.createDiv({text: tr("fieldIdeas.add_breadcrumbs_fields_to_the_frontmatter"), cls: 'em-muted em-caption'});
 }

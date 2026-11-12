@@ -22,16 +22,31 @@ export function mergeSegments(segments: Segment[]): Segment[] {
 }
 export class SynopsisGeometry {
  private observer: ResizeObserver; private frame?: number; private disposed = false;
+ private fonts?:FontFaceSet;
  private win: Window; private fontListener = () => this.schedule();
  last = {segments: [] as Segment[], endpoints: [] as TextEndpoint[]};
  constructor(private diagram: HTMLElement, private svg: SVGSVGElement) {
   this.win = diagram.ownerDocument.defaultView ?? window;
-  this.observer = new ResizeObserver(() => this.schedule()); this.observer.observe(diagram);
-  diagram.ownerDocument.fonts?.addEventListener('loadingdone', this.fontListener);
-  void diagram.ownerDocument.fonts?.ready.then(() => this.schedule());
+  this.fonts=diagram.ownerDocument.fonts;
+  this.observer = this.observe();
+  this.fonts?.addEventListener('loadingdone', this.fontListener);
+  void this.fonts?.ready.then(() => this.schedule());
+  // Native settings can adopt the rendered subtree into another window after render() returns.
+  queueMicrotask(()=>this.schedule());
+ }
+ private observe():ResizeObserver{
+  const owner=this.diagram.ownerDocument.defaultView as (Window & {ResizeObserver:typeof ResizeObserver})|null;
+  const observer=new (owner?.ResizeObserver??ResizeObserver)(()=>this.schedule());observer.observe(this.diagram);return observer;
  }
  schedule(): void {
-  if (this.disposed || this.frame !== undefined) return;
+  if (this.disposed) return;
+  const current=this.diagram.ownerDocument.defaultView??window;
+  if(current!==this.win){
+   if(this.frame!==undefined)this.win.cancelAnimationFrame(this.frame);this.frame=undefined;
+   this.observer.disconnect();this.fonts?.removeEventListener('loadingdone',this.fontListener);this.win=current;this.fonts=this.diagram.ownerDocument.fonts;
+   this.observer=this.observe();this.fonts?.addEventListener('loadingdone',this.fontListener);
+  }
+  if(this.frame!==undefined)return;
   this.frame = this.win.requestAnimationFrame(() => {this.frame = undefined; this.draw();});
  }
  draw(): void {
@@ -56,16 +71,16 @@ export class SynopsisGeometry {
    if(rail!==center){wire(rail,joinY,center,joinY);wire(center,joinY,center,f.top-base.top);}
    for (const p of parentTerms) wire(p.x,p.y,rail,p.y);
   }
-  for (const [relation, side] of [['similar','left'],['friction','right']] as const) {
-   const terms = [...this.diagram.querySelectorAll<HTMLElement>(`[data-syn-direct="${relation}"]`)].map(el=>point(el,side,relation)); if (!terms.length) continue;
+  for (const side of ['left','right'] as const) {
+   const terms = [...this.diagram.querySelectorAll<HTMLElement>(`[data-syn-position="${side}"] [data-syn-direct]`)].map(el=>point(el,side,el.dataset.synDirect!)); if (!terms.length) continue;
    const rail = side==='left' ? 3 : this.diagram.clientWidth-3, fy=f.top+f.height/2-base.top;
    wire(side==='left'?f.left-base.left:f.right-base.left,fy,rail,fy); wire(rail,fy,rail,Math.max(...terms.map(p=>p.y)));
    for (const p of terms) wire(rail,p.y,p.x,p.y);
   }
-  const children = [...this.diagram.querySelectorAll<HTMLElement>('[data-syn-direct="narrower"]')].map((el,i)=>point(el,i%2===0?'right':'left','narrower'));
-  if (children.length) {
-   wire(center,f.bottom-base.top,center,Math.max(...children.map(p=>p.y)));
-   for (const p of children) wire(center,p.y,p.x,p.y);
+  for(const position of ['top','bottom'] as const){
+   const counts=new Map<Element,number>();
+   const terms=[...this.diagram.querySelectorAll<HTMLElement>(`[data-syn-position="${position}"] [data-syn-direct]`)].map(el=>{const section=el.closest('[data-syn-position]')!,index=counts.get(section)??0;counts.set(section,index+1);return point(el,index%2===0?'right':'left',el.dataset.synDirect!);});
+   if(terms.length){wire(center,(position==='top'?f.top:f.bottom)-base.top,center,position==='top'?Math.min(...terms.map(p=>p.y)):Math.max(...terms.map(p=>p.y)));for(const p of terms)wire(center,p.y,p.x,p.y);}
   }
   // Explicit predecessor IDs keep deep, visually flattened steps semantically connected.
   const stepGroups=new Map<string,HTMLElement[]>();
@@ -87,5 +102,5 @@ export class SynopsisGeometry {
   this.svg.setAttribute('width',String(base.width)); this.svg.setAttribute('height',String(this.diagram.scrollHeight));
   for(const s of merged){const path=this.svg.ownerDocument.createElementNS(ns,'path');path.setAttribute('d',`M ${s.x1} ${s.y1} L ${s.x2} ${s.y2}`);this.svg.append(path);}
  }
- destroy(): void {this.disposed=true;this.observer.disconnect();if(this.frame!==undefined)this.win.cancelAnimationFrame(this.frame);this.diagram.ownerDocument.fonts?.removeEventListener('loadingdone',this.fontListener);}
+ destroy(): void {this.disposed=true;this.observer.disconnect();if(this.frame!==undefined)this.win.cancelAnimationFrame(this.frame);this.fonts?.removeEventListener('loadingdone',this.fontListener);}
 }

@@ -1,0 +1,32 @@
+===
+selection:
+  statementSelectionMode: all # adds all statements as nodes to the map
+model:
+  explodeArguments: true # adds argument nodes for each inferential step of each argument
+map:
+  argumentLabelMode: none # no text in argument nodes
+  statementLabelMode: text # no titles in statement nodes
+dot:
+    argument:
+        shape: circle # argument nodes are in the shape of circles
+        minWidth: 0.2 # let's make those circles really small
+    graphVizSettings:
+        rankdir: TB # arrows flow from top to bottom (to produce a tree-like structure)
+===
+
+<My complex argument>
+
+(1) This is the first premise.
+(2) This is the second premise.
+----
+(3) This is the first intermediary conclusion.
+(4) This is the third premise.
+(5) This is the fourth premise.
+// statements used in an inferential step can be either defined in the inference's metadata...
+--
+{uses: [4,5]}
+--
+(6) This is the second intermediary conclusion
+----
+// ...or in the conclusion's metadata
+(7) This is the main conclusion  {uses: [3,6]}

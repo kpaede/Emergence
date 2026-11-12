@@ -1,9 +1,9 @@
 {
   "id": "emergence",
   "name": "Emergence",
-  "version": "0.0.3",
-  "minAppVersion": "1.14.0",
-  "description": "Kontextansicht, Notiz- und Zotero-Suche sowie lokale KI-Feldideen für persönliche Wissensarbeit.",
+  "version": "0.0.4",
+  "minAppVersion": "1.15.0",
+  "description": "Wissensgraph, Feldideen, Notiz- und Zotero-Suche sowie visuelle Mermaid- und Argdown-Editoren.",
   "author": "kpaede",
   "isDesktopOnly": true,
   "authorUrl": "https://github.com/kpaede"

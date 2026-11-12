@@ -12,7 +12,7 @@ async function check() {
  const report={};const assert=(name,condition)=>{report[name]=!!condition;if(!condition)throw Error(name);};
 
  try {
-  assert('threeTabs',JSON.stringify([...v.contentEl.querySelectorAll('.em-tabs > [role=tab]')].map(b=>b.textContent))===JSON.stringify(['Graph','Feldideen','Suche']));
+  assert('fiveTabs',JSON.stringify([...v.contentEl.querySelectorAll('.em-tabs > [role=tab]')].map(b=>b.textContent))===JSON.stringify(['Graph','Feldideen','Mermaid','Argdown','Suche']));
   assert('labelledSearchLast',!!v.contentEl.querySelector('[role=tab]:last-child[aria-label=Suche] .lucide-search'));
   assert('searchRemovedFromGraph',!v.panels.get('graph').querySelector('input[type=search]'));
   v.switchTab('graph');p.explore=false;p.exploreBox.checked=false;p.follow=true;p.focus(c.activePath);p.renderStructure();

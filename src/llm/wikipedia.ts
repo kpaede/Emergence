@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import type {WikipediaContext, WikipediaSource} from '../types';
 import {assert, clone} from '../util';
 import {nativeRequest, requestResponse, type UrlTransport} from './request';
@@ -10,8 +11,8 @@ export class WikipediaProvider implements WikipediaLookup {
  clear():void{this.cache.clear();}
  async lookup(input: string, signal: AbortSignal): Promise<WikipediaContext> {
   const query=input.trim().replace(/\s+/gu,' ');
-  assert(query.length>0&&query.length<=180,'Bitte einen Wikipedia-Suchbegriff mit höchstens 180 Zeichen eingeben.');
-  assert(!signal.aborted,'Recherche abgebrochen.');
+  assert(query.length>0&&query.length<=180,tr("fieldIdeas.enter_a_wikipedia_search_term_with_at_most_180_characters"));
+  assert(!signal.aborted,tr("labels.research_cancelled"));
   const key=query,cached=this.cache.get(key);
   if(cached&&cached.until>Date.now())return {...clone(cached.value),cached:true};
   const controller=new AbortController(),abort=()=>controller.abort();signal.addEventListener('abort',abort,{once:true});
@@ -20,14 +21,14 @@ export class WikipediaProvider implements WikipediaLookup {
   try{
    for(const search of [false,true])for(const language of ['de','en'] as const){
     const pages=await this.pages(query,language,search,controller.signal);
-    assert(!signal.aborted,'Recherche abgebrochen.');
+    assert(!signal.aborted,tr("labels.research_cancelled"));
     if(pages.length){const value:WikipediaContext={...base,status:'ready',sources:pages};this.remember(key,value,600000);return clone(value);}
    }
-   const value:WikipediaContext={...base,status:'empty',message:'Kein geeigneter Wikipedia-Artikel gefunden. Kein Wikipedia-Kontext verfügbar.'};
+   const value:WikipediaContext={...base,status:'empty',message:tr("fieldIdeas.no_suitable_wikipedia_article_found_no_wikipedia_context_is_available")};
    this.remember(key,value,60000);return value;
   }catch{
-   assert(!signal.aborted,'Recherche abgebrochen.');
-   return {...base,status:'error',message:'Wikipedia konnte nicht geladen werden. Kein Wikipedia-Kontext verfügbar.'};
+   assert(!signal.aborted,tr("labels.research_cancelled"));
+   return {...base,status:'error',message:tr("fieldIdeas.wikipedia_could_not_be_loaded_no_wikipedia_context_is_available")};
   }finally{
    window.clearTimeout(timeout);signal.removeEventListener('abort',abort);
   }
@@ -41,10 +42,10 @@ export class WikipediaProvider implements WikipediaLookup {
    ...(search?{generator:'search',gsrsearch:query,gsrlimit:'2',gsrnamespace:'0'}:{titles:query})};
   for(const [key,value]of Object.entries(params))url.searchParams.set(key,value);
   const response=await requestResponse(this.transport,{url:url.href,method:'GET',headers:{Accept:'application/json','Api-User-Agent':'Emergence (Obsidian desktop plugin; Wikipedia context)'},throw:false},signal);
-  assert(response.status>=200&&response.status<300,'Wikipedia ist nicht erreichbar.');
-  assert(response.arrayBuffer.byteLength<=1000000,'Wikipedia-Antwort zu groß.');
+  assert(response.status>=200&&response.status<300,tr("fieldIdeas.wikipedia_is_unavailable"));
+  assert(response.arrayBuffer.byteLength<=1000000,tr("fieldIdeas.the_wikipedia_response_is_too_large"));
   const body:unknown=JSON.parse(response.text);
-  if(!body||typeof body!=='object'||'error'in body)throw new Error('Ungültige Wikipedia-Antwort.');
+  if(!body||typeof body!=='object'||'error'in body)throw new Error(tr("fieldIdeas.invalid_wikipedia_response"));
   const rows=(body as {query?:{pages?:unknown[]}}).query?.pages;if(!Array.isArray(rows))return [];
   const sources:WikipediaSource[]=[];
   for(const row of rows){

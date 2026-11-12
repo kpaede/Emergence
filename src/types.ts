@@ -56,12 +56,15 @@ export interface Profile {
  templates: Record<PromptKey, string>; outputs: OutputModule[];
 }
 export interface Settings {
+ features?:Partial<Record<import('./features').Feature,boolean>>;
+ uiLanguage?: import('./i18n').InterfaceLanguage;
  citekeyFormat?: 'brackets' | 'at' | 'plain';
  schemaVersion: 1; endpoint: string; model: string; numCtx: number; timeoutMs: number;
  think: boolean; releaseModel: boolean; maxConcurrent: number;
  rules: Record<string, RelationRule>; profiles: Profile[]; activeProfile: string;
  maxGraphNodes: number; maxGraphEdges: number;
- synopsis?: {depths?: Partial<Record<SynopsisRelation, SynopsisDepth>>; fields?: Partial<Record<SynopsisRelation, string[]>>};
+ synopsis?: {depths?: Partial<Record<SynopsisRelation, SynopsisDepth>>; fields?: Partial<Record<SynopsisRelation, string[]>>; labels?: Partial<Record<SynopsisRelation,string>>; placements?: Partial<Record<SynopsisRelation,import('./graph/synopsis-layout').SynopsisPlacement>>};
+ templateFolders?: {mermaid?: string; argdown?: string};
  graphStructure?: {up: string; down: string; left: string; right: string; examples?: string; depth: number};
  conceptFolders: string[]; graphHeight: number; layout: 'elk' | 'fcose' | 'concentric';
  assignment: {allFolders: boolean; allowNewTargets: boolean; excludeExistingTargets: boolean; propertyFilter: 'none' | 'breadcrumbs' | 'custom'; properties: string[]; fieldsByNote: Record<string, string[]>};

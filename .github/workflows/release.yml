@@ -40,11 +40,20 @@ jobs:
           set -euo pipefail
           tag="$GITHUB_REF_NAME"
           assets="dist/$tag"
+          create_flags=()
+          publish_flags=(--prerelease=false --latest)
+          title="$tag"
+          if jq -e --arg tag "$tag" 'index($tag) != null' .github/prereleases.json >/dev/null; then
+            create_flags=(--prerelease)
+            publish_flags=(--prerelease --latest=false)
+            title="$tag Beta"
+          fi
+          node scripts/release-notes.mjs > /tmp/release-notes.md
           if gh release view "$tag" --json isDraft >/tmp/existing-release.json 2>/dev/null; then
             test "$(jq -r .isDraft /tmp/existing-release.json)" = true || { echo "Release already published; refusing to replace it."; exit 1; }
             gh release upload "$tag" "$assets/main.js" "$assets/manifest.json" "$assets/styles.css" "$assets/SHA256SUMS.txt" --clobber
           else
-            gh release create "$tag" --verify-tag --draft --title "$tag" --notes-file CHANGELOG.md "$assets/main.js" "$assets/manifest.json" "$assets/styles.css" "$assets/SHA256SUMS.txt"
+            gh release create "$tag" --verify-tag --draft --title "$title" "${create_flags[@]}" --notes-file /tmp/release-notes.md "$assets/main.js" "$assets/manifest.json" "$assets/styles.css" "$assets/SHA256SUMS.txt"
           fi
           gh release view "$tag" --json assets > /tmp/release-assets.json
           for name in main.js manifest.json styles.css SHA256SUMS.txt; do
@@ -56,4 +65,4 @@ jobs:
           for name in main.js manifest.json styles.css SHA256SUMS.txt; do
             cmp "$assets/$name" "/tmp/verified-release-assets/$name"
           done
-          gh release edit "$tag" --draft=false --latest
+          gh release edit "$tag" --draft=false "${publish_flags[@]}"

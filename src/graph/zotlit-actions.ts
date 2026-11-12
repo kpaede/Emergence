@@ -1,3 +1,4 @@
+import {t as tr} from '../i18n';
 import {Keymap,MarkdownView,Menu,type App,type PaneType} from 'obsidian';
 import type {LiteratureReference} from '../types';
 import {assert} from '../util';
@@ -24,7 +25,7 @@ function documentSources(app:App,s:Services,path:string):Promise<DocumentSources
 }
 /** ZotLit/Zotero's documented deep links, built only from canonical item/attachment identities. */
 export function zoteroItemUri(kind:'select'|'open',key:string,groupID:number|null):string{
- assert(/^[a-z0-9]+$/iu.test(key),'Ungültige Zotero-Identität.');assert(groupID===null||Number.isInteger(groupID)&&groupID>0,'Ungültige Zotero-Library.');
+ assert(/^[a-z0-9]+$/iu.test(key),tr("graph.invalid_zotero_identity"));assert(groupID===null||Number.isInteger(groupID)&&groupID>0,tr("graph.invalid_zotero_library"));
  return `zotero://${kind}/${groupID===null?'library':'groups/'+groupID}/items/${encodeURIComponent(key)}`;
 }
 /** Same file-bearing modes as ZotLit's attachment parser; URL-only and malformed paths stay unavailable. */
@@ -61,7 +62,7 @@ export async function literatureActions(app:App,reference:LiteratureReference,so
  }
  const occurrences=doc?.citations?.find(entry=>entry.indexedKey===indexedKey)?.occurrences??doc?.occurrences?.filter(entry=>reference.citekey&&entry.raw===reference.citekey)??[];
  const positioned=occurrences.filter((entry):entry is Occurrence&{position:{start:Position;end?:Position}}=>!!entry.position&&Number.isInteger(entry.position.start.line)&&entry.position.start.line>=0);let cursor=0;
- if(positioned.length)actions.occurrence=async()=>{const occurrence=positioned[cursor++%positioned.length]!,file=app.vault.getFileByPath(sourcePath);assert(file,'Die zitierende Notiz ist nicht mehr verfügbar.');const leaf=app.workspace.getMostRecentLeaf(app.workspace.rootSplit)??app.workspace.getLeaf(false);await leaf.openFile(file,{active:true,eState:{line:occurrence.position.start.line}});
+ if(positioned.length)actions.occurrence=async()=>{const occurrence=positioned[cursor++%positioned.length]!,file=app.vault.getFileByPath(sourcePath);assert(file,tr("graph.the_citing_note_is_no_longer_available"));const leaf=app.workspace.getMostRecentLeaf(app.workspace.rootSplit)??app.workspace.getLeaf(false);await leaf.openFile(file,{active:true,eState:{line:occurrence.position.start.line}});
   if(leaf.view instanceof MarkdownView){const from={line:occurrence.position.start.line,ch:occurrence.position.start.ch??occurrence.position.start.col??0},end=occurrence.position.end,to=end?{line:end.line,ch:end.ch??end.col??0}:from;leaf.view.editor.setSelection(from,to);leaf.view.editor.scrollIntoView({from,to},true);}
  };
  return actions;

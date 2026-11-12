@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import {fileURLToPath} from 'node:url';
 const root=resolve(fileURLToPath(new URL('..',import.meta.url))),read=name=>readFileSync(join(root,name),'utf8'),manifest=JSON.parse(read('manifest.json')),pkg=JSON.parse(read('package.json')),lock=JSON.parse(read('package-lock.json')),versions=JSON.parse(read('versions.json'));
 const assert=(ok,message)=>{if(!ok)throw Error(message);},semver=/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
+const prereleases=JSON.parse(read('.github/prereleases.json'));assert(Array.isArray(prereleases)&&prereleases.every(version=>typeof version==='string'&&semver.test(version)),'Ungültige Vorabversionsliste.');
 for(const key of ['id','name','version','minAppVersion','description','author'])assert(typeof manifest[key]==='string'&&manifest[key].trim(),`manifest.json: ${key} fehlt.`);
 assert(/^[a-z][a-z-]*$/u.test(manifest.id)&&!manifest.id.includes('obsidian')&&!manifest.id.endsWith('plugin'),'Ungültige Obsidian-Plugin-ID.');
 assert(/^[A-Za-z0-9 ()+-]+$/u.test(manifest.name)&&!/obsidian|plugin/iu.test(manifest.name),'Ungültiger Plugin-Name.');
@@ -18,4 +19,4 @@ const main=read('main.js');assert(main.length>10000,'main.js ist kein vollständ
 const files=['main.js','manifest.json','styles.css'],directory=join(root,'dist',manifest.version);mkdirSync(directory,{recursive:true});
 const expected=[...files,'SHA256SUMS.txt'];assert(readdirSync(directory).every(file=>expected.includes(file)),'Unerwartete Dateien im Release-Ordner.');
 const checksums=files.map(file=>{const bytes=readFileSync(join(root,file));assert(bytes.length>0,`${file} ist leer.`);copyFileSync(join(root,file),join(directory,file));return createHash('sha256').update(bytes).digest('hex')+'  '+file;});
-writeFileSync(join(directory,'SHA256SUMS.txt'),checksums.join('\n')+'\n');console.log(JSON.stringify({version:manifest.version,id:manifest.id,minAppVersion:manifest.minAppVersion,tag:tag??'nicht angefordert',files:expected,checks:'Manifest, Versionen, Tag, Bundle-Syntax, Quellpfade und individuelle Assets geprüft',directory:'dist/'+manifest.version},null,2));
+writeFileSync(join(directory,'SHA256SUMS.txt'),checksums.join('\n')+'\n');console.log(JSON.stringify({version:manifest.version,prerelease:prereleases.includes(manifest.version),id:manifest.id,minAppVersion:manifest.minAppVersion,tag:tag??'nicht angefordert',files:expected,checks:'Manifest, Versionen, Tag, Bundle-Syntax, Quellpfade und individuelle Assets geprüft',directory:'dist/'+manifest.version},null,2));

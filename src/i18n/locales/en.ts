@@ -1,0 +1,10 @@
+import {messages} from './en/messages';
+import {labels} from './en/labels';
+import {preferences} from './en/preferences';
+import {common} from './en/common';
+import {settings} from './en/settings';
+import {argdown} from './en/argdown';
+import {graph} from './en/graph';
+import {fieldIdeas} from './en/fieldIdeas';
+import {mermaid} from './en/mermaid';
+export const en = {...messages,...labels,...preferences,...common,...settings,...argdown,...graph,...fieldIdeas,...mermaid} as const;

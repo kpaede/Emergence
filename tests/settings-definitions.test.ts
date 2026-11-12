@@ -20,3 +20,12 @@ describe('native indexed settings editors',()=>{
   expect(JSON.stringify(pages)).not.toMatch(/Recherche|inquiry/iu);expect(pages.every(page=>page.items?.length)).toBe(true);
  });
 });
+
+
+describe('feature settings navigation',()=>{
+ it('places one global language control above the five native feature pages',()=>{
+  const render=vi.fn(),features={language:{name:'Sprache',control:{type:'dropdown' as const,key:'uiLanguage',options:{auto:'Obsidian',de:'Deutsch',en:'English'}}},graph:[{name:'Graph editor'}],mermaid:[{name:'Mermaid editor'}],argdown:[{name:'Argdown editor'}],search:[{name:'Search preferences'}]};
+  const definitions=settingsDefinitions(render,['Eigenes Feld'],['Eigenes Profil'],features);expect(render).not.toHaveBeenCalled();expect(definitions[0]).toBe(features.language);expect(definitions.slice(1).map(item=>'name'in item?item.name:undefined)).toEqual(['Graph','Feldideen','Mermaid','Argdown','Suche']);
+  const ideas=definitions[2] as SettingDefinitionPage;expect(ideas.items?.map(item=>'name'in item?item.name:undefined)).toEqual(['Modell','Beziehungen','Profile','Daten']);expect(editor(ideas.items![1]!).aliases).toContain('Eigenes Feld');expect(editor(ideas.items![2]!).aliases).toContain('Eigenes Profil');
+ });
+});
