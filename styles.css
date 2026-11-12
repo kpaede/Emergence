@@ -363,7 +363,7 @@
 .em-syn-term > .em-term-handle { inset-inline-start: 0; }
 .em-syn-term:hover > .clickable-icon, .em-syn-term:focus-within > .clickable-icon { opacity: 1; }
 .em-syn-term:hover > .em-term-handle, .em-syn-term:focus-within > .em-term-handle { background-color: var(--background-primary); box-shadow: 0 0 0 2px var(--background-primary); }
-.em-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.em-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; opacity: 0; pointer-events: none; white-space: nowrap; border: 0; }
 .em-term-dragging { opacity: .5; }
 .em-term-drop { border-radius: var(--radius-s); min-height: 38px; }
 .em-workspace .em-term-drop-active { outline: 2px solid var(--interactive-accent); outline-offset: -2px; background: var(--background-modifier-hover); }
@@ -371,7 +371,7 @@
 .em-idea-field-targets { display: flex; flex-wrap: wrap; gap: var(--size-2-2); margin-top: var(--size-2-2); }
 .em-workspace .em-idea-field-target { height: auto; min-height: 32px; padding: 6px 10px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; border: 1px dashed var(--background-modifier-border); box-shadow: none; }
 .em-idea-pool .em-idea-unassigned { grid-template-columns: 18px minmax(0, 1fr) auto auto; }
-.em-idea-pool .em-idea-unassigned:has(.em-idea-accept) { grid-template-columns: 18px minmax(0, 1fr) auto auto auto; }
+.em-idea-pool .em-idea-unassigned.has-accept { grid-template-columns: 18px minmax(0, 1fr) auto auto auto; }
 .em-idea-selected { background: var(--background-modifier-hover); border-radius: var(--radius-s); }
 .em-idea-selected > .em-term-handle { color: var(--interactive-accent); }
 @media (hover: none) { .em-syn-term > .clickable-icon { opacity: 1; } .em-syn-term > .em-term-handle { background-color: var(--background-primary); box-shadow: 0 0 0 2px var(--background-primary); } }
@@ -395,7 +395,7 @@
 .em-mm-code .cm-gutters { background: var(--background-secondary); color: var(--text-faint); border-color: var(--background-modifier-border); }
 .em-mm-code .cm-focused { outline: none; }
 .em-mm-code .cm-cursor { border-left-color: var(--text-normal); }
-.em-mm-code .cm-selectionBackground { background: var(--text-selection) !important; }
+.em-mermaid .em-mm-code .cm-editor .cm-scroller .cm-selectionLayer .cm-selectionBackground { background: var(--text-selection); }
 .em-mm-code-selected { background: var(--text-highlight-bg); }
 .em-mm-token-keyword { color: var(--code-keyword); }
 .em-mm-token-string { color: var(--code-string); }
@@ -407,7 +407,7 @@
 .em-mm-divider:hover, .em-mm-divider:focus-visible { background: var(--interactive-accent); }
 .em-mm-stage { position: relative; min-height: 0; min-width: 0; overflow: hidden; background: var(--background-primary); }
 .em-mm-diagram-tools { position: absolute; top: 8px; right: 8px; z-index: 6; padding: 3px; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); background: var(--background-secondary); }
-.em-mm-diagram-tools:has(button[hidden]) { display: none; }
+.em-mm-diagram-tools[hidden] { display: none; }
 .em-mm-preview { height: 100%; min-width: 0; overflow: auto; padding: var(--size-4-4); color: var(--text-normal);
  --pele-bg: var(--background-primary); --pele-fg: var(--text-normal); --pele-muted: var(--text-muted); --pele-line: var(--text-normal);
  --pele-surface: var(--background-secondary); --pele-surface-alt: var(--background-secondary-alt); --pele-border: var(--background-modifier-border); --pele-accent: var(--interactive-accent);
@@ -440,7 +440,7 @@
 .em-mm-markdown-source { min-height: 120px; }
 .em-mm-markdown-source .cm-scroller { min-height: 120px; max-height: 50vh; overflow: auto; }
 .em-mm-markdown-source .cm-content { padding: var(--size-4-2); }
-.em-mm-markdown-source .cm-sizer { min-height: 120px !important; }
+.em-mm-label-editor .em-mm-markdown-source.markdown-source-view.mod-cm6 .cm-sizer { min-height: 120px; }
 .em-mm-color-modal { width: 420px; }
 .em-mm-color-modal input[type=search] { width: 100%; }
 .em-mm-palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(24px, 1fr)); gap: 5px; margin-block: var(--size-4-3); max-height: 155px; overflow: auto; padding: 2px; }

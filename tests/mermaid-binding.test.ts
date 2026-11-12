@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {ChangeSet, Text} from '@codemirror/state';
-import type {App, TFile} from 'obsidian';
+import {TFile,type App} from 'obsidian';
 import {MermaidBinding, notifyMermaidEditorChange} from '../src/mermaid/binding';
 import {mermaidBlocks, replaceBlock} from '../src/mermaid/blocks';
 import {mindmapColors} from '../src/mermaid/mindmap-colors';
@@ -8,7 +8,7 @@ import {mindmapColors} from '../src/mermaid/mindmap-colors';
 const fence = '```mermaid\nflowchart LR\n A --> B\n```\n';
 function host(initial: string): {app: App; file: TFile; read: () => string; edit: (from: number, to: number, insert: string) => void; writes: () => number} {
  let text = initial, writes = 0;
- const file = {path: 'Note.md'} as TFile;
+ const file = new TFile();file.path='Note.md';
  const app = {workspace: {getLeavesOfType: () => []}, vault: {read: () => Promise.resolve(text), process: (_file: TFile, change: (text: string) => string) => {text = change(text); writes++; return Promise.resolve(text);}}} as unknown as App;
  return {app, file, read: () => text, writes: () => writes, edit: (from, to, insert) => {
   const changes = ChangeSet.of({from, to, insert}, text.length), next = changes.apply(Text.of(text.split('\n'))).toString();

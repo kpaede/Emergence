@@ -50,7 +50,8 @@ function nativeEditorClass(app: App, doc: Document): EditorConstructor {
  const cached = constructors.get(app); if (cached) return cached;
  const create = (app as App & EmbedApp).embedRegistry?.embedByExtension?.md;
  if (!create) throw new Error(tr("mermaid.the_embedded_obsidian_markdown_editor_is_unavailable"));
- const widget = create({app, containerEl: doc.createElement('div')}, null, '');
+ const ownerWindow=doc.win as Window & {createDiv:typeof createDiv};
+ const widget = create({app, containerEl: ownerWindow.createDiv()}, null, '');
  try {
   widget.load();
   widget.editable = true; widget.showEditor();

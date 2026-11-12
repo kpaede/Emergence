@@ -2,6 +2,7 @@ import type {RequestUrlParam, RequestUrlResponse} from 'obsidian';
 import {request as localRequest} from 'node:http';
 /** Minimal host boundary for controller tests; Obsidian itself is verified by native CLI checks. */
 export class MarkdownView {}
+export class TFile {path='';}
 export class Notice {constructor(public message:string){}}
 export async function requestUrl(request:RequestUrlParam|string):Promise<RequestUrlResponse>{
  if(process.env.EMERGENCE_OLLAMA_TEST!=='1')throw new Error('Unexpected real network request in unit test.');

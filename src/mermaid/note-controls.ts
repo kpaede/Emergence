@@ -47,7 +47,7 @@ export class DiagramControls extends Component {
   };
   const schedule = (): void => {frame ??= win.requestAnimationFrame(() => {frame = undefined; scan();});};
   this.rescan=schedule;
-  const observer = new MutationObserver(records => {if (records.some(record => !(record.target instanceof Element && record.target.closest('.em-mm-open')))) schedule();}); observer.observe(this.scopeEl, {childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden']});
+  const observer = new MutationObserver(records => {if (records.some(record => !(record.target.instanceOf(Element) && record.target.closest('.em-mm-open')))) schedule();}); observer.observe(this.scopeEl, {childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden']});
   const resize = new ResizeObserver(schedule); resize.observe(this.scopeEl);
   this.registerDomEvent(this.scopeEl, 'pointerover', schedule); this.registerDomEvent(this.scopeEl, 'focusin', schedule); this.registerDomEvent(this.scopeEl, 'scroll', schedule, {capture: true, passive: true});
   this.register(() => {if (frame !== undefined) win.cancelAnimationFrame(frame); observer.disconnect(); resize.disconnect(); for (const [root, button] of this.controls) {button.onclick = null; button.remove(); root.removeClass('em-mm-note-diagram');} this.controls.clear();});

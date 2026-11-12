@@ -46,6 +46,7 @@ export function renderFieldIdeas(host: HTMLElement, ctx: PanelContext): void {
    renderTargetStatus(name, row, s, ctx);
    const choosing = needsTargetChoice(s);
    if (!a.associative || choosing) {
+    row.addClass('has-accept');
     const blockers = validateSuggestion(s, c.graph.snapshot, '', c.profile).filter(i => i.level === 'block');
     const accept = iconButton(row, choosing ? 'list' : 'check', choosing ? tr("fieldIdeas.select_existing_target_note") : tr("fieldIdeas.apply", {value1: s.field, value2: s.target}), () => {if (choosing) toggleTargetChoice(s, ctx); else void ctx.run(() => c.applyIdea(s.id));});
     accept.addClass('em-idea-accept'); accept.disabled = !ideaReady(ctx) || !choosing && blockers.length > 0;

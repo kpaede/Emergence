@@ -1,3 +1,19 @@
+# Prüfstand: Beta 2 (0.0.5) — Obsidian- und CSS-Lint
+
+Stand: 12. November 2026. Die gemeldeten Quellcode- und CSS-Warnungen sind behoben. Der eingebettete Markdown-Editor verwendet den DOM-Helfer seines Dokumentfensters; Diagramm-Beobachter prüfen DOM-Typen mit Obsidians fensterübergreifendem `instanceOf`. Unbenutzte Imports und die beiden verbliebenen Test-Casts auf `TFile` wurden entfernt.
+
+- `npm run lint`: **0 Fehler, 0 Warnungen**. TypeScript und Produktionsbuild bestanden.
+- `npm test`: **521 bestanden**, sechs optionale Modelltests übersprungen.
+- CSS mit PostCSS syntaktisch geprüft; keine `!important`-Deklarationen, `:has()`-Selektoren oder `clip-path`-Eigenschaften mehr. Feldideen-Zeilen und die Mermaid-Richtungsleiste setzen ihre Zustände ausdrücklich im Code. Auswahlfarben und Markdown-Größen verwenden gezielte Selektorspezifität; Screenreader-Beschriftungen bleiben über `aria-labelledby` erhalten.
+- `test:mermaid-editing-ui`: **51 native Prüfungen**. Neue Prüfungen bestätigen die tatsächliche Auswahlfarbe des Themes ohne `!important`, einen geladenen nativen Markdown-Editor mit dem fenstereigenen Helfer, begrenzte Dialoggrößen und die sichtbare Flowchart-/ausgeblendete Mindmap-Richtungsleiste. Texte, Verbindungsbeschriftungen, Subgraphen, Farben und Mindmap-Operationen bleiben geprüft.
+- `test:mermaid-ui`: **59 native Prüfungen** bestanden, einschließlich Notizbindung, Live Preview, benachbarten Stiftsymbolen und sämtlichen Pele-Beispielen. Vorherige Editorsitzung und Notizen werden wiederhergestellt; die eigene Testnotiz wird entfernt.
+- `test:ux`: **29 Prüfungen**, darunter zwölf schmale Layouts in hellem/dunklem Theme und die weiterhin vorhandenen, korrekt zugeordneten Screenreader-Beschriftungen ohne Clipping. Die isolierte Zielauswahlprüfung bestätigt zusätzlich normale vier- und mehrdeutige fünfspaltige Feldideen-Zeilen sowie weiterhin funktionierende Zielauswahl. Keine Modellaufrufe oder Notizänderungen für diese Layoutprüfungen.
+- Version, Lockdatei, Versionszuordnung und Release-Tag **0.0.5** stimmen überein. Der Release-Titel wird aus dem aktuellen Changelog-Abschnitt übernommen: **0.0.5 (Beta 2)**. Veröffentlichung als Vorabversion mit `latest=false`; Beta 1 und der stabile Release 0.0.3 bleiben erhalten.
+
+Lokale Berichte: `docs/mermaid/editing-check.json`, `docs/mermaid/native-check.json`, `docs/ui-review/checks.json` und `docs/target-matches-native-check.json`.
+
+---
+
 # Prüfstand: Beta 0.0.4 — Argdown-Pfeilrichtung und Veröffentlichung
 
 Stand: 12. November 2026. Argdowns `rankdir` beschreibt die Pfeilrichtung. Bei einer Unterstützung vom Argument zur These liegt die These für TB unten, BT oben, LR rechts und RL links. Der native Standard ist BT. Abgeglichen mit [Argdowns Layout-Dokumentation](https://argdown.org/guide/changing-the-graph-layout.html), der [Syntaxreferenz](https://argdown.org/syntax/) und [Graphviz `rankdir`](https://graphviz.org/docs/attrs/rankdir/).

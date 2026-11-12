@@ -1,5 +1,5 @@
 import {t as tr} from '../i18n';
-import {Component, MarkdownView, Menu, Modal, Notice, setIcon, type App, type TFile} from 'obsidian';
+import {Component, MarkdownView, Menu, Modal, Notice, type App, type TFile} from 'obsidian';
 import {iconButton,relabelIcon} from '../ui/panel';
 import {fencedSource, mermaidBlocks} from './blocks';
 import {MermaidBinding, noteText} from './binding';
@@ -151,6 +151,7 @@ export class MermaidPanel extends Component implements InteractionHost {
   else {this.toolbar.hidden = true; this.selected.clear(); this.editor.highlight([]);}
   this.interactions.paint();
   this.directionButton.hidden = !this.model || !isFlow(this.model);
+  this.directionButton.parentElement!.hidden=this.directionButton.hidden;
   this.hint.setText(this.model && isMind(this.model) ? [...this.selected].some(k => k.startsWith('m:')) ? tr("mermaid.delete_removes_the_selected_branch_and_its_subbranches") : tr("mermaid.last_child_siblings_before_after_via_toolbar_layout_pele") : tr("mermaid.click_select_double_click_text_delete_remove_drag_connect"));
   const group = this.model && isFlow(this.model) && this.selected.size === 1 ? this.model.subgraphs.find(g => this.selected.has('g:' + g.id)) : undefined;
   if (group?.dir && this.model && isFlow(this.model) && hasOutsideConnection(this.model, group.id)) this.hint.setText(tr("mermaid.external_connections_pele_uses_the_parent_direction_here_the_local_direction"));

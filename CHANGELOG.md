@@ -1,3 +1,15 @@
+# 0.0.5 (Beta 2)
+
+Nachbesserung der ersten Beta; benötigt **Obsidian Desktop ab 1.15.0**.
+
+- Native DOM-Helfer für den eingebetteten Markdown-Editor und fensterübergreifend sichere Typprüfung der Diagramm-Bedienelemente.
+- Unbenutzte TypeScript-Imports entfernt; auch die Test-Fixtures sind ohne Lint-Warnungen.
+- `:has()` durch ausdrücklich gesetzte Zustände für Feldideen-Aktionen und Mermaid-Richtungswerkzeuge ersetzt.
+- CSS-Auswahlfarben und Markdown-Dialoggrößen mit gezielter Selektorspezifität statt `!important`.
+- Unsichtbare Screenreader-Beschriftungen ohne `clip-path`; zugängliche Namen bleiben erhalten.
+
+`main.js`, `manifest.json` und `styles.css` gemeinsam installieren und das Plugin neu laden. Dies ist eine Vorabversion; **0.0.3 bleibt der neueste stabile Release**.
+
 # 0.0.4 (Beta)
 
 Vorabversion zum manuellen Testen. Benötigt **Obsidian Desktop ab 1.15.0**.

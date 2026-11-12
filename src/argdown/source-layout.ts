@@ -1,7 +1,7 @@
 import {t as tr} from '../i18n';
 import type {IConclusion} from '@argdown/core';
 import {applyEdits, type Edit} from './source-edits';
-import {edgeKey, isGroup, leaves, nodeKey, span, type ArgdownModel, type IAstNode, type IRuleNode} from './model';
+import {edgeKey, isGroup, leaves, nodeKey, span, type ArgdownModel, type IAstNode} from './model';
 import type {ArgdownEngine} from './engine';
 /** Preserve native argument content, data, grouping and interpreted edges when tidying source. */
 export function argdownMeaning(model: ArgdownModel, generated?: string): string {

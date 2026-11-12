@@ -1,11 +1,11 @@
 import {describe, it, expect} from 'vitest';
-import type {App, TFile} from 'obsidian';
+import {TFile,type App} from 'obsidian';
 import {ChangeSet, Text} from '@codemirror/state';
 import {MermaidBinding, notifyMermaidEditorChange} from '../src/mermaid/binding';
 import {MermaidLibrary} from '../src/mermaid/library';
 import {ARGDOWN_EXAMPLES, ARGDOWN_LANGUAGE, argdownBlocks, argdownFence} from '../src/argdown/blocks';
 function fixture() {
- const fence = argdownFence('[A]: Gleich'), file = {path: 'Test.md'} as TFile;
+ const fence = argdownFence('[A]: Gleich'), file = new TFile();file.path='Test.md';
  let text = fence + '\n\n' + fence, writes = 0;
  const app = {workspace: {getLeavesOfType: () => []}, vault: {read: () => Promise.resolve(text), process: (_file: TFile, action: (s: string) => string) => {text = action(text); writes++; return Promise.resolve(text);}}} as unknown as App;
  return {app, file, text: () => text, writes: () => writes, edit: (from: number, to: number, insert: string) => {const change = ChangeSet.of({from, to, insert}, text.length), next = change.apply(Text.of(text.split('\n'))).toString(); notifyMermaidEditorChange(app, file, text, next, change); text = next;}};

@@ -42,11 +42,10 @@ jobs:
           assets="dist/$tag"
           create_flags=()
           publish_flags=(--prerelease=false --latest)
-          title="$tag"
+          title="$(node scripts/release-notes.mjs --title)"
           if jq -e --arg tag "$tag" 'index($tag) != null' .github/prereleases.json >/dev/null; then
             create_flags=(--prerelease)
             publish_flags=(--prerelease --latest=false)
-            title="$tag Beta"
           fi
           node scripts/release-notes.mjs > /tmp/release-notes.md
           if gh release view "$tag" --json isDraft >/tmp/existing-release.json 2>/dev/null; then
