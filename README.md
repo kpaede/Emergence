@@ -25,9 +25,9 @@ Die KI-Ausgabesprache bleibt eine eigene Profileinstellung. Eigene Notizen, Feld
 
 ## Installation
 
-Die [0.0.4 Beta 2](https://github.com/kpaede/Emergence/releases/tag/0.0.4-beta.2) enthält die Mermaid- und Argdown-Editoren sowie die neuen Einstellungen und benötigt Obsidian Desktop ab 1.15.0. Sie ist als Vorabversion veröffentlicht. Die nächste stabile Version bleibt **0.0.4**; Betas verwenden Tags wie `0.0.4-beta.2`, während die Version in `manifest.json`, npm-Paket und `versions.json` bei `0.0.4` bleibt. Zum Testen die Dateien `main.js`, `manifest.json` und `styles.css` aus dem Beta-Release manuell im Pluginordner ablegen.
+Der stabile Release **0.0.4** enthält die Mermaid- und Argdown-Editoren sowie die neuen Einstellungen und benötigt Obsidian Desktop ab **1.15.0**.
 
-Aus [Release 0.0.3](https://github.com/kpaede/Emergence/releases/tag/0.0.3) die drei Dateien `main.js`, `manifest.json` und `styles.css` herunterladen und unter `<Vault>/.obsidian/plugins/emergence/` ablegen. Anschließend unter **Einstellungen → Community-Plugins** aktivieren. Der Release enthält zusätzlich SHA-256-Prüfsummen. Bis zur Aufnahme ins Community-Verzeichnis erfolgt die Installation manuell.
+Aus [Release 0.0.4](https://github.com/kpaede/Emergence/releases/tag/0.0.4) die drei Dateien `main.js`, `manifest.json` und `styles.css` herunterladen und unter `<Vault>/.obsidian/plugins/emergence/` ablegen. Anschließend unter **Einstellungen → Community-Plugins** aktivieren. Der Release enthält zusätzlich SHA-256-Prüfsummen. Bis zur Aufnahme ins Community-Verzeichnis erfolgt die Installation manuell.
 
 ### Aus dem Quellcode
 

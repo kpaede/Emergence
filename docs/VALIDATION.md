@@ -1,3 +1,13 @@
+# Prüfstand: stabiler Release 0.0.4
+
+Stand: 12. November 2026. Der geprüfte Funktionsstand von **0.0.4-beta.2** wird als **0.0.4** veröffentlicht. Plugin-Quellcode, Abhängigkeiten und Styles bleiben gegenüber Beta 2 unverändert; README und Changelog beschreiben jetzt den stabilen Release. Die Beta bleibt als historische Vorabversion erhalten.
+
+- Manifest, npm-Paket, Lockdatei und `versions.json` stimmen für **0.0.4 / Obsidian 1.15.0** überein. Der stabile Git-Tag ist **0.0.4**, der Titel **0.0.4**. `.github/prereleases.json` enthält ausschließlich den eigenen Beta-Tag und kennzeichnet den stabilen Release nicht als Vorabversion.
+- Produktionsbuild, ESLint (**0 Fehler, 0 Warnungen**) und `RELEASE_TAG=0.0.4 npm run release:check` bestanden. Alle vier erzeugten Release-Dateien sind bytegleich mit Beta 2. Der Release-Workflow prüft zusätzlich Produktions-Audit, Build, vollständige Tests und ESLint, bevor er den Release als stabil und neuesten Release veröffentlicht.
+- Veröffentlicht werden `main.js`, `manifest.json`, `styles.css` und `SHA256SUMS.txt`. Der Workflow lädt die Dateien zur Prüfsummen- und Bytekontrolle erneut herunter; anschließend werden auch die öffentlichen Downloads geprüft.
+
+---
+
 # Prüfstand: 0.0.4 Beta 2 — Obsidian- und CSS-Lint
 
 Stand: 12. November 2026. Die gemeldeten Quellcode- und CSS-Warnungen sind behoben. Der eingebettete Markdown-Editor verwendet den DOM-Helfer seines Dokumentfensters; Diagramm-Beobachter prüfen DOM-Typen mit Obsidians fensterübergreifendem `instanceOf`. Unbenutzte Imports und die beiden verbliebenen Test-Casts auf `TFile` wurden entfernt.

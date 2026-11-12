@@ -1,16 +1,12 @@
-# 0.0.4 (Beta 2)
+# 0.0.4
 
-Nachbesserung der ersten Beta; benötigt **Obsidian Desktop ab 1.15.0**. GitHub-Tag: `0.0.4-beta.2`; Pluginversion und nächster stabiler Release: **0.0.4**.
+Stabiler Release auf Basis der geprüften Beta 2. Benötigt **Obsidian Desktop ab 1.15.0**.
 
 - Native DOM-Helfer für den eingebetteten Markdown-Editor und fensterübergreifend sichere Typprüfung der Diagramm-Bedienelemente.
 - Unbenutzte TypeScript-Imports entfernt; auch die Test-Fixtures sind ohne Lint-Warnungen.
 - `:has()` durch ausdrücklich gesetzte Zustände für Feldideen-Aktionen und Mermaid-Richtungswerkzeuge ersetzt.
 - CSS-Auswahlfarben und Markdown-Dialoggrößen mit gezielter Selektorspezifität statt `!important`.
 - Unsichtbare Screenreader-Beschriftungen ohne `clip-path`; zugängliche Namen bleiben erhalten.
-
-`main.js`, `manifest.json` und `styles.css` gemeinsam installieren und das Plugin neu laden. Dies ist eine Vorabversion; **0.0.3 bleibt der neueste stabile Release**.
-
-Enthaltene Neuerungen für den kommenden Release 0.0.4:
 
 - **Mermaid-Editor:** Flowcharts und Mindmaps gleichzeitig grafisch und im Quelltext bearbeiten; Syntaxfarben, gegenseitige Hervorhebung, Vollbild und gemeinsame Undo-/Redo-Historie. Layout und Rendering übernimmt ausschließlich Obsidians integriertes Pele.
 - **Mermaid-Werkzeuge:** Verbindungen ziehen und beschriften, neue Kinder und explizite Geschwister, kompakte Formen-/Pfeilvorschauen, Farben, Mehrfachauswahl und verschachtelte Subgraphen. Auch ganze Subgraphen können miteinander oder mit Einzelknoten verbunden werden. Schwebende Werkzeuge verdecken während des Ziehens keine Zielknoten.
@@ -24,9 +20,9 @@ Enthaltene Neuerungen für den kommenden Release 0.0.4:
 - **Notizbearbeitung:** vorhandene Diagrammblöcke gezielt über das benachbarte Stiftsymbol oder den Cursor-Befehl öffnen, live speichern oder neue Entwürfe einfügen. Beschriftungsdialoge verwenden Obsidians Markdown-Bearbeitung; die Darstellung im Diagramm folgt den Möglichkeiten des jeweiligen Renderers.
 - Korrigierte transitive Parser-Abhängigkeit. Der Produktions-Audit meldet **keine bekannten Schwachstellen**.
 
-Die grafischen Mermaid-Werkzeuge unterstützen zunächst Flowchart und Mindmap; weitere Pele-Typen sind als Beispiele und über den Quelltext verfügbar. Den Umfang der Argdown-Werkzeuge beschreibt der [Leitfadenabgleich](https://github.com/kpaede/Emergence/blob/0.0.4-beta.2/docs/ARGDOWN_GUIDE_AUDIT.md). Hinweise zu Schaltern, Graph-Vorschau und Vorlagenordnern: [Einstellungen](https://github.com/kpaede/Emergence/blob/0.0.4-beta.2/docs/PREFERENCES.md).
+Die grafischen Mermaid-Werkzeuge unterstützen zunächst Flowchart und Mindmap; weitere Pele-Typen sind als Beispiele und über den Quelltext verfügbar. Den Umfang der Argdown-Werkzeuge beschreibt der [Leitfadenabgleich](https://github.com/kpaede/Emergence/blob/0.0.4/docs/ARGDOWN_GUIDE_AUDIT.md). Hinweise zu Schaltern, Graph-Vorschau und Vorlagenordnern: [Einstellungen](https://github.com/kpaede/Emergence/blob/0.0.4/docs/PREFERENCES.md).
 
-Zum Installieren `main.js`, `manifest.json` und `styles.css` aus diesem Release in den Emergence-Pluginordner legen und das Plugin neu laden. `SHA256SUMS.txt` enthält die Prüfsummen. **0.0.3 bleibt der neueste stabile Release.**
+Zum Installieren `main.js`, `manifest.json` und `styles.css` aus diesem Release in den Emergence-Pluginordner legen und das Plugin neu laden. `SHA256SUMS.txt` enthält die Prüfsummen. **0.0.4 ist der neueste stabile Release.**
 
 # 0.0.3
 
