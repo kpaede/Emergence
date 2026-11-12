@@ -1,198 +1,128 @@
 # Emergence
 
-Ein Obsidian-Plugin für philosophische Begriffsarbeit: Breadcrumbs-Beziehungen überblicken, Notizen und Zotero-Literatur suchen und mit einem lokalen Sprachmodell neue Zuordnungen entwickeln.
+**English** · [Deutsch](README.de.md)
 
-**Emergence ist hochgradig für den persönlichen Bedarf seines Autors hergestellt.** Oberfläche, Arbeitsabläufe und Voreinstellungen sind aus einem konkreten Forschungs-Vault entstanden. Es ist ein experimentelles Werkzeug, kein allgemein ausgereiftes Community-Plugin. Andere Breadcrumbs-Felder können zugeordnet und beschrieben werden; die Übertragbarkeit auf andere Arbeitsweisen ist noch begrenzt geprüft.
+Explore how your notes connect, develop ideas and build diagrams in Obsidian. Emergence brings these tasks together in a sidebar, so you can keep working in your note.
 
-## Einstellungen und Sprache
+It grew out of philosophical concept work in a personal research vault. The relationship fields and layout are configurable; other research workflows have been less extensively tested.
 
-Unter **Einstellungen → Emergence** stehen die Bereiche **Graph**, **Feldideen**, **Mermaid**, **Argdown** und **Suche**. Die bisherigen Seiten **Modell**, **Beziehungen**, **Profile** und **Daten** liegen unter **Feldideen**. Jeder Bereich besitzt einen eigenen Aktivierungsschalter. Deaktivierte Register, spezifische Befehle und Editoraktionen werden ausgeblendet; bestehende Einstellungen und Entwürfe bleiben erhalten. Die Navigation berücksichtigt nur aktive Bereiche.
+## What you can do
 
-Oberhalb dieser Bereiche wählst du **Obsidian folgen**, **Deutsch** oder **English**. Neue Installationen folgen Obsidian; für weitere Sprachen ist Englisch der Standard. Vorhandene deutsche Installationen behalten Deutsch. Ein Wechsel wirkt sofort, ohne Obsidian oder die Diagrammeditoren neu zu laden. Die Sprachwahl wird separat gespeichert und lässt offene Diagramme und Einstellungsentwürfe bestehen.
+| Your task | Where to start |
+| --- | --- |
+| Understand and organize relationships between notes | [**Graph**](#explore-and-organize-your-notes) shows the current note in context, using your Breadcrumbs fields and existing links. |
+| Find new connections | [**Field ideas**](#develop-new-connections) uses a local language model to suggest concepts. You choose which relationships to keep. |
+| Draw a process, mind map or argument | [**Mermaid** and **Argdown**](#edit-diagrams-alongside-their-source) combine graphical editing with an always-visible source editor. |
+| Find notes and references | [**Search**](#find-notes-and-literature) searches note titles, aliases and tags, plus your Zotero library through ZotLit. |
 
-Im Bereich **Graph** zeigt eine anklickbare Vorschau dieselben Verbindungslinien wie der Graph. Für jeden Zweig lassen sich Überschrift, Position (oben, links, rechts, unten, Liste oder ausgeblendet), Reihenfolge, Tiefe und Breadcrumbs-Feldzuordnung einstellen. Überschriften lassen sich ziehen und auch per Tastatur umordnen. Die bisherigen Vorgaben bleiben der Standard; Notiz-Properties und Beziehungstypen werden durch die Anordnung nicht verändert.
+The five tabs appear in this order: **Graph → Field ideas → Mermaid → Argdown → Search**. Each can be disabled in settings.
 
-Unter **Mermaid** und **Argdown** kann jeweils ein **Vorlagenordner** im Vault gewählt werden. Markdown-Dateien darin dürfen mehrere passende Codeblöcke enthalten; Unterordner zählen mit. Dateiname und vorangehende Überschrift benennen die Vorlage. Änderungen, Umbenennen und Entfernen der Notizen aktualisieren das Menü **Neu**. Neu gespeicherte Vorlagen werden als Markdown-Notizen im gewählten Ordner angelegt, ohne bestehende Dateien zu überschreiben. Die bisherige Bibliothek bleibt verfügbar. Eine Ordner-Vorlage lässt sich im Menü ausblenden oder über das Notizsymbol direkt an ihrer Quelle bearbeiten.
+## Get started
 
-Die KI-Ausgabesprache bleibt eine eigene Profileinstellung. Eigene Notizen, Feldnamen, Profile, Prompts und Diagrammquelltexte werden nicht übersetzt. Native Ansichten anderer Plugins behalten ihre eigene Sprachsteuerung. Die Übersetzungen verwenden lokal eingebundenes i18next, feste geprüfte Sprachkataloge, vollständige Nachrichten mit Parametern und CLDR-Pluralformen; keine Übersetzungsdienste oder nachgeladenen Sprachdateien. Details: [Allgemeine Einstellungen](docs/PREFERENCES.md) und [Lokalisierung](docs/LOCALIZATION.md).
+### Requirements
 
-## Voraussetzungen
+Emergence requires **Obsidian Desktop 1.15.0 or later**. Mobile is not supported.
 
-- Obsidian Desktop ab **1.15.0**. Mobile wird nicht unterstützt.
-- **Breadcrumbs v4** für typisierte Beziehungen und dessen Graph-API. Gewöhnliche Notizlinks funktionieren auch ohne Breadcrumbs.
-- Optional **ZotLit 2.2** mit eingerichteter Zotero-Datenbank für Library-Suche und Zitate.
-- Optional **Ollama** mit einem bereits lokal installierten Modell für Feldideen. Die Voreinstellung ist `qwen3.5:9b`; Emergence lädt kein Modell selbst herunter. Graph und Suche brauchen kein Sprachmodell.
+Additional tools depend on what you want to use:
 
-## Installation
+| For this feature | You need |
+| --- | --- |
+| Typed relationships in Graph and Field ideas | **Breadcrumbs v4**, with your relationship fields configured |
+| Zotero search, references and literature actions | **ZotLit 2.2**, connected to your Zotero database |
+| AI suggestions in Field ideas | **Ollama**, with an installed local model |
 
-Der stabile Release **0.0.4** enthält die Mermaid- und Argdown-Editoren sowie die neuen Einstellungen und benötigt Obsidian Desktop ab **1.15.0**.
+Mermaid and Argdown work without these optional integrations. Graph and Search do not require a language model; ordinary note links and note search work without ZotLit.
 
-Aus [Release 0.0.4](https://github.com/kpaede/Emergence/releases/tag/0.0.4) die drei Dateien `main.js`, `manifest.json` und `styles.css` herunterladen und unter `<Vault>/.obsidian/plugins/emergence/` ablegen. Anschließend unter **Einstellungen → Community-Plugins** aktivieren. Der Release enthält zusätzlich SHA-256-Prüfsummen. Bis zur Aufnahme ins Community-Verzeichnis erfolgt die Installation manuell.
+### Install
 
-### Aus dem Quellcode
+1. Download `main.js`, `manifest.json` and `styles.css` from the [latest stable release](https://github.com/kpaede/Emergence/releases/latest).
+2. Put all three files in `<Vault>/.obsidian/plugins/emergence/`.
+3. Enable Emergence under **Settings → Community plugins**. Reload Obsidian if it was already running when you copied the files.
+
+Installation is currently manual. Release downloads also include `SHA256SUMS.txt` for checking file integrity.
+
+### Open your workspace
+
+Open a note, then select the network icon in Obsidian’s ribbon or run **Emergence: Open knowledge graph and analysis** from the command palette. Emergence opens in the right sidebar.
+
+Under **Settings → Emergence**, choose your language and enable the areas you need. The interface supports English and German, or follows Obsidian’s language. Changes take effect immediately.
+
+## Working with Emergence
+
+### Explore and organize your notes
+
+**Graph** places the current note at the center of its relationships. The default arrangement shows broader concepts above, narrower concepts below, similar concepts to the left and contrasting concepts to the right. Examples, references and other links have their own areas.
+
+Map your existing Breadcrumbs fields to these areas. In the settings preview, you can change headings, positions, order and how many relationship levels to show. Your field names stay your own.
+
+Select a note to open it, or use exploration mode to follow connections without leaving the note you are writing. Add relationships at a group heading or drag an existing relationship to another field. These edits update the corresponding note properties. When available, the view selector also offers Breadcrumbs’ own matrix and tree, ZotLit’s bibliography and Obsidian’s local graph.
+
+### Develop new connections
+
+**Field ideas** is an association aid for the current note. Configure the meaning of your Breadcrumbs fields, choose the search scope for existing concepts and connect your local Ollama model. The default model setting is `qwen3.5:9b`; Emergence does not download models.
+
+Suggestions arrive as unassigned concepts. Edit or discard them, then drag a useful concept onto the field where it belongs. You can also select its handle and then the field. Existing notes are reused; a missing concept becomes a link, without automatically creating a note. An accepted relationship can be undone.
+
+You control the field descriptions, instructions and model settings. Suggestions can be wrong and need your judgment. Wikipedia excerpts and web search can be included explicitly as additional context.
+
+### Edit diagrams alongside their source
+
+**Mermaid** and **Argdown** show the diagram and syntax-highlighted source together. Selection is linked in both directions. Work in the sidebar or full screen, and undo or redo graphical and source edits together.
+
+**Mermaid** is for flowcharts and mind maps. Drag to connect elements or create a connected node, double-click to edit labels, and use compact tools for shapes, colors and nested subgraphs. Rendering and automatic layout come entirely from Obsidian’s integrated Pele. Other Pele diagram types are available through examples and source editing; the graphical editing tools currently support flowcharts and mind maps.
+
+**Argdown** is for statements, arguments and their relationships. Add supporting reasons, attacks or undercutters by dragging from an element. Organize the map into nested groups. To work on premises and conclusions, open an argument’s reconstruction in its own view with the matching source. Showing that reconstruction in the main map is a separate choice. Layout and presentation use Argdown and Graphviz.
+
+<details>
+<summary>Templates, saving and Markdown support</summary>
+
+Both editors share a **New** menu with built-in examples, previews, favorites and reusable templates. Add your own templates, or choose a vault folder containing Markdown notes with diagram code blocks.
+
+**Saving:** A new diagram is a draft until you select **Insert into note**. To edit an existing diagram, use the pencil beside its rendered code block or the editor command for the block at the cursor. Changes then save automatically to that particular block, even when the note contains several diagrams. Insert or save drafts as templates before unloading the plugin; uninserted drafts are held in memory.
+
+**Markdown:** Label dialogs offer Obsidian’s Markdown preview. The diagram itself follows the formatting and link support of Pele or Argdown; it does not support every Obsidian Markdown extension. The source editor remains available for syntax without a graphical control.
+
+</details>
+
+### Find notes and literature
+
+**Search** finds notes by title, alias and tag. With ZotLit, it also searches your available Zotero libraries, including group libraries. Results are separate from the candidate scope used for Field ideas.
+
+Open a note directly or explore it in Graph. Literature results use ZotLit’s citation formatting and provide actions for the library entry, literature note, Zotero item, attachment, cited location and citekey. Some actions depend on available metadata. Formatting references not already cited in the current note may require Zotero to be running with its local API enabled.
+
+## Privacy and storage
+
+Graph, note search and diagram editing work locally. AI requests go to your configured local Ollama endpoint and include the note, field descriptions and relevant candidate titles or selected source excerpts. There is no telemetry or cloud-model fallback.
+
+Wikipedia and DuckDuckGo are optional external sources. Enabling them sends the chosen search term to the respective service, not your note text. DuckDuckGo result pages are queried; linked websites are not automatically opened. Literature formatting can contact Zotero’s configured local API.
+
+Accepted relationships and inserted diagrams live in your notes. Settings, template preferences and the relationship change journal are stored in the plugin’s `data.json`. Templates can also live as Markdown notes in your chosen vault folder. Search results, suggestions and uninserted diagram drafts are temporary.
+
+## More detail
+
+The detailed documentation below is currently in German:
+
+- [Settings, Graph layout and template folders](docs/PREFERENCES.md)
+- [Argdown editor: usage and supported features](docs/ARGDOWN_EDITOR.md)
+- [Argdown guide coverage and remaining limitations](docs/ARGDOWN_GUIDE_AUDIT.md)
+- [Validation and compatibility notes](docs/VALIDATION.md)
+
+See the [changelog](CHANGELOG.md) for release history. Integrations with other plugins depend on their available interfaces; the validation notes describe the tested versions and known limits.
+
+<details>
+<summary>Build from source</summary>
+
+Use Node.js 22.12+ in the supported 22.x or 24.x LTS lines and npm. To build the released version:
 
 ```sh
-git clone https://github.com/kpaede/Emergence.git
+git clone --branch 0.0.4 https://github.com/kpaede/Emergence.git
 cd Emergence
 npm ci
 npm run build
 ```
 
-Node.js **22.12 oder neuer innerhalb der unterstützten 22er-/24er-LTS-Reihen** verwenden. Anschließend `main.js`, `manifest.json` und `styles.css` in den Ordner `<Vault>/.obsidian/plugins/emergence/` kopieren und Emergence unter **Einstellungen → Community-Plugins** aktivieren. Die Plugin-ID lautet `emergence` und enthält gemäß Obsidian-Vorgabe nur Kleinbuchstaben. Bei älteren Entwicklungsinstallationen muss auch der Plugin-Ordner entsprechend umbenannt werden; `data.json` bleibt dabei erhalten. Das generierte `main.js` wird nicht im Repository verwaltet.
+Copy `main.js`, `manifest.json` and `styles.css` to the plugin folder described above. For development, use `npm run dev`; run `npm test` and `npm run lint` to check changes. Native UI checks additionally require a running Obsidian development vault with its CLI enabled.
 
-Über das Netzwerk-Symbol in der Seitenleiste oder den Befehl **Emergence: Wissensgraph und Analyse öffnen** öffnet sich das Plugin im rechten Seitenpanel. Die Hauptnotiz bleibt daneben editierbar.
+</details>
 
-## Vier Arbeitsbereiche
-
-Die Tabs stehen in dieser Reihenfolge: **Graph** (Netzwerk), **Feldideen** (Text-search), **Mermaid** (Workflow), **Argdown** (Git-fork), **Suche** (Lupe).
-
-### Graph
-
-Die Ansicht **Kontext** ordnet die aktuelle Notiz in der Mitte an: Überordnung darüber, Unterordnung darunter, Ähnlichkeit links und Reibung rechts. Beispiele, Literatur und freie Verweise stehen in eigenen Registern. Die Namen der zugehörigen Breadcrumbs-Felder werden unter **Felder und Quellen** über native Auswahlmenüs mit Häkchen zugeordnet. Mehrere Felder pro Gruppe bleiben möglich; Literatur und freie Verweise zeigen ihre festen Quellen. Emergence legt dafür keine neuen Frontmatter-Felder an.
-
-**Konzept**, **Komponist_in**, **Autor_in**, **Künstler_in**, **Regisseur_in**, **Librettist_in** und weitere über **Werk** konfigurierte Urheberrollen erscheinen in eigenen Registern unter den Beispielen, wenn die zentrale Notiz im Frontmatter-Feld `tags` einen Untertag von `Werk` hat, etwa `Werk/Musiktheater/Oper` oder `Werk/Film`. Dabei stehen alle diese Felder gemeinsam zur Verfügung, auch leer. Andere zusätzliche Felder wie **Werk** erscheinen bei vorhandenen Verbindungen. Ihre Gegenrichtungen stammen aus der Breadcrumbs-Konfiguration. Ein generischer „Werk“-Link wird nicht willkürlich allen Urheberrollen zugewiesen.
-
-Jede der sieben Hauptgruppen hat eine eigene Sichttiefe: **1, 2, 3 oder ∞**. Mehrfachüberordnungen bleiben als vollständige Ahnenpfade erhalten. Rückverweise werden begrenzt, damit Kreise keine endlosen Listen erzeugen. Viele Einträge werden durch vertikales Scrollen zugänglich. Unter **Freie Verweise** stehen zusätzlich **Rückverweise** aus Obsidians eigenem Linkindex: alle verlinkenden Markdown-Notizen einmalig, einschließlich Properties-Links. Dafür wird kein Frontmatter-Feld angelegt.
-
-**Die Reihenfolge direkt gespeicherter Begriffe entspricht dem Frontmatter.** Nur zusätzlich abgeleitete Gegenrichtungen folgen danach. Auch weitere Schritte verwenden jeweils die Reihenfolge ihrer eigenen Ausgangsnotiz. Es werden keine Sortierdaten in den Notizen gespeichert.
-
-Beim Umbenennen einer Notiz aktualisiert sich auch die zentrale Beschriftung unmittelbar, einschließlich des Erkundungsmodus und umbenannter übergeordneter Ordner. Ein Klick öffnet die Notiz. Mit **Im Graphen erkunden** verschiebt ein Klick nur den Graphfokus. Mittelklick öffnet Notizen trotzdem in einem neuen Tab. Bestehende und noch fehlende Notizen verwenden Obsidian-Linkstile und die Werte des aktiven Themes.
-
-Das **Plus** steht direkt neben dem jeweiligen Gruppentitel und ergänzt immer eine Beziehung in der zentralen Notiz. Der Dialog nennt die betroffene Notiz ausdrücklich. Einzelne Begriffe haben kein Plus; bei ihnen erscheint beim Überfahren links ein **Ziehgriff**, der die dahinterliegende Linie verdeckt. Ohne Hover bleibt die Linie vollständig sichtbar. Begriffe und Ziehgriffe zeigen keine Tooltips. Bestehende Notizen werden wiederverwendet; fehlende Begriffe erzeugen nur einen Link. Bei mehreren gleichnamigen Dateien wird ein eindeutiges Ziel gewählt. Literatur und freie Verweise stammen aus ZotLit beziehungsweise normalen Textlinks und bleiben ohne diese Bearbeitungsaktionen.
-
-Ziehe einen Begriff am Griff auf eine andere Breadcrumbs-Gruppe, um seine Zuordnung zu verschieben. Bei mehreren zugeordneten Feldern wählst du anschließend das konkrete Zielfeld. Emergence entfernt die ursprüngliche Verbindung und ergänzt den Link im Zielfeld der zentralen Notiz. Auch explizit gespeicherte Gegenrichtungen werden in den Notizen geändert, denen sie gehören. Alle betroffenen Änderungen werden vor dem Schreiben geprüft; bei einem Schreibkonflikt werden bereits ausgeführte Schritte zurückgenommen. Der Notiztext bleibt erhalten.
-
-Im Dropdown **Ansicht** steht **Kontext** (HTML/SVG) an erster Stelle und ist vorausgewählt. Es ist jeweils genau eine Ansicht sichtbar; sie füllt die verbleibende Seitenpanelfläche ohne zusätzlichen Fensterrahmen. Zusätzlich sind die **originalen Ansichten** der aktivierten Plugins auswählbar:
-
-- **Breadcrumbs · Matrix** und **Breadcrumbs · Baum**, mit deren eigenen Filtern und Bedienelementen.
-- **ZotLit · Literaturverzeichnis** der aktuellen Notiz, in ZotLits eigener Darstellung und mit dessen Zitationsstil.
-- **Obsidian · Lokaler Graph** der aktuellen Notiz. Er erscheint nur bei aktiviertem Obsidian-Core-Plugin „Graph“. Emergence aktiviert es nicht und zeigt keinen Gesamtgraphen an.
-
-Die ausgewählte Originalansicht folgt der geöffneten Hauptnotiz. Beim Umschalten wird die vorherige native Ansicht entladen. Der lokale Graph wird beim Öffnen und Notizwechsel auf die aktuelle Notiz zentriert und mit lesbarem Maßstab gestartet; anschließendes manuelles Zoomen bleibt erhalten. Das Erkunden der Synopse ändert diesen Notizkontext nicht. Bestehende Plugin-Tabs bleiben an ihrem Platz; für die Einbettung werden keine zusätzlichen Workspace-Tabs angelegt.
-
-Literaturangaben in Synopse und Suche stammen aus **ZotLits originalem Bibliografie-Renderer mit dem dort ausgewählten CSL-Stil**. Auch Notizstil, Sprache und Importprofil werden berücksichtigt. Es gibt keine eigene Kurzformatierung oder selbst zusammengesetzte Autoren-/Jahresangabe. Das auswählbare ZotLit-Literaturverzeichnis verwendet seine Originaloberfläche. Fehlende oder mehrdeutige Datensätze werden als solche bezeichnet; Citekeys werden nicht als erfundene Buchtitel ausgegeben.
-
-Für Zitate der aktuellen Notiz verwendet Emergence ZotLits vorhandene CSL-Daten auch bei geschlossenem Zotero. Bei bisher unzitierten Suchtreffern liefert Zotero die kanonischen CSL-Daten über seine bereits eingerichtete lokale API; dafür muss Zotero geöffnet und dessen lokale API aktiviert sein. Emergence ändert diese Einstellung nicht. Ist die Originalformatierung nicht verfügbar, wird das knapp angezeigt, statt einen Ersatz-Zitationsstil zu erfinden; Öffnen und Citekey-Kopieren bleiben möglich.
-
-### Feldideen
-
-Die Analyse dient als Assoziationshilfe: Die KI erzeugt eine **gemeinsame Liste unzugeordneter Begriffe**. Alle für die Analyse verfügbaren Breadcrumbs-Felder aus dem Frontmatter und ihre Beschreibungen dienen als Denkanstöße. Die Zuordnung zu einem Feld entscheidest du selbst; die KI speichert keine Verbindungen.
-
-1. Breadcrumbs-Felder im Frontmatter der aktuellen Notiz bereitstellen, auch leer. Unter **Analyse einstellen** ihre Bedeutung beschreiben. Die Beschreibungen sind editierbar; fremde Feldnamen werden nicht stillschweigend interpretiert.
-2. Den Suchbereich für bestehende Zielbegriffe wählen: alle Notizen, bestimmte Ordner und/oder Notizen mit bestimmten Frontmatter-Schlüsseln. „Mindestens ein Breadcrumbs-Feld“ ist ein möglicher Filter. Diese Auswahl betrifft die Analyse, nicht die globale Suche.
-3. Optional Wikipedia oder die Websuche hinzuziehen und **Ideen vorschlagen** starten.
-4. Einen Begriff am **Ziehgriff** auf eines der oben angezeigten Felder ziehen. Alternativ erst seinen Griff und dann das Zielfeld auswählen; das funktioniert auch per Tastatur. **×** verwirft einen Vorschlag. Der Stift bearbeitet den Begriff in der Zeile; Enter bestätigt, Escape verwirft die Bearbeitung.
-
-Profilanweisungen und Prompts sind editierbar. Vorhandene Ziele werden gekennzeichnet und bevorzugt verlinkt. Kurze Wikilinks wie `[[Taxonomie]]` werden verwendet, sofern sie das Ziel eindeutig auflösen; andernfalls ist ein qualifizierter Pfad nötig. Ein neuer Vorschlag erzeugt keine neue Notizdatei.
-
-Übernehmen ergänzt nur den betreffenden Link. Vor dem Schreiben werden Dateiänderungen und vorhandene Werte erneut geprüft; Text und andere Eigenschaften bleiben erhalten. Das lokale Änderungsjournal ermöglicht ein gezieltes Rückgängigmachen. Die Vorschlagsprüfung ist Teil der Analyse und hat keinen eigenen Haupttab.
-
-**Lange Notizen:** Passt der relevante Notiztext nicht in eine Anfrage, wird er vollständig abschnittweise verarbeitet. Die abschließenden Feldideen verwenden dann eine gekennzeichnete Arbeitszusammenfassung. Feldrollen werden bei Bedarf in Gruppen bearbeitet. Es wird kein bloßer Anfangsausschnitt verwendet und die Originalnotiz bleibt unverändert. Diese zusätzliche Verarbeitung dauert länger und kann Details verdichten oder verlieren. Fehler oder Abbruch geben keine unvollständige Vorbereitung zur Übernahme frei.
-
-### Argdown
-
-Der Tab **Argdown** zwischen **Mermaid** und **Suche** verbindet ständig sichtbaren Quelltext mit einer grafischen Argumentkarte. **Vollbild** vergrößert dieselbe Sitzung. Das Syntax-Highlighting verwendet die Tokens des offiziellen Argdown-Parsers; Auswahl im Code und in der Karte wird gegenseitig hervorgehoben. Aussagen und Argumente bleiben unterscheidbar. Griffe, Werkzeugleisten und Bedienelemente folgen derselben Obsidian-Gestaltung wie Mermaid. Die native Unterscheidung bleibt erhalten: Aussagen haben farbige Rahmen, Argumente farbige Füllungen. Explizite Argdown-Farben und Stile haben Vorrang.
-
-- **Element hinzufügen** bietet Aussagen und Argumente in einem gemeinsamen Menü an. Doppelklick und das einzelne Stiftwerkzeug öffnen **Aussage bearbeiten** oder **Argument bearbeiten** mit Titel und Text/Beschreibung gemeinsam. Eine Übernahme aktualisiert auch Verweise und Erwähnungen und ist ein Rückgängig-Schritt. Das gilt ebenfalls für Aussagen in einer Rekonstruktion. Wiki-Links aus diesen Textdialogen werden in gültige Markdown-Links mit Obsidian-URI umgewandelt. Der native Renderer zeigt ihren Linktext; anklickbare Wiki-Links in den SVG-Beschriftungen gehören nicht zum nativen Export. Die Karte selbst folgt der Argdown-Syntax und ihrem Renderer, nicht sämtlichen Obsidian-Markdown-Erweiterungen.
-- Jeder ausgewählte Knoten hat drei Ziehgriffe: **+** unterstützt, **−** greift an und **`_>`** unterminiert. Die Griffe stehen mittig unter dem Knoten und ergänzen Unterstützung oder einen Einwand **für diesen Knoten**: Der neue oder angezogene Grund zeigt auf den ausgewählten Knoten. Auf ein vorhandenes Element ziehen verbindet direkt. Im Leeren fragt der Editor ausschließlich nach **Aussage** oder **Argument**; die Beziehung steht bereits durch den Griff fest. Unterminierung ist am ausgewählten Argument verfügbar; als Einwand können eine Aussage oder ein Argument dienen. Klick auf einen Griff öffnet dieselbe Typauswahl. Erst diese Auswahl erzeugt neuen Knoten und Pfeil gemeinsam; Abbrechen ändert nichts. Der Ablageabschnitt bestimmt die Zugehörigkeit neuer Knoten. Widerspruch bleibt über die ausgewählte Verbindung erreichbar; **Pfeil umkehren** kehrt eine zulässige explizite Verbindung um.
-- **Umschalt + Klick** oder **Umschalt + Ziehen** wählt mehrere Knoten. Gemeinsame Farbänderung, Verschieben in Gruppen und Löschen sind jeweils zusammen rückgängig machbar. Beim Verschieben wird der Zielgruppe hervorgehoben; eine Linie erscheint ausschließlich beim Verbinden. Die Auswahl richtet sich nach den Elementtypen: Unterstützung und Angriff zwischen Aussagen und Argumenten; Unterminierung gegen Argumente und Schlussregeln; Widerspruch zwischen Aussagen. Im strikten Modus heißen logische Beziehungen zwischen Aussagen **Folgerung** und **Unvereinbarkeit**. Bestehende Beziehungen lassen sich auswählen, umstellen und mit **Entfernen** löschen. Ein globaler Beziehungsmodus entfällt.
-- **Rekonstruktion bearbeiten** öffnet eine eigene Unteransicht für genau ein Argument, mit seinem Diagramm und ausschließlich dem zugehörigen Code. **← Hauptkarte** führt zurück. Öffnen und Zurückgehen ändern die Anzeige der Hauptkarte nicht. **In Hauptkarte anzeigen** entscheidet unabhängig davon, ob diese Rekonstruktion dort sichtbar ist. Die Auswahl **Rekonstruktionen → Alle anzeigen / Alle ausblenden** wirkt auf sämtliche Argumente und setzt frühere Einzelausnahmen zurück. Sichtbare Rekonstruktionen erhalten beschriftete native Graphviz-Rahmen; gemeinsame Aussagen können außerhalb der Rahmen stehen.
-- Werkzeuge und Ziehgriffe erscheinen beim **Überfahren** eines Elements. Der gesamte Mausweg zur Werkzeugleiste bleibt unabhängig von Geschwindigkeit und Pausen geschützt, auch wenn er über Verbindungslinien führt. **Klick** markiert für Mehrfachauswahl und Entfernen; ein Klick auf freie Fläche hebt die Auswahl auf. In der Rekonstruktions-Unteransicht bearbeiten Doppelklick, Plus und Mehrfachauswahl die Aussagen und Inferenzschritte. In der Hauptkarte führen die Werkzeuge eingeblendeter Inferenzschritte zur Unteransicht.
-
-- Überschriften bilden Abschnitte im Quelltext; diese werden in der Karte als **Gruppen** dargestellt, auch verschachtelt. Das Gruppenmenü erstellt, verschiebt, benennt und löst Gruppen auf. Aussagen, Argumente und ganze Untergruppen lassen sich auf eine andere Gruppe ziehen; ihre Unterstruktur bleibt zusammen. Ein- und Ausklappen sowie **Entfernen** zum Auflösen erhalten die enthaltenen Elemente. `group.regroup` bleibt im Code bearbeitbar; die Zuordnung folgt Argdowns Regeln.
-- Grafische Änderungen räumen Einrückungen und Leerzeilen automatisch unter Prüfung des Argumentmodells auf; eine separate Formatierungsschaltfläche entfällt. Beim Tippen bleibt die eigene Formatierung erhalten; neue Gründe stehen möglichst direkt eingerückt bei ihrer These und Beziehungen werden beim vorhandenen Element ergänzt. Texte, Kommentare, YAML und Schlussstrukturen bleiben erhalten. **Richtung**, **Einpassen**, Zoom, CSS-Farbpalette und Farbrad liegen in der Karte. Die Farbdialoge benennen ihre Wirkung: Rahmen bei Aussagen, Füllung bei Argumenten und Gruppen. CSS-Farben werden in die von Argdown unterstützten HEX-Werte übersetzt. Typweite Schriftfarben sind auch direkt im Farbdialog eines Elements und im Rekonstruktionseditor erreichbar. Aussageflächen und Textkontraste werden unverändert vom nativen Renderer übernommen; zusätzliche Theme-Farbregeln entfallen. **Darstellung der Argumentkarte** bietet native Beschriftungsmodi, globale Formen und Größen, Farbschemata und Schriftfarben, Layout-Verfahren und Abstände sowie Auswahl- und Interpretationsmodi und Filter nach Tags und Abschnitten. Änderungen werden beim Übernehmen gemeinsam gespeichert und lassen sich gemeinsam rückgängig machen. **Strg/Cmd Z** und **Strg/Cmd Umschalt Z** verwenden dieselbe Historie für Code und grafische Änderungen.
-- **Neu** öffnet die direkte Vorlagenliste mit vier Startbeispielen einschließlich der vollständigen Leitfaden-Debatte von Gregor Betz und eigenen, lokal gespeicherten Vorlagen. Favoriten stehen oben, Hover und Tastaturfokus zeigen eine native Diagrammvorschau. **Pro und Contra** ist anfänglich favorisiert. Vorlagen lassen sich öffnen, einfügen, favorisieren, umbenennen und löschen; die letzte Bibliotheksänderung kann zurückgenommen werden.
-
-Codeblöcke mit `argdown` und `argdown-map` werden in Live Preview und im Lesemodus gerendert. **In Argdown bearbeiten** am betreffenden Block, das Kontextmenü und der Cursorbefehl öffnen genau diese Karte. Änderungen daran werden live ausschließlich in diesen Block zurückgeschrieben. Ein neuer Entwurf bleibt bis **In Notiz einfügen** im Arbeitsspeicher. Mehrere Karten in derselben Notiz bleiben getrennt.
-
-Parser, Argumentmodell, Gruppierung und SVG stammen aus `@argdown/core`; das automatische Layout übernimmt lokal eingebundenes Graphviz als WebAssembly. Die Bibliotheken werden beim ersten Bedarf initialisiert. Es werden keine CDN-Skripte geladen, keine externen Renderer aufgerufen und keine Notizinhalte übertragen. Die Integration orientiert sich an den APIs des [Argdown-Plugins](https://github.com/amdecker/obsidian-argdown-plugin). Komponentenlizenzen und Quellen stehen unter [third-party/argdown-NOTICE.md](third-party/argdown-NOTICE.md) und im Bundle.
-
-Grafische Aktionen ändern den vorhandenen Quelltext gezielt und prüfen das resultierende Argumentmodell. Bestehende Prämissen, Verweise, eigene Beziehungen und Zusatzmetadaten bleiben erhalten. Gemeinsam verwendete Aussagen werden nicht stillschweigend entfernt, und Schlussregeln dürfen nur auf frühere, noch vorhandene Schritte verweisen. Rekonstruktionen werden in einer eigenen Unteransicht mit Prämissen, kleinen Inferenzkreisen und Schlussfolgerungen neben dem zugehörigen Quelltext bearbeitet. Sie können global oder je Argument angezeigt werden; Doppelklick, Ziehgriffe, Mehrfachauswahl, benannte Verweise und Rückgängig bleiben im selben Editor. Das komplexe Inferenzbaumbeispiel samt Kommentaren und beiden `uses`-Positionen ist als Regression abgesichert; ein Test baut dieselben sieben Argumente und dargestellten Beziehungen mit den grafischen Grundoperationen von Grund auf nach. Eigene verschachtelte Definitionen und nicht eindeutig zuordenbare Sonderfälle bleiben im Quelltext bearbeitbar. Freie Kantenbeschriftungen und Verbindungen zwischen ganzen Gruppen gehören nicht zur Argdown-Semantik. Der [Abgleich mit dem offiziellen Leitfaden](docs/ARGDOWN_GUIDE_AUDIT.md) führt die implementierten Funktionen und verbliebenen Lücken auf. Die vollständige Abgrenzung von Parser, Grafikwerkzeugen und Codebearbeitung steht in [Argdown: Funktionsumfang](docs/ARGDOWN_EDITOR.md). Siehe die [offiziellen Typ- und Beziehungsregeln](https://argdown.org/syntax/#relations).
-
-### Mermaid
-
-Flowcharts und Mindmaps lassen sich im neuen Tab gleichzeitig als Code und im Diagramm bearbeiten. Im schmalen Panel steht der Code oben, bei breiter Fläche links; die Trennlinie ist verstellbar. **Vollbild** vergrößert dieselbe Sitzung, **Esc** führt zurück. Das differenzierte Mermaid-Highlighting verwendet den Tokenizer der Pele-Website; Farben folgen dem Obsidian-Theme. IDs, Beschriftungen, Richtungen, Metadaten, Stilwerte, YAML und Kommentare erhalten eigene Tokenklassen. Diagrammauswahl hebt zugehörige Codestellen hervor; die Cursorposition im Code hebt die entsprechenden Knoten hervor.
-
-**Neu** öffnet eine durchsuchbare Vorlagenliste direkt im Editor. **Flowchart** und **Mindmap** sind normale Vorlagen und anfänglich als Favoriten oben einsortiert. Sterne schalten Favoriten ein und aus; Hover oder Tastaturfokus zeigt die von Pele gerenderte Vorschau. Beide Editoren verwenden dieselbe Schaltfläche und Bibliotheksbedienung. Ein Klick auf eine Vorlage öffnet sie als Entwurf; die Einfügeaktion daneben schreibt sie direkt in die aktuelle Notiz. Die Liste enthält anfangs alle Pele-Beispiele. **Aktuelles Diagramm als Vorlage speichern** ergänzt eine eigene Vorlage; eigene Vorlagen lassen sich umbenennen. Alle Vorlagen können aus der persönlichen Liste gelöscht werden. **Rückgängig** stellt die letzte Änderung wieder her. Favoriten, eigene Vorlagen und ausgeblendete Beispiele werden lokal in den Plugin-Daten gespeichert und bleiben nach Neustart erhalten. Flowchart und Mindmap erzeugen ungespeicherte Entwürfe im Arbeitsspeicher. **In Notiz einfügen** fügt einen normalen Mermaid-Codeblock an der Cursorposition der aktuellen Markdown-Notiz ein. Danach werden Änderungen automatisch in genau diesen Block geschrieben. Beim Entladen gehen noch nicht eingefügte Entwürfe verloren. **Strg/Cmd Z**, **Strg/Cmd Umschalt Z** und die beiden Pfeilaktionen machen Code- und Diagrammaktionen gemeinsam rückgängig beziehungsweise wiederholen sie.
-
-Vorhandene Diagramme öffnen sich über **In Mermaid bearbeiten**: als Stift bei Hover oder Tastaturfokus neben den nativen Obsidian-Aktionen, über das Editor-Kontextmenü, über **Mermaid-Diagramm am Cursor bearbeiten**. Der geöffnete Block bleibt an seine Quelldatei gebunden, auch wenn man eine andere Notiz öffnet. Gleichlautende Diagramme werden anhand ihrer Position und Editortransaktionen unterschieden. Bei konkurrierenden Änderungen oder gelöschten Blöcken wird das Schreiben unterbrochen und der aktuelle Stand bleibt als Entwurf erhalten.
-
-Ein Klick wählt einen Knoten, eine Verbindung oder einen Subgraph aus. **Umschalt + Klick** erweitert die Auswahl, **Umschalt + Ziehen** spannt einen Auswahlrahmen auf. Ein **Doppelklick** öffnet die Beschriftung mit der Wahl zwischen **Text** und **Markdown**. Die schwebende Werkzeugleiste bietet Text, Formen, Farben, Duplizieren und Löschen. Formen und Linientypen werden in einem kompakten Symbolraster ohne sichtbare Beschriftungen ausgewählt. Alle Miniaturen rendert Pele; die Pfeilvorschau zeigt nur die Verbindung ohne Endknoten. **Entfernen** oder **Rücktaste** löscht ausgewählte Knoten und Verbindungen auch bei Fokus auf einem SVG-Element; breitere unsichtbare Trefferflächen erleichtern die Auswahl von Linien. Auch Verbindungstexte wie **Ja/Nein** sind direkt auswählbar; ein Doppelklick auf die Linie selbst oder ihren Text bearbeitet die Beschriftung. Vom **+**-Griff auf einen Knoten oder ausgewählten Subgraph ziehen verbindet. Der Titel eines Subgraphen ist das Verbindungsziel; so entstehen native Pfeile zwischen Subgraphen oder zwischen Subgraph und Einzelknoten. Ein Zielhinweis erscheint beim Ziehen; ins Leere ziehen erzeugt einen neuen verbundenen Knoten. Die Ablagefläche bestimmt dessen Zugehörigkeit: innerhalb des tiefsten Subgraphen entsteht er dort, außerhalb aller Gruppen auf der Hauptebene. Eine Vorschau benennt das Ziel. Bei Mindmaps entspricht die Verbindung einer Eltern-Kind-Zuordnung. **+** erzeugt das letzte Kind des Ausgangsknotens und übernimmt die vorhandene Einrückung der Geschwister. **Kind hinzufügen**, **Geschwister davor/danach hinzufügen** und **Reihenfolge der Geschwister** stehen ausdrücklich in der Werkzeugleiste; ein Zweig kann samt Unterzweigen auf einen anderen Knoten gezogen werden. Die sichtbare Links-/Rechts-Verteilung und der Wechsel zur schmalen Baumansicht bleiben Pele überlassen. Das Löschen einer ausgewählten Mindmap-Verbindung entfernt den zugehörigen Zweig samt Unterzweigen; die Oberfläche weist bei dieser Auswahl darauf hin.
-
-Bei Flowcharts bündelt **Subgraph** die Erstellung einer neuen Gruppe, das Verschieben in vorhandene Gruppen oder auf die Hauptebene und das Auflösen einer ausgewählten Gruppe. Die Richtungsauswahl rechts oben in der Diagrammfläche bietet **TD/TB**, **BT**, **LR** und **RL**. Subgraphen können eine eigene Richtung erhalten oder sie wieder **Vom Elterngraphen übernehmen**. Verbindungen von inneren Knoten nach außen führen bei Pele zur Elternrichtung. Menü und Auswahlhinweis erklären dies; die eigene Richtung bleibt im Quelltext erhalten. Bestehende Gruppen dürfen beliebig tief verschachtelt werden; Selbstzuordnungen und zyklische Verschachtelungen werden abgelehnt. **Subgraph auflösen** oder **Entfernen/Rücktaste** bei ausgewähltem Subgraph erhält den Inhalt. Gruppen mit eigenen Verbindungen müssen vor dem Auflösen im Code angepasst werden. Gruppierungen prüfen die Eigenschaften aller Knoten, Verbindungen und Zielzuordnungen vor dem Speichern. Nach grafischen Änderungen werden Definitionen verlustfrei in ihren Gruppen verschachtelt und Verbindungen anschließend gesammelt ausgegeben. Die Ausgabe wird nur übernommen, wenn der vollständige öffentliche Pele-Graph dieselben Eigenschaften behält. Reines Tippen im Code löst keine automatische Umordnung aus. Kann eine andere grafische Änderung nicht eindeutig auf den vorhandenen Code abgebildet werden, bleibt der Code unverändert und die Oberfläche nennt den Grund.
-
-Im Markdown-Modus verwenden Beschriftungsdialoge den eingebetteten Obsidian-Editor mit Live Preview, Wiki-Links und der nativen Linkvervollständigung. Diese Vorschau gilt für das Beschriftungsfeld. Pele selbst rendert Wiki-Links, Markdown-Links, Obsidian-Markierungen und Einbettungen nicht als Obsidian-Markdown. Die aktuelle Quelldatei dient nur als Linkkontext; der Dialog bearbeitet ein isoliertes Dokument. Ein Wechsel zwischen Text und Markdown erhält den Inhalt. Die Einbettung nutzt eine geprüfte interne Obsidian-Schnittstelle nach dem Vorbild von [Excerpt Outline Mindmap Editor](https://github.com/kpaede/Excerpt-Outline-Mindmap-Editor) (MIT © 2025 Kornelius Paede; Lizenz unter `third-party/embedded-markdown-editor-LICENSE.txt` und im Bundle). Falls diese Schnittstelle künftig fehlt, bleibt ein Markdown-Quelltextfeld mit entsprechendem Hinweis verfügbar. Die Diagrammbeschriftungen selbst rendert weiterhin ausschließlich Pele.
-
-Farben lassen sich aus den benannten CSS-Farben, über ein freies Farbrad oder als HEX-/RGB-Wert auswählen. Flowcharts speichern Füllung, Rahmen, Text und Linien als reguläre Mermaid-Stile. Mindmaps verwenden die von Pele unterstützten Zweigpaletten; eine Palettenfarbe gilt für alle zugeordneten Zweige. **Auf Standard zurücksetzen** entfernt die betreffende explizite Angabe. Ohne explizite Farben bestimmt das Obsidian-Theme die Darstellung.
-
-Die Vorlagenliste enthält anfangs 58 Pele-Beispiele aus allen 32 Typen der [Pele-Beispielseite](https://pele.run/examples), mit Quelltext, Vorschau und direktem Einfügen. Alle Beispieltypen sind im Code bearbeitbar; die grafischen Werkzeuge sind zunächst auf Flowcharts und Mindmaps beschränkt. Die Beispiele sind lokal eingebunden (MIT © 2026 kepano; Lizenz in `third-party/pele-examples-LICENSE.txt` und im Bundle). Der Mermaid-Tokenizer stammt ebenfalls aus Pele (MIT © 2026 kepano; Lizenz in `third-party/pele-highlighting-LICENSE.txt` und im Bundle). Der Editor stellt zur Laufzeit keine Netzwerkverbindungen her.
-
-Bei Flowcharts bietet **Knoten verlinken** native Notiz- und Weblinks sowie das Entfernen einer Verlinkung. Notizlinks verwenden die Mermaid-Klasse `internal-link`: Der Notizname einschließlich eines optionalen Abschnitts wird zum Knotentext und Linkziel. Ein abweichender Wiki-Link-Alias wird dabei nicht als separates Anzeigeformat übernommen. Weblinks verwenden `click ID href "https://…"`. Im Diagrammeditor öffnet **Strg/Cmd + Klick** auf den Link das Ziel; ein einfacher Klick wählt den Knoten zur Bearbeitung. Im gerenderten Notizdiagramm übernimmt Obsidian die native Linknavigation. Mindmaps erhalten dadurch keine zusätzliche Linkfunktion. Siehe [Pele-Kompatibilität](https://pele.run/compatibility#labels) und [Obsidians Diagramm-Verlinkungen](https://help.obsidian.md/Editing+and+formatting/Advanced+formatting+syntax).
-
-Darstellung, Layout und Zoom übernimmt ausschließlich Obsidians integriertes Pele über `loadMermaid()` und `window.pele`. Eine zusätzliche Rendering-Bibliothek wird nicht mitgeliefert. Die Bedienhilfen liegen außerhalb des erzeugten SVGs; Positionen und Linienverläufe werden nicht manuell gespeichert.
-
-### Suche
-
-Die **Literaturangabe ist auswählbarer Text ohne Link**. Beim Überfahren der jeweiligen Literaturangabe erscheinen darunter dieselben sechs Symbolaktionen in Suche und Kontext: **ZotLit öffnen** (ZotLit-Logo), **Literaturnotiz öffnen**, **Zotero öffnen**, **Anhang öffnen**, **Zur Fundstelle** und **Citekey kopieren**. Ohne Hover benötigt die Aktionszeile keinen Platz. Beim Einblenden bleiben Literaturangabe und Scrollposition unverändert; nur die folgenden Einträge rücken nach unten. Mit Tastaturfokus erscheint sie ebenfalls; auf Geräten ohne Hover bleibt sie sichtbar. Der Citekey selbst erscheint nicht zusätzlich in der Liste; der Tooltip des Kopiersymbols zeigt den zu kopierenden Wert. Fehlende Anhänge oder Fundstellen werden durch deaktivierte Aktionen gekennzeichnet. Die Literaturnotiz wird über ZotLits eigene Öffnen-/Anlegen-Funktion erreicht; ein Mittelklick auf diese Aktion öffnet sie in einem neuen Tab. Unter **Einstellungen → Emergence → Daten → Citekey kopieren** sind `[@citekey]` (Voreinstellung), `@citekey` und `citekey` wählbar.
-
-Der letzte Tab mit der Lupe durchsucht alle Markdown-Notizen anhand von Titel, Alias und Tags. Zusätzlich fragt er über ZotLit die **gesamte verfügbare Zotero-Library einschließlich Gruppen-Libraries** ab. Weder die Ordnerauswahl für KI-Kandidaten noch die gerade geöffnete ZotLit-Sammlung begrenzt diese Suche. ZotLits gespeicherte Einstellungen werden dabei nicht verändert.
-
-- **Öffnen:** Notizen im Hauptbereich öffnen; Literaturangaben in der ZotLit Library auswählen.
-- **Erkunden:** bei Notiztreffern zum Graph-Tab wechseln und die Notiz dort fokussieren. Literaturangaben öffnen immer ihren ZotLit-Eintrag; sie werden nicht zu erfundenen Markdown-Knoten.
-- **Mittelklick:** Notizlinks in einem neuen Tab öffnen, auch beim Erkunden. Literaturangaben behalten ihre eigene Library-Aktion und öffnen per Mittelklick keinen weiteren Tab.
-
-Notiz- und Literaturtreffer stehen getrennt untereinander. Weitere Ergebnisse lassen sich nachladen. Eine fehlende Zotero-Verbindung wird bei den Literaturtreffern angezeigt; die Notizsuche bleibt verfügbar.
-
-## Lokale Verarbeitung und optionale Webquellen
-
-Graphindex und Suche arbeiten lokal über Obsidian und ZotLit. Für CSL-Daten bisher unzitierter Literatur kann zusätzlich ZotLits eigener HTTP-Client die konfigurierte lokale Zotero-API auf `127.0.0.1` anfragen; dabei werden nur die ausgewählten Zotero-Item-IDs übertragen. KI-Anfragen gehen über Obsidian `requestUrl` ausschließlich an den konfigurierten lokalen Ollama-Endpunkt. Sie enthalten die aktuelle Notiz, Feldbeschreibungen und gegebenenfalls Kandidatentitel sowie die ausdrücklich aktivierten externen Suchauszüge. Es gibt keine Telemetrie und keinen Cloud-Modell-Fallback.
-
-**Abbrechen:** Die Oberfläche beendet das Warten und verwirft verspätete Antworten. Obsidian `requestUrl` kann die bereits gestartete HTTP-Verbindung nicht physisch abbrechen; Ollama kann deshalb noch weiterrechnen. Bis zum tatsächlichen Abschluss lässt Emergence keine zweite lokale Anfrage an denselben Endpunkt zu. Ein bewusst eingestellter anderer Loopback-Endpunkt bleibt erreichbar. Größenlimits werden an der vom Host vollständig empfangenen Antwort vor der JSON-Verarbeitung geprüft. Die native API folgt HTTP-Weiterleitungen; der konfigurierte lokale Dienst muss daher vertrauenswürdig sein.
-
-**Websuche ist optional und ohne Anmeldung nutzbar.** DuckDuckGos öffentliche HTML-Suche liefert Titel und Vorschautexte aus höchstens zwei Ergebnisseiten, insgesamt höchstens 20 unterschiedliche Treffer. Nur der sichtbare Suchbegriff mit dem gewählten Zusatz „Beispiele“ oder „Kunstwerke“ wird gesendet. Zielseiten werden nicht automatisch geöffnet. Suchtreffer werden im Modellkontext begrenzt und als externes Datenmaterial behandelt. Bei Sperrprüfungen oder Ausfällen wird der tatsächliche Status angezeigt; es gibt keine Umgehung oder erfundenen Treffer. Die HTML-Anbindung ist keine zugesicherte Such-API und kann sich ändern.
-
-**Wikipedia ist ebenfalls optional.** Bei eingeschaltetem Haken wird der angegebene Begriff an Wikipedia geschickt und ein begrenzter Auszug mit Quellenangabe als zusätzlicher Modellkontext verwendet. Notiztexte werden nicht als Wikipedia-Suchanfrage übertragen. Ohne Haken erfolgt keine neue Wikipedia-Abfrage. Das Modell kann nicht selbstständig im Web browsen.
-
-Plugin-Einstellungen und das Änderungsjournal liegen in Obsidian-typischem `data.json`. Feldideen und Suchtreffer bleiben nur im Arbeitsspeicher; sie werden beim Entladen gelöscht. Persönliche Einstellungen, Vault-Inhalte und lokale Prüfberichte gehören nicht ins Repository.
-
-## Entwicklungsstand und Community-Prüfung
-
-Der aktuelle Quellcode entfernt den früheren Recherchebereich vollständig. Die lokale KI bleibt für Breadcrumbs-Feldideen erhalten. Der bereits veröffentlichte Release 0.0.1 enthält noch den früheren Funktionsumfang.
-
-
-Version **0.0.1** verwendet die unveränderliche ID `emergence`. Manifest, Paketversion, `versions.json`, exakter Git-Tag und Einzeldateien werden vor der Veröffentlichung geprüft. GitHub Actions führt Build, Tests, Lint und einen Produktionsabhängigkeits-Audit aus, erstellt zunächst einen Entwurf und veröffentlicht ihn erst nach Download und Prüfsummenvergleich der Assets. Generierte Bundles werden ausschließlich als Release-Assets veröffentlicht.
-
-Die offizielle automatische Obsidian-Prüfung ist ein eigener Schritt: Im [Community-Verzeichnis](https://community.obsidian.md) mit dem Obsidian-Konto anmelden, GitHub verknüpfen und das Repository als Plugin hinzufügen. Danach zeigt das Verzeichnis die Prüfergebnisse. Ein GitHub-Release allein startet diese Prüfung nicht. Siehe [offizielle Einreichungsanleitung](https://docs.obsidian.md/plugins/releasing/submit-plugin).
-
-## Grenzen und Entwicklung
-
-Die Modellvorschläge können fachlich falsch sein und bleiben eine Denkhilfe. Große Kontextmengen und lokale Hardware beeinflussen die Laufzeit. Die ZotLit-Integration kapselt eine interne, nicht als dauerhaft stabil zugesicherte `services`-Schnittstelle; inkompatible Versionen können Anpassungen erfordern. Auch die Einbettung der Originalansichten benötigt einen isolierten Adapter an Obsidian-interne View-Factories und deren Lebenszyklus, da die öffentliche API hierfür keine Einbettungsschnittstelle anbietet. Er prüft die benötigten Methoden, räumt die erzeugten View-Komponenten beim Schließen auf und zeigt Ladefehler im betreffenden Abschnitt an. Getestet ist die aktuelle Desktop-Entwicklungsumgebung mit Breadcrumbs 4.22.1 und ZotLit 2.2. Fehlende oder mehrdeutige Literaturzuordnungen werden angezeigt, statt willkürlich ein Ziel zu öffnen.
-
-```sh
-npm run dev        # Entwicklung mit automatischem Bundle-Build
-npm run build      # TypeScript-Prüfung und Produktionsbundle
-npm test           # Unit- und Integrationstests mit lokalen Fixtures
-npm run lint       # ESLint einschließlich Obsidian-Regeln
-npm run test:ux          # Tabs und Theme-Linkzustände bei 280/328 Pixeln
-npm run test:argdown-context-ui # Drei Ziehgriffe, Typauswahl und Unterabschnitte
-npm run test:diagram-library-ui # Gemeinsame Vorlagen, Favoriten und native Hover-Vorschauen
-npm run test:argdown-presentation-ui # Native Farben, Darstellung und kanonischer Text
-npm run test:argdown-reliability-ui # Langsame Hover-Wege und automatische Referenzen
-npm run test:argdown-derivation-ui # Editierbare Herleitung neben Code, Sichtbarkeit, Verweise, Filter, Undo
-npm run test:argdown-ui  # Native Argdown-Ziehgesten, Abschnitte, Vorlagen und gezieltes Live-Speichern
-npm run test:mermaid-ui  # Native Pele-, Interaktions- und Speicherprüfung mit temporärer Testnotiz
-npm run test:mermaid-editing-ui # Doppelklick, Beschriftungsmodi, Entfernen, Richtungen, Quelltext und Gruppenablage
-npm run test:mermaid-gestures-ui # Maus-Doppelklick, kompakte Symbole, Kind-Gesten, nativer Markdown-Editor
-npm run test:mermaid-library-ui # Subgraph-Verbindungen, native Links, persönliche Vorlagen, Stiftabstand
-npm run test:literature-scroll # Hover ohne Sprünge in Kontext und Suche
-npm run test:literature-ui # Literaturaktionen, Rückverweise, Umbenennung und Screenshots
-npm run test:settings-ui # Native Settings-Suche, Entwürfe und schmale Editoren
-node scripts/synopsis-native-check.mjs --layout-only # Synthetischer Graph-Stresstest ohne Datei-/Navigationsaktionen
-npm run test:native-views # Originalansichten und Literaturaktionen in Obsidian
-```
-
-Die optionalen Tests gegen ein installiertes Modell werden mit `npm run test:ollama` gestartet. Native UI-Prüfungen benötigen eine laufende Obsidian-Entwicklungsinstanz mit aktivierter CLI. Dafür `OBSIDIAN_VAULT` auf den Namen des Test-Vaults setzen; bei Bedarf `OBSIDIAN_CLI` auf das ausführbare Programm. Manche ältere Prüfskripte sind auf die ursprüngliche Entwicklungsumgebung zugeschnitten und gehören nicht zur portablen Testsuite.
-
-Die Implementierung liegt in `src/`, Tests mit synthetischen Notizen in `tests/`. [Aktuelle Prüfungen und technische Entscheidungen](docs/VALIDATION.md) beschreiben die jüngsten Änderungen. Architekturentscheidungen orientieren sich an der [offiziellen Obsidian-API](https://github.com/obsidianmd/obsidian-api) und den tatsächlich vorhandenen Breadcrumbs- und ZotLit-Schnittstellen.
-
-Lizenz: [Zero-Clause BSD](LICENSE).
+License: [Zero-Clause BSD](LICENSE). Component licenses and notices are included in [third-party](third-party/).
