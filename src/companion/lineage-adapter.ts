@@ -27,7 +27,7 @@ export interface LineageSession {save():Promise<void>}
 /** Compose the native writable store at the host boundary; its methods stay intact. */
 export function adaptLineage(view:NativeView,read:()=>string,report:(error:unknown)=>void):LineageSession{
  const original=view.documentStore;if(!original?.subscribe||!original.set)throw new Error(t('companion.nativeUnavailable'));
- let ready=false;
+ let ready=false,emptyPlaceholder:string|undefined;
  const store:NativeStore={
   getValue:()=>original.getValue(),
   subscribe:callback=>original.subscribe!(callback),
@@ -37,6 +37,7 @@ export function adaptLineage(view:NativeView,read:()=>string,report:(error:unkno
     if(action.type==='document/file/load-from-disk'){
      ready=false;const {header,body}=splitProjection(read()),payload=action.payload as Record<string,unknown>,state=original.getValue(),file=state.file as {frontmatter:string};
      file.frontmatter='---\n'+header+'\n---\n';const document=lineageDocument(body);
+     emptyPlaceholder=body.trim()?undefined:Object.keys(document.content)[0];
      original.dispatch({...action,payload:{...payload,__test_document__:document}});
      if(lineageOutline(original.getValue().document as LineageDocument)!==lineageOutline(document))throw new Error(t('companion.nativeUnavailable'));
      ready=true;
@@ -45,5 +46,10 @@ export function adaptLineage(view:NativeView,read:()=>string,report:(error:unkno
   },
  };
  view.documentStore=store;
- return {async save(){if(!ready)return;try{const body=lineageOutline(store.getValue().document as LineageDocument),header=splitProjection(read()).header;view.data='---\n'+header+'\n---\n'+body;await view.save();}catch(error){report(error);}}};
+ return {async save(){if(!ready)return;try{
+  const document=store.getValue().document as LineageDocument,outline=lineageOutline(document),current=splitProjection(read());
+  // Lineage needs one editable start node. Its untouched placeholder is not a real entry.
+  const untouched=emptyPlaceholder!==undefined&&outline==='- '&&Object.keys(document.content).length===1&&document.content[emptyPlaceholder]?.content==='';
+  view.data='---\n'+current.header+'\n---\n'+(untouched?current.body:outline);await view.save();if(!untouched)emptyPlaceholder=undefined;
+ }catch(error){report(error);}}};
 }

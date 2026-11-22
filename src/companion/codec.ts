@@ -25,8 +25,9 @@ export function parseCompanion(text:string):CompanionDocument{
 export function serializeCompanion(document:CompanionDocument):string{
  const yaml=parseDocument(document.header||'');if(yaml.errors.length)throw new Error(t('companion.invalid'));
  yaml.set('emergence-companion-version',2);yaml.set('emergence-companion-id',document.id);yaml.set('emergence-main-document',`[[${document.source.replace(/\.md$/u,'')}]]`);
- const metadata:Record<string,unknown>={};for(const s of document.sections)metadata[s.id]={state:s.state,...(s.format===2?{format:2}:{}),...s.base?{base:{title:s.base.title,level:s.base.level,index:s.base.index,from:s.base.from,line:s.base.line,parent:s.base.parent,body:s.base.body}}:{}};yaml.set('emergence-sections',metadata);
- if(document.sections.length&&document.sections.every(s=>s.format===2))yaml.set('eome-outline-format',2);else yaml.delete('eome-outline-format');
+ const globalFormat=document.sections.length>0&&document.sections.every(s=>s.format===2);
+ const metadata:Record<string,unknown>={};for(const s of document.sections)metadata[s.id]={state:s.state,...(s.format===2&&!globalFormat?{format:2}:{}),...s.base?{base:{title:s.base.title,level:s.base.level,index:s.base.index,from:s.base.from,line:s.base.line,parent:s.base.parent,body:s.base.body}}:{}};yaml.set('emergence-sections',metadata);
+ if(globalFormat)yaml.set('eome-outline-format',2);else yaml.delete('eome-outline-format');
  const nl=document.newline,header=yaml.toString({lineWidth:0}).trimEnd().replace(/\r?\n/gu,nl),role=yaml.get('emergence-companion-role'),index=role==='index'||role!=='section'&&yaml.getIn(['emergence-storage','mode'])==='sections';
  return '---'+nl+header+nl+'---'+nl+document.preamble+document.sections.map((s,i)=>`${'#'.repeat(s.level)} ${s.title} <!-- em-section:${s.id} -->${nl}${(index?s.raw:stripThoughtIds(s)).replace(/\r?\n/gu,nl)}${i<document.sections.length-1&&s.raw&&!s.raw.endsWith('\n')?nl:''}`).join('');
 }

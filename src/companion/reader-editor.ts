@@ -4,7 +4,7 @@ import {EditorState,StateEffect} from '@codemirror/state';
 import {MermaidMarkdownEditor} from '../mermaid/markdown-editor';
 import {cursorIsInMarkdownList,waitForListContext} from './reader-list-context';
 import {t} from '../i18n';
-import {iconButton} from '../ui/panel';
+import {iconButton,relabelIcon} from '../ui/panel';
 
 interface SuggestWorkspace {editorSuggest?:{currentSuggest?:{context?:{editor?:unknown};close?():void}}}
 export interface ReaderEditOptions {singleLine?:boolean;adding?:boolean;remove?():void}
@@ -16,14 +16,14 @@ export class ReaderEditor extends Component {
   this.markdown=this.addChild(new MermaidMarkdownEditor(app,surface,value,file,app.scope,()=>{void this.commit();},()=>{if(!this.pending&&!this.completing())this.cancel();},{
    onEnter:(view,mod,shift)=>this.enter(view,mod,shift),onBlur:()=>this.blurred(),onEscape:()=>this.escape(),onDelete:()=>{if(!this.pending)this.options.remove?.();},selectAll:true,inline:true,
   }));
-  this.markdown.native.cm.contentDOM.setAttribute('aria-label',t('companion.thoughtText'));
-  surface.setAttribute('title',t(this.options.singleLine?'companion.readerEditSingleHelp':'companion.readerEditHelp'));
   const actions=host.createDiv({cls:'em-reader-editor-actions'}),apply=iconButton(actions,'check',t(options.adding?'companion.addSibling':'companion.saveThought'),()=>{void this.commit();}),close=iconButton(actions,'x',t('companion.cancel'),()=>{if(!this.pending)this.cancel();});
+  this.refreshLanguage();
   // Clicking our buttons must not trigger blur-save before Cancel is handled.
   for(const button of [apply,close])this.registerDomEvent(button,'mousedown',event=>event.preventDefault());
   this.registerDomEvent(host,'keydown',event=>{if(event.key==='Escape'&&!event.defaultPrevented&&!event.isComposing&&this.escape())event.preventDefault();event.stopPropagation();});this.register(()=>{this.disposed=true;if(this.blurTimer)window.clearTimeout(this.blurTimer);host.remove();});
  }
  get value():string{return this.markdown.value;}
+ refreshLanguage():void{this.markdown.native.cm.contentDOM.setAttribute('aria-label',t('companion.thoughtText'));this.host.querySelector('.em-reader-editor-surface')?.setAttribute('title',t(this.options.singleLine&&this.markdown.native.cm.state.doc.lines===1?'companion.readerEditSingleHelp':'companion.readerEditHelp'));const buttons=this.host.querySelectorAll<HTMLButtonElement>('.em-reader-editor-actions button');if(buttons[0])relabelIcon(buttons[0],t(this.options.adding?'companion.addSibling':'companion.saveThought'));if(buttons[1])relabelIcon(buttons[1],t('companion.cancel'));}
  focus():void{this.markdown.focus();}
  private completing():boolean{const suggest=(this.app.workspace as SuggestWorkspace).editorSuggest?.currentSuggest;return !!suggest&&suggest.context?.editor===this.markdown?.native.editor;}
  private escape():boolean{

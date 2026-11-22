@@ -30,6 +30,9 @@ data.json
 !/docs/ARGDOWN_GUIDE_AUDIT.md
 !/docs/companion-presentation.md
 !/docs/hierarchy-reader.md
+!/docs/COMPANION_AUDIT.md
+!/docs/eome-host-capability.md
+!/docs/eome-host-capability.patch
 !/docs/PLUGIN_AUDIT.md
 
 # Generated release artifacts

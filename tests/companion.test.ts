@@ -1,3 +1,4 @@
+import {parseDocument} from 'yaml';
 import {reindentSubtree,subtreeEnd,indentColumns,childIndent} from '../src/companion/indentation';
 import {describe,it,expect} from 'vitest';
 import {sourceHeadings,outlineKey} from '../src/companion/headings';
@@ -21,6 +22,8 @@ describe('Companion Markdown identity and preservation',()=>{
  it('stores its source link only in companion YAML and round trips marked thoughts and unrelated YAML',()=>{
   let doc=add(document()).document;doc.header='custom: "untouched"\n# keep this comment\n';const text=serializeCompanion(doc),parsed=parseCompanion(text);expect(parsed.source).toBe('Texte/Arbeit.md');expect(parsed.sections.map(s=>s.id)).toEqual(doc.sections.map(s=>s.id));expect(thoughts(parsed.sections[0]!)[0]?.text).toBe('Gedanke');const next=serializeCompanion(parsed);expect(next).toContain('custom: "untouched"');expect(next).toContain('# keep this comment');expect(next).toBe(text);expect(source).not.toContain('em-section');
  });
+ it('stores a shared outline format once instead of repeating it for every section',()=>{const doc=document();for(const section of doc.sections)section.format=2;const text=serializeCompanion(doc),parsed=parseCompanion(text),yaml=parseDocument(parsed.header);expect(yaml.get('eome-outline-format')).toBe(2);for(const section of doc.sections)expect(yaml.hasIn(['emergence-sections',section.id,'format'])).toBe(false);expect(parsed.sections.every(section=>section.format===2)).toBe(true);expect(serializeCompanion(parsed)).toBe(text);});
+ it('retains local format markers when old and multiline sections coexist',()=>{const doc=document();delete doc.sections[0]!.format;doc.sections[1]!.format=2;const parsed=parseCompanion(serializeCompanion(doc)),yaml=parseDocument(parsed.header);expect(yaml.has('eome-outline-format')).toBe(false);expect(yaml.getIn(['emergence-sections',doc.sections[1]!.id,'format'])).toBe(2);expect(parsed.sections[0]!.format).toBeUndefined();expect(parsed.sections[1]!.format).toBe(2);});
  it('preserves blank lines, CRLF and arbitrary non-list content without duplicating source headings',()=>{
   const doc=document();doc.newline='\r\n';doc.sections[0]!.raw='\r\n- A <!-- em-note:n-1 -->\r\n\r\n';const parsed=parseCompanion(serializeCompanion(doc));expect(parsed.sections[0]!.raw).toBe('\r\n- A\r\n\r\n');expect(serializeCompanion(parsed)).not.toContain('em-note:');expect(serializeCompanion(parsed).replace(/\r\n/gu,'')).not.toContain('\n');
  });

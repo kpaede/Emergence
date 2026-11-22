@@ -6,7 +6,7 @@ import {parseDocument} from 'yaml';
 
 const sameText=(left:string,right:string)=>left.replace(/\r\n/gu,'\n')===right.replace(/\r\n/gu,'\n');
 function retainUnambiguous(section:CompanionSection,before:CompanionSection):CompanionSection{
- const old=thoughts(before),nodes=thoughts(section),key=(node:typeof nodes[number])=>JSON.stringify([node.text,node.indent]),oldKeys=new Map<string,string[]>(),newCounts=new Map<string,number>();
+ const old=thoughts(before),nodes=thoughts(section),key=(node:typeof nodes[number])=>node.text,oldKeys=new Map<string,string[]>(),newCounts=new Map<string,number>();
  for(const node of old){const k=key(node),ids=oldKeys.get(k)??[];ids.push(node.id);oldKeys.set(k,ids);}for(const node of nodes)newCounts.set(key(node),(newCounts.get(key(node))??0)+1);
  const chunks:string[]=[];let offset=0;for(const node of nodes){const ids=oldKeys.get(key(node));if(ids?.length!==1||newCounts.get(key(node))!==1||ids[0]===node.id)continue;const marker=' <!-- em-note:'+node.id+' -->',start=section.raw.lastIndexOf(marker,node.lineTo);if(start<node.lineFrom)continue;chunks.push(section.raw.slice(offset,start),' <!-- em-note:'+ids[0]+' -->');offset=start+marker.length;}
  chunks.push(section.raw.slice(offset));return {...section,raw:chunks.join('')};

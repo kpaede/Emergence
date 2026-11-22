@@ -20,7 +20,7 @@ async function check(){
   }
   return checks;
  }finally{
-  await p.native.close();for(const modal of p.dialogs)modal.close();await service.flush().catch(()=>{});if(leaf){await leaf.view.save?.();leaf.detach();}for(const [key,draft]of service.drafts)if(draft.path.startsWith(root+'/'))service.drafts.delete(key);const folder=app.vault.getAbstractFileByPath(root);if(folder)await app.vault.delete(folder,true);await plugin.saveSettings();p.path=saved.path;p.sourcePath=saved.sourcePath;p.creationMode=saved.creationMode;p.selected=saved.selected;p.pinned=saved.pinned;view.controller.activePath=saved.active;view.switchTab(saved.tab);if(saved.leaf)app.workspace.setActiveLeaf(saved.leaf,{focus:false});if(app.vault.getFiles().length!==saved.files)throw Error('Storage fixture cleanup failed.');
+  await p.native.close();for(const modal of p.dialogs)modal.close();await service.flush().catch(()=>{});if(leaf){await leaf.view.save?.();leaf.detach();}const folder=app.vault.getAbstractFileByPath(root);if(folder)await app.vault.delete(folder,true);await plugin.saveSettings();p.path=saved.path;p.sourcePath=saved.sourcePath;p.creationMode=saved.creationMode;p.selected=saved.selected;p.pinned=saved.pinned;view.controller.activePath=saved.active;view.switchTab(saved.tab);if(saved.leaf)app.workspace.setActiveLeaf(saved.leaf,{focus:false});if(app.vault.getFiles().length!==saved.files)throw Error('Storage fixture cleanup failed.');
  }
 }
 evaluate(`(()=>{window.__emCompanionCheck={done:false};(${check.toString()})().then(checks=>window.__emCompanionCheck={done:true,checks}).catch(error=>window.__emCompanionCheck={done:true,failure:error.stack,checks:window.__emCompanionProgress});return true;})()`);

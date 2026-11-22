@@ -1213,7 +1213,6 @@
 .em-companion-review, .em-companion-recovery { flex: none; max-height: 140px; overflow: auto; padding: 6px 8px; font-size: var(--font-ui-small); }
 .em-companion-review { background: var(--background-secondary); border-bottom: 1px solid var(--em-companion-border); }
 .em-companion-review select { max-width: 100%; margin: 5px 5px 0 0; }
-.em-companion-draft { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
 .em-companion-native-error:empty, .em-companion-message:empty, .em-companion-review:empty, .em-companion-recovery:empty { display: none; }
 .em-companion-start { flex: 1; min-height: 0; overflow: auto; padding: 16px; color: var(--text-normal); font-size: var(--font-ui-small); }
 .em-companion-start h3 { margin: 0 0 8px; font-size: var(--font-ui-medium); }
@@ -1238,3 +1237,5 @@
 .em-heading-line { min-height: 20px; }
 
 .em-hierarchy-reader.is-editing .em-reader-node-tools { pointer-events: none; opacity: .45; }
+
+.em-reader-stream.is-append-target::after { content: ''; display: block; height: 12px; margin-top: 2px; border-top: 2px solid var(--interactive-accent); pointer-events: none; }

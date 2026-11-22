@@ -26,8 +26,11 @@ export function mergeNativeOutline(section:CompanionSection,text:string):string{
  validateNativeProjection(text);
  const {body}=splitProjection(text);if(body.endsWith('...[truncated]'))throw new Error(t('companion.nativeOutlineOnly'));
  const oldNodes=thoughts(section);sectionOutline(section);const raw=markMultiline(body,false),next={...section,plain:false,format:2 as const,raw},newNodes=thoughts(next),used=new Set<string>(),assigned=new Map<string,string>();
- const match=(key:(node:typeof oldNodes[number])=>string)=>{const old=new Map<string,typeof oldNodes>();for(const node of oldNodes)if(!used.has(node.id)){const value=key(node),list=old.get(value)??[];list.push(node);old.set(value,list);}for(const node of newNodes)if(!assigned.has(node.id)){const candidate=old.get(key(node))?.shift();if(candidate){used.add(candidate.id);assigned.set(node.id,candidate.id);}}};
- match(node=>JSON.stringify([node.text,node.indent]));match(node=>node.text);
- const before=oldNodes.filter(node=>!used.has(node.id)),after=newNodes.filter(node=>!assigned.has(node.id));if(before.length===after.length)for(let i=0;i<after.length;i++)assigned.set(after[i]!.id,before[i]!.id);
+ const oldByText=new Map<string,typeof oldNodes>(),newByText=new Map<string,typeof newNodes>();
+ for(const node of oldNodes){const list=oldByText.get(node.text)??[];list.push(node);oldByText.set(node.text,list);}for(const node of newNodes){const list=newByText.get(node.text)??[];list.push(node);newByText.set(node.text,list);}
+ const ambiguous=(text:string)=>(oldByText.get(text)?.length??0)>1||(newByText.get(text)?.length??0)>1;
+ for(const node of newNodes){const candidates=oldByText.get(node.text);if(!ambiguous(node.text)&&candidates?.length===1){used.add(candidates[0]!.id);assigned.set(node.id,candidates[0]!.id);}}
+ // A single unambiguous rename can retain its reference; multiple edits are never paired by position.
+ const before=oldNodes.filter(node=>!used.has(node.id)&&!ambiguous(node.text)),after=newNodes.filter(node=>!assigned.has(node.id)&&!ambiguous(node.text));if(before.length===1&&after.length===1)assigned.set(after[0]!.id,before[0]!.id);
  const chunks:string[]=[];let offset=0;for(const node of newNodes){const id=node.id,replacement=assigned.get(id)??id,start=node.lineTo-` <!-- em-note:${id} -->`.length;chunks.push(raw.slice(offset,start),` <!-- em-note:${replacement} -->`);offset=node.lineTo;}chunks.push(raw.slice(offset));return chunks.join('');
 }

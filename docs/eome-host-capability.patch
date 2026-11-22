@@ -1,0 +1,45 @@
+diff --git a/src/view/mindmap-view.ts b/src/view/mindmap-view.ts
+--- a/src/view/mindmap-view.ts
++++ b/src/view/mindmap-view.ts
+@@ -93,6 +93,8 @@
+ export type { LayoutOptions, MindmapViewState };
+ 
+ export class MindmapView extends TextFileView {
++  /** Host capability; standalone views keep structural heading commands. */
++  public supportsStructuralHeadings = true;
+   public file: TFile | null = null;
+   public cy?: Core;
+   public wrapper!: HTMLDivElement;
+@@ -1466,7 +1468,7 @@
+   }
+ 
+   public async executeAddHeadingCommand(node: OutlineNode): Promise<void> {
+-    if (!this.file) return;
++    if (!this.file || !this.supportsStructuralHeadings) return;
+ 
+     const rootNode = this.getHeadingInsertionNodeForNode(node);
+     const beforeState = this.data;
+diff --git a/src/view/context-menu.ts b/src/view/context-menu.ts
+--- a/src/view/context-menu.ts
++++ b/src/view/context-menu.ts
+@@ -123,12 +123,14 @@
+       });
+     }
+ 
+-    menu.addItem((item) => {
+-      item
+-        .setTitle('Add heading for this tree')
+-        .setIcon('heading')
+-        .onClick(() => void view.executeAddHeadingCommand(targetNode));
+-    });
++    if (view.supportsStructuralHeadings) {
++      menu.addItem((item) => {
++        item
++          .setTitle('Add heading for this tree')
++          .setIcon('heading')
++          .onClick(() => void view.executeAddHeadingCommand(targetNode));
++      });
++    }
+ 
+     if (selectionIsBullets) {
+       menu.addItem((item) => {

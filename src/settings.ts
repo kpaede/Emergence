@@ -14,7 +14,8 @@ import type {SettingsContext} from './ui/settings/context';
 import {settingsDefinitions, type SettingsSection} from './ui/settings/definitions';
 import {validTemplateFolder,type TemplateKind} from './diagrams/template-notes';
 import {features,featureEnabled,type Feature} from './features';
-import {companionStorageDefaults,validStorage} from './companion/preferences';
+import {companionStorageDefaults,validStorage,defaultCompanionView,validCompanionView} from './companion/preferences';
+import {companionViews} from './companion/native-types';
 interface EditorMount {section:SettingsSection;body:HTMLElement;message:HTMLElement;saveButton:HTMLButtonElement;discardButton:HTMLButtonElement;cleanups:(()=>void)[]}
 export class EmergenceSettingsTab extends PluginSettingTab {
  private draft?: Settings; private field = '';
@@ -36,7 +37,9 @@ export class EmergenceSettingsTab extends PluginSettingTab {
    });
  }
  private enableDefinition(feature:Feature):SettingDefinitionItem{return {name:tr('settings.featureEnabled'),desc:tr('settings.featureEnabledHelp'),control:{type:'toggle',key:'feature_'+feature,defaultValue:true,disabled:()=>this.saving}};}
- private companionDefinitions():SettingDefinitionItem[]{return [this.enableDefinition('companion'),{name:tr('companion.storageDefaults'),desc:tr('companion.defaultsHelp')},
+ private companionDefinitions():SettingDefinitionItem[]{return [this.enableDefinition('companion'),
+  {name:tr('companion.defaultView'),desc:tr('companion.defaultViewHelp'),control:{type:'dropdown',key:'companion_defaultView',defaultValue:'reader',options:Object.fromEntries(companionViews.map(mode=>[mode,tr(`companion.${mode}`)])),disabled:()=>this.saving}},
+  {name:tr('companion.storageDefaults'),desc:tr('companion.defaultsHelp')},
   {name:tr('companion.storageMode'),control:{type:'dropdown',key:'companion_mode',defaultValue:'document',options:{document:tr('companion.oneDocument'),sections:tr('companion.perHeading')},disabled:()=>this.saving}},
   {name:tr('companion.storageLocation'),control:{type:'dropdown',key:'companion_location',defaultValue:'subfolder',options:{beside:tr('companion.beside'),subfolder:tr('companion.subfolder'),folder:tr('companion.separateFolder')},disabled:()=>this.saving}},
   {name:tr('companion.subfolderName'),desc:tr('companion.subfolderHelp'),control:{type:'text',key:'companion_subfolder',defaultValue:'Companions',disabled:()=>this.saving}},
@@ -48,7 +51,7 @@ export class EmergenceSettingsTab extends PluginSettingTab {
    {name:tr('settings.templateFolder'),desc:tr('settings.templateFolderHelp'),control:{type:'folder',key:kind+'TemplateFolder',defaultValue:'',includeRoot:false,filter:folder=>validTemplateFolder(folder.path,this.app.vault.configDir),disabled:()=>this.saving}},
    {name:tr('settings.templateFolderRefresh'),desc:library.folderStatus||tr('settings.templateFolderCount',{count:library.list().filter(item=>item.path).length}),render:setting=>{setting.addButton(button=>button.setButtonText(tr('settings.templateFolderRefresh')).onClick(()=>{void this.plugin.controller.run(async()=>{await library.refresh();this.update();});}));}}];
  }
- override getControlValue(key:string):unknown{const feature=features.find(feature=>key==='feature_'+feature);if(feature)return featureEnabled(this.plugin.settings,feature);if(key.startsWith('companion_'))return companionStorageDefaults(this.plugin.settings)[key.slice(10) as keyof import('./companion/model').StorageOptions];if(key==='mermaidTemplateFolder'||key==='argdownTemplateFolder')return this.plugin.settings.templateFolders?.[key==='mermaidTemplateFolder'?'mermaid':'argdown']??'';return super.getControlValue(key);}
+ override getControlValue(key:string):unknown{const feature=features.find(feature=>key==='feature_'+feature);if(feature)return featureEnabled(this.plugin.settings,feature);if(key==='companion_defaultView')return defaultCompanionView(this.plugin.settings);if(key.startsWith('companion_'))return companionStorageDefaults(this.plugin.settings)[key.slice(10) as keyof import('./companion/model').StorageOptions];if(key==='mermaidTemplateFolder'||key==='argdownTemplateFolder')return this.plugin.settings.templateFolders?.[key==='mermaidTemplateFolder'?'mermaid':'argdown']??'';return super.getControlValue(key);}
  private async setTemplateFolder(kind:TemplateKind,path:string):Promise<void>{
   path=path.trim().replace(/\/+$/u,'');if(!validTemplateFolder(path,this.app.vault.configDir))throw new Error(tr('settings.invalidTemplateFolder'));
   const previous=this.plugin.settings.templateFolders;this.saving=true;this.updateSave();this.refreshDomState();
@@ -59,10 +62,14 @@ export class EmergenceSettingsTab extends PluginSettingTab {
  }
  override async setControlValue(key:string,value:unknown):Promise<void> {
   if(key.startsWith('companion_')&&typeof value==='string'&&!this.saving){
+   if(key==='companion_defaultView'){
+    if(!validCompanionView(value))throw new Error(tr('companion.invalidView'));const previous=this.plugin.settings.companion;this.saving=true;this.updateSave();this.refreshDomState();
+    try{this.plugin.settings.companion={...previous,storage:companionStorageDefaults(this.plugin.settings),defaultView:value};await this.plugin.saveSettings();if(this.draft)this.draft.companion=clone(this.plugin.settings.companion);}catch(error){this.plugin.settings.companion=previous;throw error;}finally{this.saving=false;this.updateSave();this.refreshDomState();}return;
+   }
    const field=key.slice(10);if(!['mode','location','folder','subfolder'].includes(field))return;
    const storage={...companionStorageDefaults(this.plugin.settings),[field]:value.trim()};if(!validStorage(storage))throw new Error(tr('companion.invalidStorage'));
    const previous=this.plugin.settings.companion;this.saving=true;this.updateSave();this.refreshDomState();
-   try{this.plugin.settings.companion={storage};await this.plugin.saveSettings();if(this.draft)this.draft.companion={storage:{...storage}};}catch(error){this.plugin.settings.companion=previous;throw error;}finally{this.saving=false;this.updateSave();this.refreshDomState();}return;
+   try{this.plugin.settings.companion={...previous,storage};await this.plugin.saveSettings();if(this.draft)this.draft.companion=clone(this.plugin.settings.companion);}catch(error){this.plugin.settings.companion=previous;throw error;}finally{this.saving=false;this.updateSave();this.refreshDomState();}return;
   }
   const feature=features.find(feature=>key==='feature_'+feature);
   if(feature&&typeof value==='boolean'&&!this.saving){

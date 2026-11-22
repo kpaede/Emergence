@@ -14,17 +14,16 @@ import {reconcile} from './reconcile';
 import {markThoughts,validateThoughts,applyThought,restoreThought,type ThoughtOperation,type OperationResult} from './thoughts';
 import {readNote,validPath,sourceEditor} from './repository';
 import {mapAnchors} from './live';
-import {companionStorageDefaults,validStorage} from './preferences';
+import {companionStorageDefaults,validStorage,defaultCompanionView} from './preferences';
 import {cachedOutline,liveOutline} from './native-outline';
 import type {SourceHeading} from './model';
 import {mergeNativeOutline} from './native-projection';
-import type {CompanionViewMode,NativeDraft,NativeOption,NativeKind} from './native-types';
+import type {CompanionViewMode,NativeOption,NativeKind} from './native-types';
 import {sessionThoughts,storedThoughtIds} from './thought-session';
 import {prepareChapterFile as prepareChapter,type ChapterFilePlan} from './chapter-recovery';
 
 interface Runtime extends PairState {queue:Promise<void>;timer?:number;anchors:Map<string,number>;liveDoc?:Text;anchorDoc?:Text;anchorSource?:string;undo:HistoryAction[];redo:HistoryAction[];document?:CompanionDocument;working:boolean;outlineSource?:'editor'|'cache'|'fallback';relocation?:Promise<void>}
 type HistoryAction={operation:ThoughtOperation}|{restore:NonNullable<OperationResult['restore']>}|{batch:HistoryAction[]};
-export interface CompanionDraft {path:string;section:string;id?:string;expected:string;text:string;target?:string;placement?:import('./thoughts').Placement}
 export class CompanionService extends Component {
  private layout:CompanionLayout=companionLayout(undefined);
  private thoughtSelection=new Map<string,string>();
@@ -32,16 +31,13 @@ export class CompanionService extends Component {
  private pairs=new Map<string,Runtime>();private listeners=new Set<()=>void>();private writing=new Set<string>();private saveTimer?:number;private started=false;private disposed=false;
  private transactions:CompanionTransactions;
  private outlineCache=new Map<string,{source:string;headings:SourceHeading[]}>();private positions=new Map<string,number>();private positionListeners=new Set<(source:string,line:number)=>void>();
- readonly drafts=new Map<string,CompanionDraft>();
- readonly nativeDrafts=new Map<string,NativeDraft>();private nativeOptions=new Map<string,NativeOption>();private viewModes=new Map<string,CompanionViewMode>();
+ private nativeOptions=new Map<string,NativeOption>();private viewModes=new Map<string,CompanionViewMode>();
  readonly metrics={sourceAnalyses:0,writes:0,liveEvents:0};
  constructor(readonly app:App,data:unknown,private settings:()=>Settings,private persist:()=>Promise<void>){
-  super();const saved=data&&typeof data==='object'?data as {pairs?:PairState[];drafts?:CompanionDraft[];pending?:unknown;layout?:unknown;nativeDrafts?:NativeDraft[];nativeOptions?:NativeOption[];viewModes?:[string,CompanionViewMode][]}:{};
+  super();const saved=data&&typeof data==='object'?data as {pairs?:PairState[];pending?:unknown;layout?:unknown;nativeOptions?:NativeOption[];viewModes?:[string,CompanionViewMode][]}:{};
   this.layout=companionLayout(saved.layout);
   this.transactions=new CompanionTransactions(app,persist,saved.pending,path=>[...this.pairs.values()].some(pair=>pair.source===path));
   for(const p of Array.isArray(saved.pairs)?saved.pairs:[])if(p&&validPath(p.path)&&validPath(p.source))this.registerPair(p.path,p.source);
-  for(const draft of Array.isArray(saved.drafts)?saved.drafts:[])if(draft&&typeof draft.path==='string'&&typeof draft.text==='string'&&typeof draft.section==='string'&&typeof draft.expected==='string')this.drafts.set(this.draftKey(draft),draft);
-  for(const item of Array.isArray(saved.nativeDrafts)?saved.nativeDrafts:[])if(item&&validPath(item.path)&&typeof item.section==='string'&&['eome','lineage'].includes(item.kind)&&typeof item.base==='string'&&typeof item.text==='string')this.nativeDrafts.set(this.nativeKey(item.path,item.section,item.kind),item);
   for(const item of Array.isArray(saved.nativeOptions)?saved.nativeOptions:[])if(item&&validPath(item.path)&&typeof item.section==='string'&&['eome','lineage'].includes(item.kind)&&typeof item.header==='string')this.nativeOptions.set(this.nativeKey(item.path,item.section,item.kind),item);
   for(const item of Array.isArray(saved.viewModes)?saved.viewModes:[])if(Array.isArray(item)&&validPath(item[0])&&['eome','lineage','reader'].includes(item[1]))this.viewModes.set(item[0],item[1]);
  }
@@ -56,19 +52,16 @@ export class CompanionService extends Component {
  }
  start():void{if(this.started)return;this.started=true;for(const [key,item]of this.nativeOptions)if(!this.app.vault.getFileByPath(item.path))this.nativeOptions.delete(key);for(const pair of this.pairs.values())if(!this.app.vault.getFileByPath(pair.path))this.forget(pair.path);for(const file of this.app.vault.getMarkdownFiles()){const cache=this.app.metadataCache.getFileCache(file);if(cache?.frontmatter?.['emergence-companion-id'])this.discover(file,cache);}if(this.enabled())for(const p of this.pairs.values())this.schedule(p.path,20);}
  resume():void{if(!this.enabled())return;if(!this.started){this.start();return;}for(const p of this.pairs.values())this.schedule(p.path,20);}
- snapshot():unknown{return {layout:{...this.layout},pairs:[...this.pairs.values()].map(({path,source})=>({path,source,revision:0})),drafts:[...this.drafts.values()],pending:[...this.transactions.pending.values()],nativeDrafts:[...this.nativeDrafts.values()],nativeOptions:[...this.nativeOptions.values()],viewModes:[...this.viewModes]};}
+ snapshot():unknown{return {layout:{...this.layout},pairs:[...this.pairs.values()].map(({path,source})=>({path,source,revision:0})),pending:[...this.transactions.pending.values()],nativeOptions:[...this.nativeOptions.values()],viewModes:[...this.viewModes]};}
  layoutPreferences():CompanionLayout{return {...this.layout};}
  setLayoutPreferences(value:CompanionLayout):void{this.layout=companionLayout(value);this.saveSoon();}
- viewMode(path:string):CompanionViewMode{return this.viewModes.get(this.canonicalPath(path))??'eome';}
+ viewMode(path:string):CompanionViewMode{return this.viewModes.get(this.canonicalPath(path))??defaultCompanionView(this.settings());}
  setViewMode(path:string,mode:CompanionViewMode):void{this.viewModes.set(this.canonicalPath(path),mode);this.saveSoon();}
  selectedThought(path:string,section:string):string{return this.thoughtSelection.get(JSON.stringify([this.canonicalPath(path),section]))??'';}
  selectThought(path:string,section:string,id:string):void{this.thoughtSelection.set(JSON.stringify([this.canonicalPath(path),section]),id);}
  nativeKey(path:string,section:string,kind:NativeKind):string{return JSON.stringify([this.canonicalPath(path),section,kind]);}
  nativeHeader(path:string,section:string,kind:NativeKind):string{return this.nativeOptions.get(this.nativeKey(path,section,kind))?.header??'';}
  saveNativeHeader(path:string,section:string,kind:NativeKind,header:string):void{if(this.nativeHeader(path,section,kind)===header)return;this.nativeOptions.set(this.nativeKey(path,section,kind),{path:this.canonicalPath(path),section,kind,header});this.saveSoon();}
- saveNativeDraft(draft:NativeDraft):void{this.nativeDrafts.set(this.nativeKey(draft.path,draft.section,draft.kind),{...draft,path:this.canonicalPath(draft.path)});this.saveSoon();}
- discardNativeDraft(draft:NativeDraft):void{this.nativeDrafts.delete(this.nativeKey(draft.path,draft.section,draft.kind));this.saveSoon();}
- async exportNativeDraft(draft:NativeDraft):Promise<string>{const folder=draft.path.split('/').slice(0,-1).join('/');await ensureFolder(this.app,folder);const path=freePath(this.app,folder,draft.path.split('/').at(-1)!.replace(/\.md$/u,'')+' – '+t('companion.nativeDraft'));await this.app.vault.create(path,draft.text);return path;}
  replaceNativeSection(path:string,id:string,expected:string,text:string):Promise<string>{path=this.canonicalPath(path);return this.enqueue(path,async p=>{const doc=markThoughts(await this.readForView(path)),section=doc.sections.find(section=>section.id===id);if(!section||doc.unavailableFiles?.[id]||section.raw!==expected)throw new Error(t('companion.nativeConflict'));const next=mergeNativeOutline(section,text);if(section.raw!==next){section.raw=next;section.format=2;validateThoughts(doc);await this.commit(p,doc.original,doc);p.undo=[];p.redo=[];}return p.document?.sections.find(section=>section.id===id)?.raw??section.raw;});}
  list():PairState[]{return [...this.pairs.values()].map(({path,source,error,revision,missing})=>({path,source,error,revision,missing}));}
  pair(path:string):PairState|undefined{return this.list().find(p=>p.path===path);}
@@ -183,7 +176,6 @@ export class CompanionService extends Component {
   if(p.relocation)return p.relocation;
   p.relocation=this.relocate(p);try{await p.relocation;p.error=undefined;}catch(error){p.error=String(error);throw error;}finally{p.relocation=undefined;this.notify();}
  });}
- async mindmapCopy(path:string):Promise<string>{const doc=await this.read(path),base=path.replace(/\.md$/u,'')+' – Mindmap';let target=base+'.md';for(let n=2;this.app.vault.getAbstractFileByPath(target);n++)target=base+' '+n+'.md';const text='---\nexcerpt-outline-mindmap: {}\n---\n'+doc.sections.map(s=>'#'.repeat(s.level)+' '+s.title+'\n'+s.raw.replace(/[ \t]+<!-- em-note:[a-zA-Z0-9-]+ -->/gu,'')).join('\n');await this.app.vault.create(target,text);return target;}
  async create(source:string,options:StorageOptions=this.storageDefaults()):Promise<string>{
   const previous=this.creating.get(source)??Promise.resolve(),run=previous.catch(()=>{}).then(()=>this.createDocument(source,options));this.creating.set(source,run);try{return await run;}finally{if(this.creating.get(source)===run)this.creating.delete(source);}
  }
@@ -240,7 +232,7 @@ export class CompanionService extends Component {
    }).catch(()=>{});
    this.schedule(p.path,0);
   }
-  for(const [path,mode]of [...this.viewModes]){const next=this.canonicalPath(renamedPath(path,oldPath,newPath));if(path!==next){this.viewModes.delete(path);this.viewModes.set(next,mode);}}for(const map of [this.nativeOptions,this.nativeDrafts]){const items=[...map.values()];map.clear();for(const item of items){item.path=this.canonicalPath(renamedPath(item.path,oldPath,newPath));(map as Map<string,typeof item>).set(this.nativeKey(item.path,item.section,item.kind),item);}}const drafts=[...this.drafts.values()];this.drafts.clear();for(const draft of drafts){draft.path=this.canonicalPath(renamedPath(draft.path,oldPath,newPath));this.drafts.set(this.draftKey(draft),draft);}this.saveSoon();this.notify();
+  for(const [path,mode]of [...this.viewModes]){const next=this.canonicalPath(renamedPath(path,oldPath,newPath));if(path!==next){this.viewModes.delete(path);this.viewModes.set(next,mode);}}const options=[...this.nativeOptions.values()];this.nativeOptions.clear();for(const item of options){item.path=this.canonicalPath(renamedPath(item.path,oldPath,newPath));this.nativeOptions.set(this.nativeKey(item.path,item.section,item.kind),item);}this.saveSoon();this.notify();
  }
  private async relocate(pair:Runtime):Promise<void>{
   const folder=targetFolder(pair.source,pair.document?.storage??storageOptions(undefined));await ensureFolder(this.app,folder);
@@ -248,8 +240,5 @@ export class CompanionService extends Component {
   for(const old of paths){if(old.split('/').slice(0,-1).join('/')===folder)continue;const file=this.app.vault.getFileByPath(old);if(!file)continue;const target=freePath(this.app,folder,old.split('/').at(-1)!.replace(/\.md$/u,''));await this.app.fileManager.renameFile(file,target);await this.rename(old,target);}
  }
 
- draftKey(draft:Pick<CompanionDraft,'path'|'section'|'id'|'target'|'placement'>):string{return JSON.stringify([draft.path,draft.section,draft.id??['new',draft.target??'',draft.placement??'last']]);}
- saveDraft(draft:CompanionDraft):void{this.drafts.set(this.draftKey(draft),{...draft});this.saveSoon();}
- discardDraft(draft:CompanionDraft):void{this.drafts.delete(this.draftKey(draft));this.saveSoon();this.notify();}
  async flush():Promise<void>{for(const p of this.pairs.values()){if(p.relocation)await p.relocation.catch(()=>{});if(p.timer){window.clearTimeout(p.timer);p.timer=undefined;await this.sync(p.path).catch(()=>{});}await p.queue;}if(this.saveTimer){window.clearTimeout(this.saveTimer);this.saveTimer=undefined;await this.persist();}}
 }

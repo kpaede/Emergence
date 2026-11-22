@@ -10,6 +10,7 @@ export function hostedNativeView(factory:Factory,leaf:WorkspaceLeaf,plugin:Nativ
  let Base=constructors.get(factory);
  if(!Base){const probe=factory(leaf);Base=probe.constructor as Constructor;constructors.set(factory,Base);probe.unload();probe.containerEl.remove();}
  class HostedView extends Base {
+  constructor(hostLeaf:WorkspaceLeaf,hostPlugin:NativePlugin){super(hostLeaf,hostPlugin);if(kind==='eome'&&typeof this.supportsStructuralHeadings==='boolean')this.supportsStructuralHeadings=false;}
   override requestSave=():void=>{void this.save().catch(error=>host.error(error));};
   override save=():Promise<void>=>host.active()?host.write(this.getViewData()):Promise.resolve();
  }
