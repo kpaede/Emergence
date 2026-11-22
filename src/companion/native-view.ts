@@ -1,5 +1,6 @@
 import {Component,parseYaml,stringifyYaml,type App,type WorkspaceLeaf} from 'obsidian';
 import {t} from '../i18n';
+import {nativeSelection} from './native-selection';
 import {projectionFromBody,splitProjection,nativeBodiesEqual,sectionOutline,validateNativeProjection} from './native-projection';
 import {watchEditorViewport} from './editor-viewport';
 import {applyNativeAppearance} from './native-appearance';
@@ -38,6 +39,7 @@ export class NativeCompanionView extends Component{
    if(kind==='lineage')stage.inert=true;view.load();view.file=null;view.data=this.scopeText;await view.onOpen();view.file=scope.file;if(kind==='eome'){this.appearance=new MutationObserver(()=>{if(view.cy&&stage.querySelector('.mindmap-overlay[data-overlay]')){this.appearance?.disconnect();applyNativeAppearance(view,this.host);sizeNativeViewport(view,stage,true);}});this.appearance.observe(stage,{childList:true,subtree:true});await view.onLoadFile?.(scope.file);watchEditorViewport(view,stage);}if(kind==='lineage'){view.data=this.scopeText;view.setViewData(this.scopeText,false);for(let n=0;n<180&&!view.component;n++)await new Promise<void>(resolve=>window.setTimeout(resolve,16));if(!view.component)throw new Error(t('companion.nativeUnavailable'));await new Promise<void>(resolve=>window.setTimeout(resolve,32));stage.inert=false;sizeNativeViewport(view,stage,true);view.alignBranch?.align({type:'view/life-cycle/mount'});}
    applyNativeAppearance(view,this.host);if(kind==='eome')sizeNativeViewport(view,stage,true);
    if(!stage.contains(view.containerEl))stage.append(view.containerEl);view.containerEl.dataset.type=nativePlugins[kind].type;
+   const selectedId=this.service.selectedThought(path,section.id);if(selectedId)nativeSelection(view,kind,section,selectedId);
    this.resize=new ResizeObserver(()=>{sizeNativeViewport(view,stage);});this.resize.observe(stage);
   }catch(error){stage.inert=false;await settleSteps([()=>this.disposeView()]);this.error?.setText(error instanceof Error?error.message:String(error));if(error instanceof NativeCompatibilityError){const open=this.error?.createEl('button',{text:t('companion.openSource')});if(open)open.onclick=()=>this.openMarkdown();}}
  }
@@ -48,6 +50,7 @@ export class NativeCompanionView extends Component{
   });this.writes=run.catch(()=>{}).finally(()=>{this.writeCount--;});return run;
  }
  private showError(error:unknown):void{this.error?.empty();this.error?.createSpan({text:String(error)});const kind=this.kind;if(!kind||!this.error)return;const draft=this.service.nativeDrafts.get(this.service.nativeKey(this.path,this.section,kind));if(draft){const save=this.error.createEl('button',{text:t('companion.saveNativeDraft')});save.onclick=()=>{void this.service.exportNativeDraft(draft).then(async path=>{const file=this.app.vault.getFileByPath(path);if(file)await this.app.workspace.getLeaf('tab').openFile(file);}).catch((error:unknown)=>this.showError(error));};}}
+ async rememberSelection():Promise<void>{if(!this.view||!this.kind||!this.path)return;const document=await this.service.readForView(this.path),section=document.sections.find(section=>section.id===this.section);if(section){const id=nativeSelection(this.view,this.kind,section);if(id)this.service.selectThought(this.path,section.id,id);}}
  async history(redo=false):Promise<void>{await this.flush();if(this.kind==='eome')await (redo?this.view?.executeRedo?.():this.view?.executeUndo?.());else this.view?.documentStore?.dispatch({type:redo?'document/history/select-next-snapshot':'document/history/select-previous-snapshot'});await this.writes;}
  async flush():Promise<void>{if(this.view?.inlineEditor?.nodeId){this.view.inlineEditor.unloadNode();this.view.viewStore?.dispatch({type:'view/editor/disable-main-editor'});}else if(this.editing){const draft=this.editorText?.();this.finishEditor?.();this.host.querySelector<HTMLElement>('.node-editor-host .cm-content')?.blur();for(let n=0;n<400&&this.editing;n++)await new Promise<void>(resolve=>window.setTimeout(resolve,25));if(this.editing){if(draft!==undefined&&this.kind&&!this.service.nativeDrafts.has(this.service.nativeKey(this.path,this.section,this.kind)))this.service.saveNativeDraft({path:this.path,section:this.section,kind:this.kind,base:this.base,text:projectionFromBody(encodeOutlineText(draft),splitProjection(this.scopeText).header)});throw new Error(t('companion.nativeConflict'));}}if(this.view?.saveDocument)await this.view.saveDocument();await this.writes;}
  /** Retire an unavailable file without trying to write to it or recreating it. */

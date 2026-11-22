@@ -52,6 +52,7 @@
     "test:preferences-ui": "node scripts/preferences-native-check.mjs",
     "test:argdown-direction-ui": "node scripts/argdown-direction-native-check.mjs",
     "test:tetrad-ui": "node scripts/tetrad-native-check.mjs",
+    "test:companion-reader-ui": "node scripts/companion-reader-native-check.mjs",
     "test:companion-ui": "node scripts/companion-native-check.mjs",
     "test:companion-storage-ui": "node scripts/companion-storage-native-check.mjs",
     "test:companion-views-ui": "node scripts/companion-views-native-check.mjs",

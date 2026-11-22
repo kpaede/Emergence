@@ -25,7 +25,7 @@ SOFTWARE.
 */
 import {Component, Scope, type App, type Editor, type MarkdownFileInfo, type TFile} from 'obsidian';
 import {Prec, type Extension} from '@codemirror/state';
-import {EditorView, keymap} from '@codemirror/view';
+import {EditorView, keymap, type KeyBinding} from '@codemirror/view';
 
 // Obsidian has no public API for embedding its Markdown editor. Keep the
 // private surface small and checked; never patch the shared editor prototype.
@@ -46,6 +46,15 @@ type EditorConstructor = new (app: App, host: HTMLElement, owner: Owner) => Nati
 interface Widget {editable: boolean; editMode?: object; showEditor(): void; load(): void; unload(): void}
 interface EmbedApp {embedRegistry?: {embedByExtension?: {md?: (context: {app: App; containerEl: HTMLElement}, file: null, subpath: string) => Widget}}}
 const constructors = new WeakMap<App, EditorConstructor>();
+export interface EmbeddedMarkdownKeys {
+ onEnter(view:EditorView,mod:boolean,shift:boolean):boolean;
+ onBlur?():void;
+ onEscape?():boolean;
+ onDelete?():void;
+ onChange?(view:EditorView):void;
+ selectAll?:boolean;
+ inline?:boolean;
+}
 function nativeEditorClass(app: App, doc: Document): EditorConstructor {
  const cached = constructors.get(app); if (cached) return cached;
  const create = (app as App & EmbedApp).embedRegistry?.embedByExtension?.md;
@@ -69,17 +78,22 @@ export class MermaidMarkdownEditor extends Component {
  private owner: Owner;
  private previous: MarkdownFileInfo | null = null;
  private activated = false;
- constructor(private app: App, host: HTMLElement, value: string, file: TFile | undefined, parentScope: Scope, submit: () => void, cancel: () => void) {
+ constructor(private app: App, host: HTMLElement, value: string, file: TFile | undefined, parentScope: Scope, submit: () => void, cancel: () => void, keys?:EmbeddedMarkdownKeys) {
   super(); this.previous = app.workspace.activeEditor; this.scope = new Scope(parentScope);
-  this.scope.register(['Mod'], 'Enter', () => {submit(); return false;});
+  this.scope.register(['Mod'], 'Enter', () => {if(keys)return true;submit(); return false;});
+  if(keys?.onEscape)this.scope.register([], 'Escape', event=>event.isComposing?true:!keys.onEscape?.());
   this.owner = {app, file: file ?? null, hoverPopover: null, containerEl: host, onMarkdownScroll: () => {}, syncScroll: () => {}, getMode: () => 'source', isShown: () => host.isConnected && host.isShown()};
   const Base = nativeEditorClass(app, host.ownerDocument), activate = (): void => this.activate(), deactivate = (): void => this.deactivate();
   class CaptionEditor extends Base {
    buildLocalExtensions(): Extension[] {
-    return [...super.buildLocalExtensions(), Prec.highest(keymap.of([
-     {key: 'Mod-Enter', run: () => {submit(); return true;}},
-     {key: 'Escape', run: () => {cancel(); return true;}},
-    ])), EditorView.domEventHandlers({focus: activate, blur: deactivate})];
+    const bindings:KeyBinding[]=keys?[
+     {key:'Enter',run:view=>keys.onEnter(view,false,false),shift:view=>keys.onEnter(view,false,true)},
+     {key:'Mod-Enter',run:view=>keys.onEnter(view,true,false),shift:view=>keys.onEnter(view,true,true)},
+    ]:[{key:'Mod-Enter',run:()=>{submit();return true;}}];
+    if(keys?.onDelete)for(const key of ['Mod-Delete','Mod-Backspace'])bindings.push({key,run:()=>{keys.onDelete?.();return true;}});
+    return [...super.buildLocalExtensions(), Prec.highest(keymap.of([...bindings,
+     {key: 'Escape', run: () => {if(keys?.onEscape)return keys.onEscape();cancel(); return true;}},
+    ])), EditorView.domEventHandlers({focus: activate, blur:()=>{deactivate();keys?.onBlur?.();}}),...(keys?.onChange?[EditorView.updateListener.of(update=>{if(update.docChanged)keys.onChange?.(update.view);})]:[])];
    }
   }
   this.native = new CaptionEditor(app, host, this.owner);
@@ -88,9 +102,10 @@ export class MermaidMarkdownEditor extends Component {
    this.native.load();
    if (!this.native.cm?.state || typeof this.native.toggleSource !== 'function') throw new Error(tr("mermaid.the_native_markdown_editor_interface_has_changed"));
    this.owner.editor = this.native.editor; this.owner.editMode = this.native;
-   this.native.editorEl.addClasses(['markdown-source-view', 'mod-cm6', 'em-mm-markdown-source']);
+   this.native.editorEl.addClasses(['markdown-source-view', 'mod-cm6', keys?.inline?'em-inline-markdown-source':'em-mm-markdown-source']);
    if (this.native.sourceMode) this.native.toggleSource();
    this.native.set(value, false);
+   if(keys?.selectAll)this.native.cm.dispatch({selection:{anchor:0,head:value.length}});
    this.native.cm.contentDOM.setAttribute('aria-label', tr("labels.markdown_label"));
   } catch (error) {this.load(); this.unload(); throw error;}
  }

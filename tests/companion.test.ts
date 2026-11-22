@@ -22,7 +22,7 @@ describe('Companion Markdown identity and preservation',()=>{
   let doc=add(document()).document;doc.header='custom: "untouched"\n# keep this comment\n';const text=serializeCompanion(doc),parsed=parseCompanion(text);expect(parsed.source).toBe('Texte/Arbeit.md');expect(parsed.sections.map(s=>s.id)).toEqual(doc.sections.map(s=>s.id));expect(thoughts(parsed.sections[0]!)[0]?.text).toBe('Gedanke');const next=serializeCompanion(parsed);expect(next).toContain('custom: "untouched"');expect(next).toContain('# keep this comment');expect(next).toBe(text);expect(source).not.toContain('em-section');
  });
  it('preserves blank lines, CRLF and arbitrary non-list content without duplicating source headings',()=>{
-  const doc=document();doc.newline='\r\n';doc.sections[0]!.raw='\r\n- A <!-- em-note:n-1 -->\r\n\r\n';const parsed=parseCompanion(serializeCompanion(doc));expect(parsed.sections[0]!.raw).toBe(doc.sections[0]!.raw);expect(serializeCompanion(parsed).replace(/\r\n/gu,'')).not.toContain('\n');
+  const doc=document();doc.newline='\r\n';doc.sections[0]!.raw='\r\n- A <!-- em-note:n-1 -->\r\n\r\n';const parsed=parseCompanion(serializeCompanion(doc));expect(parsed.sections[0]!.raw).toBe('\r\n- A\r\n\r\n');expect(serializeCompanion(parsed)).not.toContain('em-note:');expect(serializeCompanion(parsed).replace(/\r\n/gu,'')).not.toContain('\n');
  });
  it('rejects missing or duplicated section identities rather than adopting notes into another section',()=>{
   const text=serializeCompanion(add(document()).document);expect(()=>parseCompanion(text.replace(/<!-- em-section:[^>]+ -->/u,''))).toThrow();const id=document().sections[0]!.id;expect(()=>parseCompanion(text.replace(/em-section:[^ ]+/gu,'em-section:'+id))).toThrow();expect(()=>parseCompanion(text+'\n## Unmanaged\n')).toThrow();
@@ -68,8 +68,8 @@ describe('Companion thought operations and semantic undo',()=>{
   let doc=add(document()).document;const node=thoughts(doc.sections[0]!)[0]!;doc=add(doc,node.section,'Child',node.id).document;const current=locate(doc,node.id),result=applyThought(doc,{kind:'remove',id:node.id,expected:current.section.raw.slice(current.node.from,current.node.to)});expect(thoughts(result.document.sections[0]!)).toHaveLength(0);const undo=restoreThought(result.document,result.restore!);expect(thoughts(undo.document.sections[0]!).map(n=>n.id)).toEqual(thoughts(doc.sections[0]!).map(n=>n.id));
  });
  it('keeps add undo correct when inserting before blank lines',()=>{const doc=document();doc.sections[0]!.raw='\n\n';const result=add(doc,undefined,'A',undefined,'first'),undo=applyThought(result.document,result.inverse!);expect(thoughts(undo.document.sections[0]!)).toHaveLength(0);});
- it('supports arbitrarily long single-line thoughts and preserves Markdown while refusing hard breaks',()=>{
-  const text='**Gedanke** [[Quelle]] '+ 'lang '.repeat(15000),doc=add(document(),undefined,text).document;expect(thoughts(doc.sections[0]!)[0]?.text).toBe(text);expect(()=>add(doc,undefined,'A\nB')).toThrow();
+ it('preserves long Markdown thoughts and upgrades legacy sections for complete multiline bodies',()=>{
+  const text='**Gedanke** [[Quelle]] '+ 'lang '.repeat(15000),doc=add(document(),undefined,text).document;expect(thoughts(doc.sections[0]!)[0]?.text).toBe(text);const upgraded=add(doc,undefined,'A\nB').document;expect(upgraded.sections[0]!.format).toBe(2);expect(thoughts(upgraded.sections[0]!).map(node=>node.text)).toEqual([text,'A\nB']);expect(thoughts(upgraded.sections[0]!)[0]!.id).toBe(thoughts(doc.sections[0]!)[0]!.id);
  });
 });
 describe('Companion write boundary',()=>{

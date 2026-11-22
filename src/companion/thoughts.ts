@@ -1,9 +1,9 @@
 import {indentColumns as width,subtreeEnd,reindentSubtree,childIndent} from './indentation';
 import {t} from '../i18n';
-import {newId,type CompanionDocument,type CompanionSection,type Thought} from './model';
-import {multilineOutline,markMultiline,encodeOutlineText} from './multiline';
+import {newId,fingerprint,type CompanionDocument,type CompanionSection,type Thought} from './model';
+import {multilineOutline,markMultiline,encodeOutlineText,stripMultilineIds} from './multiline';
 const NODE=/^(\s*)([-+*]|\d+[.)])[ \t]+(.*?)(?: <!-- em-note:([a-zA-Z0-9-]+) -->)?[ \t]*$/u;
-function outlineLines(raw:string):{line:string;row:string;from:number;match:RegExpExecArray|null}[]{
+function outlineLines(raw:string,identities=true):{line:string;row:string;from:number;match:RegExpExecArray|null}[]{
  let from=0,fence='',comment=false;
  return raw.split(/(?<=\n)/u).map(line=>{
   const row=line.replace(/\r?\n$/u,''),mark=/^[ \t]*(`{3,}|~{3,})(.*)$/u.exec(row);let match:RegExpExecArray|null=null;
@@ -11,23 +11,38 @@ function outlineLines(raw:string):{line:string;row:string;from:number;match:RegE
   else if(/^[ \t]*<!--/u.test(row))comment=!row.includes('-->');
   else if(fence){if(mark&&mark[1]![0]===fence[0]&&mark[1]!.length>=fence.length&&!mark[2]!.trim())fence='';}
   else if(mark)fence=mark[1]!;
-  else match=NODE.exec(row);
+  else match=(identities?NODE:/^(\s*)([-+*]|\d+[.)])[ \t]+(.*)$/u).exec(row);
   const result={line,row,from,match};from+=line.length;return result;
  });
 }
 export function thoughts(section:CompanionSection):Thought[]{
- if(section.format===2)return multilineOutline(section.raw).map(node=>{if(!node.id)throw new Error(t('companion.unmarked'));return {id:node.id,section:section.id,from:node.from,to:node.to,lineFrom:node.from,lineTo:node.lineTo,indent:node.indent,text:node.text,marker:'-',parent:node.parent?.id};});
+ const prefix='t-'+fingerprint(section.id)+'-'+fingerprint(section.raw)+'-',transient=(from:number)=>prefix+from;
+ if(section.format===2)return multilineOutline(section.raw,!section.plain).map(node=>({id:node.id??transient(node.from),section:section.id,from:node.from,to:node.to,lineFrom:node.from,lineTo:node.lineTo,indent:node.indent,text:node.text,marker:'-',parent:node.parent?node.parent.id??transient(node.parent.from):undefined}));
  const list:Thought[]=[],stack:Thought[]=[];
- for(const {line,row,from,match}of outlineLines(section.raw)){
-  if(match){const indent=match[1]!,id=match[4];if(!id)throw new Error(t('companion.unmarked'));while(stack.length&&width(stack[stack.length-1]!.indent)>=width(indent))stack.pop();const node:Thought={id,section:section.id,from,to:from+line.length,lineFrom:from,lineTo:from+row.length,indent,text:match[3]!,marker:match[2]!,parent:stack[stack.length-1]?.id};list.push(node);stack.push(node);}
+ for(const {line,row,from,match}of outlineLines(section.raw,!section.plain)){
+  if(match){const indent=match[1]!,id=match[4]??transient(from);while(stack.length&&width(stack[stack.length-1]!.indent)>=width(indent))stack.pop();const node:Thought={id,section:section.id,from,to:from+line.length,lineFrom:from,lineTo:from+row.length,indent,text:match[3]!,marker:match[2]!,parent:stack[stack.length-1]?.id};list.push(node);stack.push(node);}
  }
  for(const node of list)node.to=subtreeEnd(section.raw,node.from,node.indent);
  return list;
 }
 export function validateThoughts(document:CompanionDocument):void{const seen=new Set<string>();for(const section of document.sections)for(const node of thoughts(section)){if(seen.has(node.id))throw new Error(t('companion.duplicate'));seen.add(node.id);}}
+/** Working references for the operation engine, held in RAM and stripped at serialization. */
 export function markThoughts(document:CompanionDocument):CompanionDocument{
- return {...document,sections:document.sections.map(section=>({...section,raw:section.format===2?markMultiline(section.raw):outlineLines(section.raw).map(({line,row,match})=>{return match&&!match[4]?row+` <!-- em-note:${newId()} -->`+(line.endsWith('\n')?document.newline:''):line;}).join('')}))};
+ return {...document,sections:document.sections.map(section=>({...section,plain:false,raw:section.format===2?markMultiline(section.raw,!section.plain):outlineLines(section.raw,!section.plain).map(({line,row,match})=>{return match&&!match[4]?row+` <!-- em-note:${newId()} -->`+(line.endsWith('\n')?document.newline:''):line;}).join('')}))};
 }
+/** Remove only old structural markers, never comment examples inside a node's body or code. */
+export function stripThoughtIds(section:CompanionSection):string{
+ if(section.plain)return section.raw;
+ if(section.format===2)return stripMultilineIds(section.raw);
+ return outlineLines(section.raw).map(({line,match})=>match?.[4]?line.replace(' <!-- em-note:'+match[4]+' -->',''):line).join('');
+}
+/** Project legacy indentation through its known tree, never through a second parser. */
+export function sectionOutline(section:CompanionSection,identities=false):string{
+ if(section.format===2)return identities?section.raw:stripThoughtIds(section);
+ const nodes=thoughts(section),byOffset=new Map(nodes.map(node=>[node.from,node])),depth=new Map<string,number>();let offset=0;
+ return section.raw.split(/(?<=\n)/u).map(line=>{const node=byOffset.get(offset);offset+=line.length;if(!node){if(line.trim())throw new Error(t('companion.nativeMigration'));return line;}const level=node.parent?(depth.get(node.parent)??0)+1:0;depth.set(node.id,level);return encodeOutlineText(node.text,'\t'.repeat(level))+(identities?` <!-- em-note:${node.id} -->`:'')+(line.endsWith('\n')?'\n':'');}).join('');
+}
+function promoteSection(section:CompanionSection):void{if(section.format!==2){section.raw=sectionOutline(section,true);section.format=2;}}
 export type Placement='before'|'after'|'first'|'last';
 export type ThoughtOperation=
  |{kind:'edit';id:string;expected:string;text:string}
@@ -39,6 +54,9 @@ export function locate(document:CompanionDocument,id:string):{section:CompanionS
 export function applyThought(document:CompanionDocument,operation:ThoughtOperation):OperationResult{
  if('section'in operation&&document.unavailableFiles?.[operation.section]||operation.kind==='move'&&document.unavailableFiles?.[operation.expectedSection])throw new Error(t('companion.sectionFileMissing'));
  validateThoughts(document);const next=structuredClone(document),nl=next.newline;
+ if((operation.kind==='edit'||operation.kind==='add')&&/[\r\n]/u.test(operation.text)){const section=operation.kind==='edit'?locate(next,operation.id).section:next.sections.find(section=>section.id===operation.section);if(section)promoteSection(section);}
+ if(operation.kind==='move'){const source=locate(next,operation.id).section,target=next.sections.find(section=>section.id===operation.section);if(target&&source.format!==target.format){promoteSection(source);promoteSection(target);}}
+
  if(operation.kind==='edit'){
   const {section,node}=locate(next,operation.id);if(node.text!==operation.expected)throw new Error(t('companion.conflict'));
   if(section.format!==2&&(/[\r\n]/u.test(operation.text)||/<!--\s*em-(?:note|section):/u.test(operation.text)))throw new Error(t('companion.oneLine'));

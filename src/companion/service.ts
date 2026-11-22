@@ -19,6 +19,7 @@ import {cachedOutline,liveOutline} from './native-outline';
 import type {SourceHeading} from './model';
 import {mergeNativeOutline} from './native-projection';
 import type {CompanionViewMode,NativeDraft,NativeOption,NativeKind} from './native-types';
+import {sessionThoughts,storedThoughtIds} from './thought-session';
 import {prepareChapterFile as prepareChapter,type ChapterFilePlan} from './chapter-recovery';
 
 interface Runtime extends PairState {queue:Promise<void>;timer?:number;anchors:Map<string,number>;liveDoc?:Text;anchorDoc?:Text;anchorSource?:string;undo:HistoryAction[];redo:HistoryAction[];document?:CompanionDocument;working:boolean;outlineSource?:'editor'|'cache'|'fallback';relocation?:Promise<void>}
@@ -26,6 +27,7 @@ type HistoryAction={operation:ThoughtOperation}|{restore:NonNullable<OperationRe
 export interface CompanionDraft {path:string;section:string;id?:string;expected:string;text:string;target?:string;placement?:import('./thoughts').Placement}
 export class CompanionService extends Component {
  private layout:CompanionLayout=companionLayout(undefined);
+ private thoughtSelection=new Map<string,string>();
  private moved=new Map<string,string>();private creating=new Map<string,Promise<unknown>>();
  private pairs=new Map<string,Runtime>();private listeners=new Set<()=>void>();private writing=new Set<string>();private saveTimer?:number;private started=false;private disposed=false;
  private transactions:CompanionTransactions;
@@ -41,7 +43,7 @@ export class CompanionService extends Component {
   for(const draft of Array.isArray(saved.drafts)?saved.drafts:[])if(draft&&typeof draft.path==='string'&&typeof draft.text==='string'&&typeof draft.section==='string'&&typeof draft.expected==='string')this.drafts.set(this.draftKey(draft),draft);
   for(const item of Array.isArray(saved.nativeDrafts)?saved.nativeDrafts:[])if(item&&validPath(item.path)&&typeof item.section==='string'&&['eome','lineage'].includes(item.kind)&&typeof item.base==='string'&&typeof item.text==='string')this.nativeDrafts.set(this.nativeKey(item.path,item.section,item.kind),item);
   for(const item of Array.isArray(saved.nativeOptions)?saved.nativeOptions:[])if(item&&validPath(item.path)&&typeof item.section==='string'&&['eome','lineage'].includes(item.kind)&&typeof item.header==='string')this.nativeOptions.set(this.nativeKey(item.path,item.section,item.kind),item);
-  for(const item of Array.isArray(saved.viewModes)?saved.viewModes:[])if(Array.isArray(item)&&validPath(item[0])&&['eome','lineage'].includes(item[1]))this.viewModes.set(item[0],item[1]);
+  for(const item of Array.isArray(saved.viewModes)?saved.viewModes:[])if(Array.isArray(item)&&validPath(item[0])&&['eome','lineage','reader'].includes(item[1]))this.viewModes.set(item[0],item[1]);
  }
  enabled():boolean{return featureEnabled(this.settings(),'companion');}
  onload():void{
@@ -59,6 +61,8 @@ export class CompanionService extends Component {
  setLayoutPreferences(value:CompanionLayout):void{this.layout=companionLayout(value);this.saveSoon();}
  viewMode(path:string):CompanionViewMode{return this.viewModes.get(this.canonicalPath(path))??'eome';}
  setViewMode(path:string,mode:CompanionViewMode):void{this.viewModes.set(this.canonicalPath(path),mode);this.saveSoon();}
+ selectedThought(path:string,section:string):string{return this.thoughtSelection.get(JSON.stringify([this.canonicalPath(path),section]))??'';}
+ selectThought(path:string,section:string,id:string):void{this.thoughtSelection.set(JSON.stringify([this.canonicalPath(path),section]),id);}
  nativeKey(path:string,section:string,kind:NativeKind):string{return JSON.stringify([this.canonicalPath(path),section,kind]);}
  nativeHeader(path:string,section:string,kind:NativeKind):string{return this.nativeOptions.get(this.nativeKey(path,section,kind))?.header??'';}
  saveNativeHeader(path:string,section:string,kind:NativeKind,header:string):void{if(this.nativeHeader(path,section,kind)===header)return;this.nativeOptions.set(this.nativeKey(path,section,kind),{path:this.canonicalPath(path),section,kind,header});this.saveSoon();}
@@ -118,8 +122,13 @@ export class CompanionService extends Component {
   const p=this.pairs.get(path);if(!p)return Promise.reject(new Error(t('companion.fileMissing')));
   const run=p.queue.then(async()=>{if(this.disposed)throw new Error(t('companion.closed'));if(this.pairs.get(path)!==p||!this.app.vault.getFileByPath(path))throw new Error(t('companion.fileMissing'));p.working=true;const revision=p.revision,previousError=p.error;try{const result=await action(p);p.error=undefined;return result;}catch(error){p.error=error instanceof Error?error.message:String(error);throw error;}finally{p.working=false;if(p.revision!==revision||p.error!==previousError)this.notify();}});p.queue=run.then(()=>{},()=>{});return run;
  }
- async read(path:string):Promise<CompanionDocument>{const doc=await readStored(this.app,path);validateThoughts(markThoughts(doc));return doc;}
- async readForView(path:string):Promise<CompanionDocument>{const doc=await readStoredForView(this.app,path);validateThoughts(markThoughts(doc));return doc;}
+ async read(path:string):Promise<CompanionDocument>{return this.readWorking(path,false);}
+ async readForView(path:string):Promise<CompanionDocument>{return this.readWorking(path,true);}
+ private async readWorking(path:string,partial:boolean):Promise<CompanionDocument>{
+  const runtime=this.pairs.get(path),revision=runtime?.revision;
+  const stored=await (partial?readStoredForView(this.app,path):readStored(this.app,path)),doc=sessionThoughts(stored,runtime?.document);
+  if(runtime&&runtime.revision===revision)runtime.document=doc;return doc;
+ }
  async missingFiles(path:string):Promise<{title:string;path:string}[]>{
   const doc=parseCompanion(await readNote(this.app,path));readStorage(doc);if(doc.storage?.mode!=='sections')return [];
   return doc.sections.filter(section=>!doc.files?.[section.id]||!this.app.vault.getFileByPath(doc.files[section.id]!)).map(section=>({title:section.title,path:doc.files?.[section.id]??t('companion.noFileLink')}));
@@ -140,7 +149,7 @@ export class CompanionService extends Component {
  useChapterFile(plan:ChapterFilePlan):Promise<void>{return this.enqueue(plan.index,async p=>{
   const {doc,section}=await this.chapterForRepair(p.path,plan.section);this.checkChapterTarget(doc,p.path,plan.section,plan.path);
   if(await readNote(this.app,plan.path)!==plan.before)throw new Error(t('companion.conflict'));
-  const current=prepareChapter(p.path,doc,section,plan.path,plan.before),part=parseCompanion(current.after);section.raw=part.sections[0]!.raw;section.format=part.sections[0]!.format;
+  const current=prepareChapter(p.path,doc,section,plan.path,plan.before),part=parseCompanion(current.after);section.raw=part.sections[0]!.raw;section.format=part.sections[0]!.format;section.plain=part.sections[0]!.plain;
   doc.files![section.id]=plan.path;doc.fileOriginals![plan.path]=current.after;delete doc.unavailableFiles![section.id];
   const marked=markThoughts(doc);validateThoughts(marked);const writes:FileWrite[]=current.kind==='existing'?[]:[{path:plan.path,before:plan.before,after:current.after,kind:'adopt-chapter'}];
   await this.commit(p,doc.original,marked,writes);p.undo=[];p.redo=[];
@@ -155,7 +164,7 @@ export class CompanionService extends Component {
  private async commit(p:Runtime,_before:string,doc:CompanionDocument,first:FileWrite[]=[]):Promise<void>{
   if(doc.storage?.location==='folder')await ensureFolder(this.app,doc.storage.folder);
   const plan=[...first,...planStorage(this.app,p.path,doc)];for(const item of plan)this.writing.add(item.path);
-  try{await this.transactions.apply(p.path,plan);if(plan.length){this.metrics.writes+=plan.length;p.revision++;}p.document=await readStoredForView(this.app,p.path);p.source=doc.source;}finally{for(const item of plan)this.writing.delete(item.path);}
+  try{await this.transactions.apply(p.path,plan);if(plan.length){this.metrics.writes+=plan.length;p.revision++;}p.document=sessionThoughts(await readStoredForView(this.app,p.path),doc);p.source=doc.source;}finally{for(const item of plan)this.writing.delete(item.path);}
  }
  recoveryPlan(path:string):unknown{return structuredClone(this.transactions.pending.get(path));}
  acceptRecovery(path:string):Promise<void>{return this.enqueue(path,async p=>{await this.transactions.accept(path,async()=>{await this.read(path);});p.revision++;});}
@@ -168,7 +177,7 @@ export class CompanionService extends Component {
   const cached=this.outlineCache.get(doc.source),native=liveOutline(this.app,doc.source,source),headings=native??(cached?.source===source?cached.headings:undefined);p.outlineSource=native?'editor':headings?'cache':'fallback';
   const result=reconcile(doc,source,p.liveDoc?.toString()===source&&p.anchors.size?p.anchors:undefined,headings);p.anchorSource=source;p.anchorDoc=p.liveDoc?.toString()===source?p.liveDoc:undefined;p.anchors=new Map(result.document.sections.filter(s=>s.state==='linked'&&s.base).map(s=>[s.id,s.base!.from]));
   const marked=markThoughts(result.document),newMarkers=marked.sections.some((s,i)=>s.raw!==result.document.sections[i]?.raw);
-  if(result.changed||newMarkers||doc.storageDrift)await this.commit(p,doc.original,marked);else p.document=result.document;
+  if(result.changed||newMarkers||storedThoughtIds(doc)||doc.storageDrift)await this.commit(p,doc.original,marked);else p.document=result.document;
  }).then(async()=>{
   const p=runtime;if(!p||!p.document?.storage||p.document.storage.location==='folder'||p.path.split('/').slice(0,-1).join('/')===targetFolder(p.source,p.document.storage))return;
   if(p.relocation)return p.relocation;
@@ -190,7 +199,7 @@ export class CompanionService extends Component {
   // Creation is complete. A later reconciliation error belongs to the newly selected file.
   await this.sync(path).catch(error=>{if(!this.app.vault.getFileByPath(path))throw error;});return path;
  }
- normalize(path:string):Promise<void>{return this.enqueue(path,async p=>{const doc=await this.readForView(path),marked=markThoughts(doc);if(marked.sections.some((s,i)=>s.raw!==doc.sections[i]?.raw))await this.commit(p,doc.original,marked);});}
+ normalize(path:string):Promise<void>{return this.enqueue(path,async p=>{const doc=await this.readForView(path),marked=markThoughts(doc);if(storedThoughtIds(doc))await this.commit(p,doc.original,marked);});}
  execute(path:string,operation:ThoughtOperation,history=true):Promise<void>{return this.enqueue(path,async p=>{
   const doc=markThoughts(await this.readForView(path)),result=applyThought(doc,operation);await this.commit(p,doc.original,result.document);
   if(history){const inverse=this.inverse(result);if(inverse)p.undo.push(inverse);p.redo=[];if(p.undo.length>100)p.undo.shift();}

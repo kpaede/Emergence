@@ -8,7 +8,7 @@ describe('Original-plugin outline projection',()=>{
   for(const header of ['', 'zoom: 0.8', 'eome-outline-format: 2', '"eome-outline-format": "2"'])expect(()=>validateNativeProjection(header?'---\n'+header+'\n---\n- Root':'- Root')).not.toThrow();
  });
  it('rejects an unsupported native format even when its thought body is unchanged',()=>{
-  const before=section(),text='---\neome-outline-format: 3\n---\n'+withoutThoughtIds(before.raw);expect(nativeBodiesEqual(before.raw,text)).toBe(true);expect(()=>validateNativeProjection(text)).toThrow('Gedankenformat');expect(()=>mergeNativeOutline(before,text)).toThrow('Gedankenformat');
+  const before=section(),text='---\neome-outline-format: 3\n---\n'+withoutThoughtIds(before.raw);expect(nativeBodiesEqual(before.raw,text)).toBe(true);expect(()=>validateNativeProjection(text)).toThrow('Listenformat');expect(()=>mergeNativeOutline(before,text)).toThrow('Listenformat');
  });
  it('rejects invalid or duplicate native format metadata before merging thoughts',()=>{
   for(const header of ['eome-outline-format: 2\neome-outline-format: 3','options: [','eome-outline-format: null'])expect(()=>mergeNativeOutline(section(),'---\n'+header+'\n---\n- Root')).toThrow('Metadaten');

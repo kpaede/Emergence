@@ -1,0 +1,36 @@
+import {afterEach,describe,it,expect,vi} from 'vitest';
+import {companionFixture,companionSource} from './helpers/companion-service';
+import {thoughts} from '../src/companion/thoughts';
+import {CompanionService} from '../src/companion/service';
+vi.mock('obsidian',async importOriginal=>({...await importOriginal<Record<string,unknown>>(),Component:(await import('./helpers/reader-host')).TestComponent}));
+afterEach(()=>vi.unstubAllGlobals());
+describe('plain Markdown thought storage with session-only references',()=>{
+ it.each(['document','sections'] as const)('stores %s thoughts as indented Markdown without node markers',async mode=>{
+  const f=companionFixture(),path=await f.service.create('Paper.md',{mode,location:'beside',folder:''}),doc=await f.service.read(path),section=doc.sections[0]!.id;
+  await f.service.executeMany(path,[{kind:'add',section,id:'root',text:'A paragraph\n\n- An internal list',placement:'last'},{kind:'add',section,id:'child',target:'root',text:'[ ] Actual child',placement:'last'}]);
+  for(const [name,text]of f.data)if(name!=='Paper.md'&&name!=='Unrelated.md'){expect(text).not.toContain('em-note:');expect(text).toContain('em-section:');}
+  const first=thoughts((await f.service.read(path)).sections[0]!),second=thoughts((await f.service.read(path)).sections[0]!);expect(first.map(node=>node.id)).toEqual(['root','child']);expect(second.map(node=>node.id)).toEqual(['root','child']);expect(second[1]!.parent).toBe('root');expect(f.data.get('Paper.md')).toBe(companionSource);expect(JSON.stringify(f.service.snapshot())).not.toContain('em-note:');f.service.unload();
+ });
+ it('retains references through editing, moving and undo/redo without writing them to disk',async()=>{
+  const f=companionFixture(),path=await f.service.create('Paper.md'),doc=await f.service.read(path),section=doc.sections[0]!.id;
+  await f.service.executeMany(path,[{kind:'add',section,id:'one',text:'One',placement:'last'},{kind:'add',section,id:'two',text:'Two',placement:'last'}]);await f.service.execute(path,{kind:'edit',id:'one',expected:'One',text:'Edited\n\nSecond paragraph'});await f.service.execute(path,{kind:'move',id:'one',expectedSection:section,section,target:'two',placement:'last'});expect(thoughts((await f.service.read(path)).sections[0]!).find(node=>node.id==='one')!.parent).toBe('two');await f.service.history(path);await f.service.history(path);expect(thoughts((await f.service.read(path)).sections[0]!).find(node=>node.id==='one')!.text).toBe('One');await f.service.history(path,true);expect(f.data.get(path)).toContain('Second paragraph');expect(f.data.get(path)).not.toContain('em-note:');f.service.unload();
+ });
+ it('cleans old structural comments through normalization and preserves quoted comment examples and whitespace',async()=>{
+  const f=companionFixture(),path=await f.service.create('Paper.md'),doc=await f.service.read(path),section=doc.sections[0]!.id,text='Excerpt  \n\n```md\n- Example <!-- em-note:quoted-example -->\n```';await f.service.execute(path,{kind:'add',section,text,placement:'last'});const clean=f.data.get(path)!;f.data.set(path,clean.replace('emergence-companion-version: 2','emergence-companion-version: 1').replace('- Excerpt  ','- Excerpt   <!-- em-note:old-node -->'));await f.service.normalize(path);expect(f.data.get(path)).toBe(clean);expect(thoughts((await f.service.read(path)).sections[0]!)[0]!.text).toBe(text);const writes=f.writes.length;await f.service.normalize(path);expect(f.writes).toHaveLength(writes);f.service.unload();
+ });
+ it('reconstructs the hierarchy after restart without persisting a node identity table',async()=>{
+  const f=companionFixture(),path=await f.service.create('Paper.md'),doc=await f.service.read(path),section=doc.sections[0]!.id;await f.service.executeMany(path,[{kind:'add',section,id:'old-reference',text:'Root',placement:'last'},{kind:'add',section,id:'old-child',target:'old-reference',text:'Child',placement:'last'}]);const snapshot=f.service.snapshot(),next=new CompanionService(f.app,snapshot,()=>f.settings,f.persist),nodes=thoughts((await next.read(path)).sections[0]!);expect(nodes.map(node=>node.text)).toEqual(['Root','Child']);expect(nodes[1]!.parent).toBe(nodes[0]!.id);expect(nodes[0]!.id).not.toBe('old-reference');expect(JSON.stringify(snapshot)).not.toContain('old-reference');next.unload();f.service.unload();
+ });
+ it('keeps an unambiguous unchanged thought editable after an unrelated external edit',async()=>{
+  const f=companionFixture(),path=await f.service.create('Paper.md'),doc=await f.service.read(path),section=doc.sections[0]!.id;await f.service.executeMany(path,[{kind:'add',section,id:'one',text:'One',placement:'last'},{kind:'add',section,id:'two',text:'Two',placement:'last'}]);f.data.set(path,f.data.get(path)!.replace('- Two','- External two'));await f.service.execute(path,{kind:'edit',id:'one',expected:'One',text:'Local one'});expect(f.data.get(path)).toContain('Local one');expect(f.data.get(path)).toContain('External two');expect(f.data.get(path)).not.toContain('em-note:');f.service.unload();
+ });
+ it('rejects ambiguous stale references instead of guessing which duplicate thought survived',async()=>{
+  const f=companionFixture(),path=await f.service.create('Paper.md'),doc=await f.service.read(path),section=doc.sections[0]!.id;await f.service.executeMany(path,[{kind:'add',section,id:'first',text:'Duplicate',placement:'last'},{kind:'add',section,id:'second',text:'Duplicate',placement:'last'}]);f.data.set(path,f.data.get(path)!.replace('- Duplicate\n',''));const before=f.data.get(path);await expect(f.service.execute(path,{kind:'edit',id:'first',expected:'Duplicate',text:'Do not guess'})).rejects.toThrow();expect(f.data.get(path)).toBe(before);f.service.unload();
+ });
+ it('preserves a literal old marker example at the end of a thought, even after restart',async()=>{
+  const f=companionFixture(),path=await f.service.create('Paper.md'),doc=await f.service.read(path),section=doc.sections[0]!.id,text='Comment example <!-- em-note:quoted-example -->';await f.service.execute(path,{kind:'add',section,text,placement:'last'});expect(thoughts((await f.service.read(path)).sections[0]!)[0]!.text).toBe(text);await f.service.normalize(path);const next=new CompanionService(f.app,f.service.snapshot(),()=>f.settings,f.persist);expect(thoughts((await next.read(path)).sections[0]!)[0]!.text).toBe(text);expect(f.data.get(path)).toContain('- '+text);next.unload();f.service.unload();
+ });
+ it('cleans an old chapter file even when its index already uses the plain-thought format',async()=>{
+  const f=companionFixture(),path=await f.service.create('Paper.md',{mode:'sections',location:'beside',folder:''}),doc=await f.service.read(path),section=doc.sections[0]!.id;await f.service.execute(path,{kind:'add',section,text:'Legacy chapter thought',placement:'last'});const current=await f.service.read(path),member=current.files![section]!,clean=f.data.get(member)!;f.data.set(member,clean.replace('emergence-companion-version: 2','emergence-companion-version: 1').replace('- Legacy chapter thought','- Legacy chapter thought <!-- em-note:legacy-node -->'));await f.service.normalize(path);expect(f.data.get(member)).toBe(clean);expect(thoughts((await f.service.read(path)).sections[0]!)[0]!.text).toBe('Legacy chapter thought');f.service.unload();
+ });
+});

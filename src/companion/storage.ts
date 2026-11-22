@@ -6,6 +6,7 @@ import {defaultStorage,type StorageOptions,type CompanionDocument} from './model
 import {readNote,validPath} from './repository';
 import {validSubfolder} from './preferences';
 import {MissingSectionFileError} from './problems';
+import {stripThoughtIds} from './thoughts';
 export interface FileWrite {path:string;before:string|null;after:string;kind?:'adopt-chapter'}
 function record(value:unknown):Record<string,unknown>{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};}
 export function validFolder(folder:string):boolean{return !folder||validPath(folder+'/test.md');}
@@ -33,7 +34,7 @@ async function readStoredDocument(app:App,path:string,partial:boolean):Promise<C
    if(!member||!app.vault.getFileByPath(member))throw new MissingSectionFileError(member??section.title);
    const text=await readNote(app,member,true),part=parseCompanion(text),metadata=record(parseDocument(part.header).toJSON());part.source=resolveSource(app,part.source,member);
    if(metadata['emergence-companion-role']!=='section'||metadata['emergence-parent-companion-id']!==doc.id||part.sections.length!==1||part.sections[0]?.id!==section.id)throw new Error(t('companion.invalid'));
-   doc.fileOriginals[member]=text;if(part.sections[0].title!==section.title||part.sections[0].level!==section.level||part.sections[0].state!==section.state||part.source!==doc.source||part.sections[0].format!==section.format)doc.storageDrift=true;section.raw=part.sections[0].raw;section.format=part.sections[0].format;
+   doc.fileOriginals[member]=text;if(part.sections[0].title!==section.title||part.sections[0].level!==section.level||part.sections[0].state!==section.state||part.source!==doc.source||part.sections[0].format!==section.format)doc.storageDrift=true;section.raw=part.sections[0].raw;section.format=part.sections[0].format;section.plain=part.sections[0].plain;
   }catch(error){
    if(!partial)throw error;doc.unavailableFiles??={};doc.unavailableFiles[section.id]={path:member??'',reason:error instanceof MissingSectionFileError?'missing':'invalid',reference:section.raw,message:error instanceof Error?error.message:String(error)};section.raw='';
   }
@@ -54,7 +55,7 @@ export function planStorage(app:App,path:string,document:CompanionDocument):File
   if(doc.unavailableFiles?.[section.id])continue;
   const member=doc.files[section.id]??freePath(app,folder,doc.source.split('/').at(-1)!.replace(/\.md$/u,'')+' – '+section.title,reserved);doc.files[section.id]=member;
   const before=doc.fileOriginals?.[member]??null,part=before?parseCompanion(before):emptyCompanion(doc.source);part.source=doc.source;
-  if(before){const old=part.sections[0]!;if(old.title===section.title&&old.level===section.level&&old.state===section.state&&old.raw===section.raw&&part.source===parseCompanion(before).source)continue;}
+  if(before){const old=part.sections[0]!;if(old.title===section.title&&old.level===section.level&&old.state===section.state&&old.format===section.format&&old.raw===stripThoughtIds(section)&&part.source===parseCompanion(before).source)continue;}
   part.sections=[structuredClone(section)];const yaml=parseDocument(part.header||'');yaml.set('emergence-companion-role','section');yaml.set('emergence-parent-companion-id',doc.id);part.header=yaml.toString({lineWidth:0});plan.push({path:member,before,after:serializeCompanion(part)});
  }
  // Write the manifest last. Removed empty section files are retained, never silently deleted.
