@@ -1,3 +1,9 @@
+import {CompanionService} from './companion/service';
+import {registerCompanionLive} from './companion/live';
+import {registerCompanionCommands} from './companion/register';
+import {TetradStore} from './tetrad/patterns';
+import {registerTetrad} from './tetrad/register';
+import type {TetradProcessor} from './tetrad/processor';
 import {t as tr} from './i18n';
 import {getLanguage, Notice, Plugin, setTooltip, type Command} from 'obsidian';
 import type {JournalEntry, Settings} from './types';
@@ -20,25 +26,34 @@ export default class EmergencePlugin extends Plugin {
  controller!: EmergenceController;
  mermaidLibrary!: MermaidLibrary;
  argdownLibrary!: MermaidLibrary;
+ tetradStore!:TetradStore;
+ companionService!:CompanionService;
+ private saves:Promise<void>=Promise.resolve();
+ private tetradProcessor?:TetradProcessor;
  templateFolders!:TemplateFolders;
  private journal: JournalEntry[] = [];
  private ribbon?:HTMLElement;
  private knowledgeActive?:boolean;
  async onload(): Promise<void> {
   const loaded: unknown = await this.loadData();
-  const data = loaded && typeof loaded === 'object' ? loaded as {settings?: unknown; journal?: JournalEntry[]; mermaidLibrary?: unknown; argdownLibrary?: unknown} : {};
+  const data = loaded && typeof loaded === 'object' ? loaded as {settings?: unknown; journal?: JournalEntry[]; mermaidLibrary?: unknown; argdownLibrary?: unknown; tetrader?:unknown;companion?:unknown} : {};
   this.settings = migrateSettings(data.settings);
   initializeLanguage(this.settings.uiLanguage ?? 'auto', getLanguage());
   this.journal = Array.isArray(data.journal) ? data.journal : [];
   this.mermaidLibrary = new MermaidLibrary(data.mermaidLibrary, () => this.saveSettings());
   this.argdownLibrary = new MermaidLibrary(data.argdownLibrary, () => this.saveSettings(), ARGDOWN_EXAMPLES);
+  this.tetradStore=new TetradStore(data.tetrader,()=>this.saveSettings());
+  this.companionService=this.addChild(new CompanionService(this.app,data.companion,()=>this.settings,()=>this.saveSettings()));
+  registerCompanionLive(this,this.companionService);
+  registerCompanionCommands(this,this.companionService,()=>this.open());
   this.templateFolders=this.addChild(new TemplateFolders(this.app,()=>this.settings,{mermaid:this.mermaidLibrary,argdown:this.argdownLibrary}));
   this.controller = new EmergenceController(this.app, () => this.settings, async entries => {this.journal = entries; await this.saveSettings();}, this.journal, () => this.saveSettings());
   const c = this.controller;
   this.registerHoverLinkSource('emergence-synopsis',{display:tr("common.emergence_context"),defaultMod:true});
-  this.registerView(VIEW_TYPE, leaf => new EmergenceView(leaf, c, this.mermaidLibrary, this.argdownLibrary));
+  this.registerView(VIEW_TYPE, leaf => new EmergenceView(leaf, c, this.mermaidLibrary, this.argdownLibrary,this.tetradStore,this.companionService));
   registerMermaidNoteControls(this, async (file, index) => {if(!featureEnabled(this.settings,'mermaid'))return;const view = await this.open(); if (view) {view.switchTab('mermaid'); await view.mermaidPanel?.openBlock(file, index);}}, error => new Notice(error instanceof Error ? error.message : String(error)),()=>featureEnabled(this.settings,'mermaid'));
   registerArgdown(this, async (file, index) => {if(!featureEnabled(this.settings,'argdown'))return;const view = await this.open(); if (view) {view.switchTab('argdown'); await view.argdownPanel?.openBlock(file, index);}}, error => new Notice(error instanceof Error ? error.message : String(error)),()=>featureEnabled(this.settings,'argdown'));
+  this.tetradProcessor=registerTetrad(this,this.tetradStore,()=>featureEnabled(this.settings,'tetrad'),async(file,index)=>{const view=await this.open();if(view){view.switchTab('tetrad');await view.tetradPanel?.openBlock(file,index);}},()=>this.open());
   this.addSettingTab(new EmergenceSettingsTab(this.app, this));
   this.ribbon=this.addRibbonIcon('network', tr("common.open_emergence"), () => {void c.run(() => this.open());});
   this.ribbon.addClass('em-ribbon');
@@ -68,7 +83,7 @@ export default class EmergencePlugin extends Plugin {
   this.registerEvent(this.app.workspace.on('css-change', () => {
    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) if (leaf.view instanceof EmergenceView) leaf.view.refreshTheme();
   }));
-  this.app.workspace.onLayoutReady(() => {c.captureActive();if(knowledgeFeaturesEnabled(this.settings)){c.rebuild();void c.run(async()=>{await c.graph.refreshBreadcrumbs();c.notify();});}void this.templateFolders.refresh('mermaid');void this.templateFolders.refresh('argdown');});
+  this.app.workspace.onLayoutReady(() => {this.companionService.start();c.captureActive();if(knowledgeFeaturesEnabled(this.settings)){c.rebuild();void c.run(async()=>{await c.graph.refreshBreadcrumbs();c.notify();});}void this.templateFolders.refresh('mermaid');void this.templateFolders.refresh('argdown');});
   this.registerInterval(window.setInterval(schedule, 30000));
  }
  private debounce(callback: () => void, delay: number): () => void {
@@ -83,17 +98,18 @@ export default class EmergencePlugin extends Plugin {
   else if(definition.editorCallback){const callback=definition.editorCallback;definition={...definition,editorCallback:undefined,editorCheckCallback:(checking,editor,view)=>{if(!available())return false;if(!checking)callback(editor,view);return true;}};}
   localizedCommand(this,key,definition);
  }
- async flushFeature(feature:Feature):Promise<void>{for(const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE))if(leaf.view instanceof EmergenceView){if(feature==='mermaid')await leaf.view.mermaidPanel?.flush();if(feature==='argdown')await leaf.view.argdownPanel?.flush();}}
+ async flushFeature(feature:Feature):Promise<void>{if(feature==='companion')await this.companionService.flush();for(const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE))if(leaf.view instanceof EmergenceView){if(feature==='mermaid')await leaf.view.mermaidPanel?.flush();if(feature==='argdown')await leaf.view.argdownPanel?.flush();if(feature==='tetrad')await leaf.view.tetradPanel?.flush();if(feature==='companion')await leaf.view.companionPanel?.flush();}if(feature==='companion')await this.companionService.flush();}
  applyFeatures():void{
   const knowledge=knowledgeFeaturesEnabled(this.settings);if(this.knowledgeActive===false&&knowledge)void this.controller.run(async()=>{await this.controller.graph.refreshBreadcrumbs();this.controller.rebuild();});this.knowledgeActive=knowledge;
   if(this.ribbon)this.ribbon.hidden=!anyFeatureEnabled(this.settings);
   for(const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE))if(leaf.view instanceof EmergenceView)leaf.view.applyFeatures();
-  refreshDiagramControls(this);
+  if(featureEnabled(this.settings,'companion'))this.app.workspace.onLayoutReady(()=>this.companionService.resume());
+  refreshDiagramControls(this);this.tetradProcessor?.update();
   for(const kind of ['mermaid','argdown'] as const)if(!featureEnabled(this.settings,kind))this.templateFolders.pause(kind);
  }
  applyLanguage():void{
   initializeLanguage(this.settings.uiLanguage??'auto',getLanguage());
-  refreshCommandLanguage(this);
+  refreshCommandLanguage(this);this.tetradProcessor?.update();
   if(this.ribbon)setTooltip(this.ribbon,tr('common.open_emergence'));
   for(const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE))if(leaf.view instanceof EmergenceView)leaf.view.refreshLanguage();
   for(const leaf of this.app.workspace.getLeavesOfType('markdown'))for(const button of leaf.view.containerEl.querySelectorAll<HTMLElement>('.em-mm-open')){const label=button.dataset.emDiagramKind==='argdown'?tr('argdown.edit_in_argdown'):tr('mermaid.edit_in_mermaid');button.setAttribute('aria-label',label);button.title=label;}
@@ -106,9 +122,10 @@ export default class EmergencePlugin extends Plugin {
    const sidebar = this.app.workspace.getRightLeaf(false); if (!sidebar) return;
    leaf = sidebar; await leaf.setViewState({type: VIEW_TYPE, active: false});
   }
+  await leaf.loadIfDeferred();
   await this.app.workspace.revealLeaf(leaf);
   return leaf.view instanceof EmergenceView ? leaf.view : undefined;
  }
- async saveSettings(): Promise<void> {await this.saveData({settings: this.settings, journal: this.journal, mermaidLibrary: this.mermaidLibrary.snapshot(), argdownLibrary: this.argdownLibrary.snapshot()});}
+ async saveSettings(): Promise<void> {const save=this.saves.then(()=>this.saveData({settings: this.settings, journal: this.journal, mermaidLibrary: this.mermaidLibrary.snapshot(), argdownLibrary: this.argdownLibrary.snapshot(), tetrader:this.tetradStore.snapshot(),companion:this.companionService.snapshot()}));this.saves=save.catch(()=>{});await save;}
  onunload(): void {this.controller?.dispose();}
 }

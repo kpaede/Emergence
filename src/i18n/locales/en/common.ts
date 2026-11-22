@@ -72,7 +72,7 @@ export const common = {
   "common.not_reported": "not reported",
   "common.emergence_context": "Emergence context",
   "common.open_emergence": "Open Emergence",
-  "common.open_knowledge_graph_and_analysis": "Open knowledge graph and analysis",
+  "common.open_knowledge_graph_and_analysis": "Open workspace",
   "common.open_argdown_editor": "Open Argdown editor",
   "common.open_mermaid_editor": "Open Mermaid editor",
   "common.classify_current_note_locally": "Classify current note locally",
@@ -234,5 +234,6 @@ export const common = {
   "common.only_this_search_term_is_sent_to_wikipedia_your_note_text": "Only this search term is sent to Wikipedia. Your note text stays local.",
   "common.no_wikipedia_excerpt_used": "No Wikipedia excerpt used.",
   "common.excerpt_shortened": " · excerpt shortened",
-  "common.linked_concepts": "Linked concepts: {{value1}}"
+  "common.linked_concepts": "Linked concepts: {{value1}}",
+  "common.workspace_close_failed": "An error occurred while closing. Reopen Emergence and check the recoverable drafts. {{details}}"
 } as const;

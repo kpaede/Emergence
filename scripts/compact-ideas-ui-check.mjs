@@ -1,10 +1,15 @@
 import {writeFileSync} from 'node:fs';
 import {evaluate} from './obsidian-cli.mjs';
-// Render 4 ideas per current field with an isolated controller. All write actions are mocks.
+// Render 4 ideas per fixture field with an isolated controller. All write actions are mocks.
 const report=evaluate(`(()=>{const v=app.workspace.getLeavesOfType('emergence-workspace')[0].view,original=v.controller;
  if(original.abort||original.applyingIdea)throw Error('Eine Benutzeraktion läuft');
- const previous={state:v.state,tab:v.tab},settings=JSON.parse(JSON.stringify(original.settings())),test=new original.constructor(app,()=>settings,async()=>{},[],async()=>{});
+ const previous={state:v.state,tab:v.tab,settings:JSON.stringify(original.settings())},settings=JSON.parse(JSON.stringify(original.settings())),test=new original.constructor(app,()=>settings,async()=>{},[],async()=>{});
  test.graph.snapshot=JSON.parse(JSON.stringify(original.graph.snapshot));test.activePath=original.activePath;
+ // A UI fixture must not depend on the currently open note having configured writable fields.
+ const fixtureFields=test.graph.snapshot.fields.slice(0,3);if(!fixtureFields.length)throw Error('No relation fields available for the UI fixture');
+ test.analysisFieldsFor=()=>fixtureFields;test.graph.snapshot.partial=false;
+ for(const field of fixtureFields)test.graph.snapshot.rules[field]={...test.graph.snapshot.rules[field],description:'UI fixture relation',provenance:'user',writable:true,targetProperty:field,eligibleNodeTypes:[]};
+ const output=test.profile.outputs.find(o=>o.kind==='relations');if(!output)throw Error('No relation output available for the UI fixture');Object.assign(output,{enabled:true,writeMode:'review',targetProperty:'',allowedEdgeTypes:[],eligibleNodeTypes:[]});
  let applies=0,undos=0;test.applyIdea=async()=>{applies++;};test.undoIdea=async()=>{undos++;};
  const fields=test.analysisFields,title=test.graph.snapshot.nodes.find(n=>n.id===test.activePath).title,id=crypto.randomUUID();
  const suggestions=fields.flatMap((field,i)=>Array.from({length:4},(_,j)=>({id:'ui-'+i+'-'+j,analysisId:id,source:test.activePath,sourceVersion:'ui-only',operation:'add',target:'UI-Idee '+i+' '+j+'.md',targetKind:'unresolved',field,property:field,value:'[[UI-Idee '+i+' '+j+']]',reason:'',evidence:title,evidenceSource:'title',confidence:'medium',status:'pending',outputId:test.profile.outputs.find(o=>o.kind==='relations').id,contract:'breadcrumbs-v2'})));
@@ -18,7 +23,7 @@ const report=evaluate(`(()=>{const v=app.workspace.getLeavesOfType('emergence-wo
   panel=v.contentEl.querySelector('.em-panel-analysis');const remaining=panel.querySelectorAll('.em-idea-row').length;
   test.writer.journal.push({id:'ui-journal',path:test.activePath,time:Date.now(),beforeHash:'',afterHash:'',beforeFrontmatter:'',afterFrontmatter:'',status:'applied',changes:[{property:fields[0],target:'UI-Idee.md'}]});v.update(true);
   panel=v.contentEl.querySelector('.em-panel-analysis');[...panel.querySelectorAll('button')].find(b=>b.textContent==='Rückgängig').click();
-  const result={fields:fields.length,ideas:rows,fourPerField:rows===fields.length*4,groupsMatchFields:groups===fields.length,acceptReached:applies===1,rejectRemovedOne:remaining===rows-1,undoReached:undos===1,width:panel.clientWidth,scrollWidth:panel.scrollWidth,userSettingsUnchanged:JSON.stringify(original.settings())===JSON.stringify(settings),notesWritten:0};
+  const result={fields:fields.length,ideas:rows,fourPerField:rows===fields.length*4,groupsMatchFields:groups===fields.length,acceptReached:applies===1,rejectRemovedOne:remaining===rows-1,undoReached:undos===1,width:panel.clientWidth,scrollWidth:panel.scrollWidth,userSettingsUnchanged:JSON.stringify(original.settings())===previous.settings,notesWritten:0};
   if(!result.fourPerField||!result.groupsMatchFields||!result.acceptReached||!result.rejectRemovedOne||!result.undoReached||result.scrollWidth>result.width+1)throw Error(JSON.stringify(result));return result;
  }finally{off?.();test.dispose();v.controller=original;v.state=previous.state;v.switchTab(previous.tab);v.update(true);}
 })()`);

@@ -33,6 +33,10 @@ export class FrontmatterWriter {
   private settings: () => Settings, private profile: () => Profile, readonly journal: JournalEntry[]) {}
  private signature(): string {return JSON.stringify({settings: this.settings(), fields: this.graph().fields, rules: this.graph().rules, inferenceRules: this.graph().inferenceRules, groups: this.graph().groups, edges: this.graph().edges, partial: this.graph().partial});}
  invalidate(): void {this.previews.clear();}
+ async clearJournal():Promise<void>{
+  assert(!this.busy,tr('common.a_write_operation_is_already_running'));this.busy=true;const previous=[...this.journal];this.journal.splice(0);
+  try{await this.io.saveJournal(this.journal);}catch(error){this.journal.splice(0,this.journal.length,...previous);throw error;}finally{this.busy=false;}
+ }
  async moveLinks(origins: StoredRelation[], source: string, property: string, target: string): Promise<void> {
   assert(!this.busy, tr("common.a_write_operation_is_already_running")); this.busy = true; this.invalidate();
   try {

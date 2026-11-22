@@ -1,3 +1,5 @@
+Aktuelle produktübergreifende Entwicklungsprüfung vom 22. November 2026: [Kritischer Prüfdurchgang des gesamten Plugins](PLUGIN_AUDIT.md). Die folgenden Abschnitte dokumentieren frühere Prüfstände.
+
 # Prüfstand: stabiler Release 0.0.4
 
 Stand: 12. November 2026. Der geprüfte Funktionsstand von **0.0.4-beta.2** wird als **0.0.4** veröffentlicht. Plugin-Quellcode, Abhängigkeiten und Styles bleiben gegenüber Beta 2 unverändert; README und Changelog beschreiben jetzt den stabilen Release. Die Beta bleibt als historische Vorabversion erhalten.

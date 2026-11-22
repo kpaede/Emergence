@@ -24,3 +24,4 @@ export function setTooltip():void{/* Host rendering is exercised by native UI ch
 
 export class Menu {}
 export const Keymap={isModEvent:(event:MouseEvent)=>event.ctrlKey||event.metaKey};
+export {parse as parseYaml,stringify as stringifyYaml} from 'yaml';

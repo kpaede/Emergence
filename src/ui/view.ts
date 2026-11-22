@@ -1,5 +1,10 @@
+import {CompanionPanel} from '../companion/panel';
+import type {CompanionService} from '../companion/service';
+import {TetradPanel} from '../tetrad/panel';
+import type {TetradStore} from '../tetrad/patterns';
 import {t as tr} from '../i18n';
-import {ItemView, setIcon, type WorkspaceLeaf} from 'obsidian';
+import {ItemView, Notice, setIcon, type WorkspaceLeaf} from 'obsidian';
+import {settleSteps} from '../cleanup';
 import type {EmergenceController} from '../controller';
 import {GraphPanel} from './graph-panel';
 import {initialPanelState, type PanelContext, type Tab} from './panel';
@@ -14,10 +19,12 @@ import {featureEnabled,featureForTab} from '../features';
 
 export const VIEW_TYPE = 'emergence-workspace';
 const tabs: {id: Tab; label: string; full: string; icon: string}[] = [
+ {id:'companion',get label(){return tr('companion.title');},get full(){return tr('companion.description');},icon:'notebook-pen'},
  {id:'graph',get label() {return tr("common.graph");},get full() {return tr("common.context_and_native_views");},icon:'network'},
  {id:'analysis',get label() {return tr("common.field_ideas");},get full() {return tr("common.breadcrumbs_field_ideas");},icon:'text-search'},
  {id:'mermaid',get label() {return tr("mermaid.mermaid");},get full() {return tr("common.edit_mermaid_diagrams_visually_and_in_source");},icon:'workflow'},
  {id:'argdown',get label() {return tr("argdown.argdown");},get full() {return tr("common.edit_argument_maps_visually_and_in_source");},icon:'git-fork'},
+ {id:'tetrad',get label(){return tr('tetrad.title');},get full(){return tr('tetrad.description');},icon:'panels-top-left'},
  {id:'search',get label() {return tr("common.search");},get full() {return tr("common.search_notes_and_zotero_2");},icon:'search'},
 ];
 export class EmergenceView extends ItemView {
@@ -27,6 +34,8 @@ export class EmergenceView extends ItemView {
  private graphPanel?: GraphPanel;
  mermaidPanel?: MermaidPanel;
  argdownPanel?: ArgdownPanel;
+ tetradPanel?: TetradPanel;
+ companionPanel?:CompanionPanel;
  private panels = new Map<Tab, HTMLElement>();
  private nav = new Map<Tab, HTMLButtonElement>();
  private status!: HTMLElement;
@@ -39,7 +48,7 @@ export class EmergenceView extends ItemView {
  private tabId = crypto.randomUUID();
  private disclosures = new Map<Tab, DisclosureState>();
  private interactionHeld = false; private dragging = false; private updatePending = false; private forcePending = false; private updateFrame?: number;
- constructor(leaf: WorkspaceLeaf, readonly controller: EmergenceController, private mermaidLibrary: MermaidLibrary, private argdownLibrary: MermaidLibrary) {super(leaf);}
+ constructor(leaf: WorkspaceLeaf, readonly controller: EmergenceController, private mermaidLibrary: MermaidLibrary, private argdownLibrary: MermaidLibrary, private tetradStore:TetradStore,private companionService:CompanionService) {super(leaf);}
  onNoteRename(oldPath:string,newPath:string):void{this.graphPanel?.onNoteRename(oldPath,newPath);this.fingerprint='';}
  getViewType(): string {return VIEW_TYPE;}
  getDisplayText(): string {return tr("common.emergence");}
@@ -98,10 +107,10 @@ export class EmergenceView extends ItemView {
   const visible=tabs.filter(tab=>featureEnabled(this.controller.settings(),featureForTab(tab.id)));if(!visible.length)return;
   if (!this.panels.has(tab)||!featureEnabled(this.controller.settings(),featureForTab(tab))) tab = visible[0]!.id;
   const previous = this.panels.get(this.tab); if (previous) this.disclosures.get(this.tab)?.capture(previous);
-  this.tab = tab; this.fingerprint = '';
+  this.tab = tab; this.companionPanel?.setVisible(tab==='companion'); this.fingerprint = '';
   for (const [id, panel] of this.panels) panel.hidden = id !== tab;
   for (const [id, button] of this.nav) {button.setAttribute('aria-selected', String(id === tab)); button.tabIndex = id === tab ? 0 : -1;}
-  this.update(); if (tab === 'graph') this.graphPanel?.resize(); if (tab === 'mermaid') void this.mermaidPanel?.activate(); if (tab === 'argdown') void this.argdownPanel?.activate();
+  const active=this.nav.get(tab),navigation=active?.parentElement;if(active&&navigation){if(active.offsetLeft<navigation.scrollLeft)navigation.scrollLeft=active.offsetLeft;else if(active.offsetLeft+active.offsetWidth>navigation.scrollLeft+navigation.clientWidth)navigation.scrollLeft=active.offsetLeft+active.offsetWidth-navigation.clientWidth;}this.update(); if (tab === 'graph') this.graphPanel?.resize(); if (tab === 'mermaid') void this.mermaidPanel?.activate(); if (tab === 'argdown') void this.argdownPanel?.activate(); if(tab==='tetrad')void this.tetradPanel?.activate();if(tab==='companion')void this.companionPanel?.activate();
  }
  applyFeatures():void{
   if(!this.empty)return;const settings=this.controller.settings();
@@ -109,10 +118,14 @@ export class EmergenceView extends ItemView {
   if(featureEnabled(settings,'search')&&!this.searchPanel){this.searchPanel=new SearchPanel(this.controller,this.panels.get('search')!,()=>this.state.search,path=>{if(featureEnabled(this.controller.settings(),'graph')){this.switchTab('graph');this.graphPanel?.exploreNote(path);}});this.searchPanel.mount();}
   if(featureEnabled(settings,'mermaid')&&!this.mermaidPanel)this.mermaidPanel=this.addChild(new MermaidPanel(this.app,this.panels.get('mermaid')!,()=>this.app.vault.getFileByPath(this.controller.activePath)??undefined,this.mermaidLibrary));
   if(featureEnabled(settings,'argdown')&&!this.argdownPanel)this.argdownPanel=this.addChild(new ArgdownPanel(this.app,this.panels.get('argdown')!,()=>this.app.vault.getFileByPath(this.controller.activePath)??undefined,this.argdownLibrary));
+  if(featureEnabled(settings,'tetrad')&&!this.tetradPanel)this.tetradPanel=this.addChild(new TetradPanel(this.app,this.panels.get('tetrad')!,()=>this.app.vault.getFileByPath(this.controller.activePath)??undefined,this.tetradStore));
+  if(featureEnabled(settings,'companion')&&!this.companionPanel)this.companionPanel=this.addChild(new CompanionPanel(this.app,this.panels.get('companion')!,this.companionService,()=>this.controller.activePath,this.leaf));
+  this.companionPanel?.setEnabled(featureEnabled(settings,'companion'));
+  this.tetradPanel?.setEnabled(featureEnabled(settings,'tetrad'));
   this.graphPanel?.setEnabled(featureEnabled(settings,'graph'));this.searchPanel?.setEnabled(featureEnabled(settings,'search'));this.mermaidPanel?.setEnabled(featureEnabled(settings,'mermaid'));this.argdownPanel?.setEnabled(featureEnabled(settings,'argdown'));
   for(const {id}of tabs)this.nav.get(id)!.hidden=!featureEnabled(settings,featureForTab(id));
   const visible=tabs.filter(tab=>featureEnabled(settings,featureForTab(tab.id)));this.empty.hidden=visible.length>0;
-  const navigation=this.contentEl.querySelector<HTMLElement>('.em-tabs');if(navigation){navigation.hidden=!visible.length;navigation.style.gridTemplateColumns=visible.map(tab=>`minmax(0, ${tab.id==='analysis'?1.3:tab.id==='graph'||tab.id==='search'?.85:1.15}fr)`).join(' ');}
+  const navigation=this.contentEl.querySelector<HTMLElement>('.em-tabs');if(navigation){navigation.hidden=!visible.length;navigation.style.setProperty('--em-tab-compact-count',String(Math.min(3,visible.length)||1));navigation.style.setProperty('--em-tab-small-count',String(Math.min(2,visible.length)||1));navigation.style.removeProperty('grid-template-columns');}
   if(visible.length)this.switchTab(this.tab);else{for(const panel of this.panels.values())panel.hidden=true;for(const button of this.nav.values()){button.tabIndex=-1;button.setAttribute('aria-selected','false');}}
  }
  private update(force = false): void {
@@ -126,7 +139,7 @@ export class EmergenceView extends ItemView {
   for (const [name, value] of [['Breadcrumbs', g.breadcrumbsVersion], [tr("labels.graph_index"), g.partial ? tr("common.still_incomplete") : tr("labels.current")], ['Ollama', c.ollamaStatus], [tr("common.model"), c.settings().model], [tr("labels.context_window"), String(c.settings().numCtx)], [tr("common.activity"), c.status]]) {
    list.createEl('dt', {text: name}); list.createEl('dd', {text: value});
   }
-  this.graphPanel?.update(); this.searchPanel?.update(); if (this.tab === 'argdown') {this.argdownPanel?.context(); return;} if (this.tab === 'mermaid') {void this.mermaidPanel?.context(); return;} if (this.tab === 'graph' || this.tab === 'search') return;
+  this.graphPanel?.update(); this.searchPanel?.update(); if(this.tab==='companion'){this.companionPanel?.context();return;} if(this.tab==='tetrad'){this.tetradPanel?.context();void this.tetradPanel?.refreshBlocks();return;} if (this.tab === 'argdown') {this.argdownPanel?.context(); return;} if (this.tab === 'mermaid') {void this.mermaidPanel?.context(); return;} if (this.tab === 'graph' || this.tab === 'search') return;
   if(!featureEnabled(c.settings(),featureForTab(this.tab)))return;
   const fingerprint = JSON.stringify([this.tab, g.version, c.review.revision, c.activePath, c.status, !!c.abort, c.applyingIdea, !!c.profilePromptSave, c.settings().activeProfile]);
   if (!force && fingerprint === this.fingerprint) return; this.fingerprint = fingerprint;
@@ -162,7 +175,15 @@ export class EmergenceView extends ItemView {
   this.empty?.setText(tr('settings.noFeatures'));
   this.status.setAttribute('aria-label',tr('common.show_operational_status'));this.contentEl.querySelector('[role=tablist]')?.setAttribute('aria-label',tr('common.emergence_views'));
   for(const {id,label,full}of tabs){const button=this.nav.get(id);if(button){button.firstChild!.textContent=label;button.setAttribute('aria-label',label);button.title=full;}}
-  this.graphPanel?.refreshLanguage();this.searchPanel?.refreshLanguage();this.mermaidPanel?.refreshLanguage();this.argdownPanel?.refreshLanguage();this.fingerprint='';this.update(true);
+  this.graphPanel?.refreshLanguage();this.searchPanel?.refreshLanguage();this.mermaidPanel?.refreshLanguage();this.argdownPanel?.refreshLanguage();this.tetradPanel?.refreshLanguage();this.companionPanel?.refreshLanguage();this.fingerprint='';this.update(true);
  }
- async onClose(): Promise<void> {await this.mermaidPanel?.run(() => this.mermaidPanel?.flush()); await this.argdownPanel?.run(() => this.argdownPanel?.flush()); this.unsubscribe?.(); this.searchPanel?.destroy(); await this.graphPanel?.destroy(); this.controller.writer.invalidate(); this.contentEl.empty();}
+ async onClose():Promise<void>{
+  const errors=await settleSteps([
+   ()=>this.unsubscribe?.(),
+   ()=>{if(this.updateFrame!==undefined)this.contentEl.ownerDocument.defaultView?.cancelAnimationFrame(this.updateFrame);this.updateFrame=undefined;this.updatePending=false;this.forcePending=false;},
+   ()=>this.mermaidPanel?.run(()=>this.mermaidPanel?.flush()),()=>this.argdownPanel?.run(()=>this.argdownPanel?.flush()),()=>this.tetradPanel?.run(()=>this.tetradPanel?.flush()),
+   ()=>this.companionPanel?.shutdown(),()=>this.searchPanel?.destroy(),()=>this.graphPanel?.destroy(),()=>this.controller.writer.invalidate(),()=>this.contentEl.empty(),
+  ]);
+  if(errors.length)new Notice(tr('common.workspace_close_failed',{details:errors.map(errorMessage).join(' · ')}),12000);
+ }
 }

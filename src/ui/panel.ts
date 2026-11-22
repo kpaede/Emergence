@@ -5,7 +5,7 @@ import type {EmergenceController} from '../controller';
 import type {Decision} from '../types';
 import type {ProfilePromptDraft} from '../llm/profile-prompts';
 import type {WikipediaUiState} from './wikipedia';
-export type Tab = 'search' | 'graph' | 'analysis' | 'mermaid' | 'argdown';
+export type Tab = 'search' | 'graph' | 'analysis' | 'mermaid' | 'argdown' | 'tetrad' | 'companion';
 export interface PanelState {
  analysis: WikipediaUiState & WebSearchUiState & {folders?: string; properties?: string; filter?: 'none' | 'breadcrumbs' | 'custom'; descriptionField?: string; descriptions?: Record<string, string>; fieldsOpen?: boolean; descriptionsOpen?: boolean; scopeOpen?: boolean;
   connection?: 'checking' | 'success' | 'error'; connectionMessage?: string; targetChoice?: string; selectedIdea?: string; ideaEdit?: {id: string; value: string; error?: string}; profileDrafts?: Record<string, ProfilePromptDraft>};

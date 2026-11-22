@@ -84,6 +84,25 @@ describe('writer requires two distinct approvals and current snapshots', () => {
   await expect(f.writer.apply(p.token, true)).rejects.toThrow('Konfiguration'); expect(f.stats().writes).toBe(0);
  });
 });
+describe('undo journal deletion', () => {
+ async function populated(){const f=await writerFixture();f.accept();await f.writer.apply((await f.writer.preview()).token,true);return f;}
+ it('persists deletion while retaining the shared journal array and all note contents',async()=>{
+  const f=await populated(),journal=f.writer.journal,files=new Map(f.files),stats=f.stats();
+  await f.writer.clearJournal();expect(f.writer.journal).toBe(journal);expect(journal).toEqual([]);expect(f.files).toEqual(files);expect(f.stats()).toEqual({...stats,saved:stats.saved+1});
+ });
+ it('restores the original entries if deletion cannot be saved and releases the write lock',async()=>{
+  const f=await populated(),journal=f.writer.journal,entries=[...journal],files=new Map(f.files),save=f.io.saveJournal.bind(f.io);
+  f.io.saveJournal=async()=>{throw Error('disk failure');};await expect(f.writer.clearJournal()).rejects.toThrow('disk failure');
+  expect(f.writer.journal).toBe(journal);expect(journal).toEqual(entries);expect(f.files).toEqual(files);
+  f.io.saveJournal=save;await f.writer.clearJournal();expect(journal).toEqual([]);
+ });
+ it('blocks competing writes and a second deletion while the journal save is pending',async()=>{
+  const f=await populated(),entry=f.writer.journal[0]!,files=new Map(f.files);let finish!:()=>void;
+  f.io.saveJournal=()=>new Promise<void>(resolve=>{finish=resolve;});const deletion=f.writer.clearJournal();
+  await expect(f.writer.clearJournal()).rejects.toThrow('Schreibvorgang');await expect(f.writer.undo(entry.id,f.files.get(entry.path)!,true)).rejects.toThrow('Schreibvorgang');
+  expect(f.files).toEqual(files);finish();await deletion;expect(f.writer.journal).toEqual([]);
+ });
+});
 describe('conservative YAML preservation', () => {
  it('fills an empty Breadcrumbs property without changing other properties or the note body', async () => {
   const text = '---\nÜberbau:\nAndere: [a, b]\n---\n# Ontologie\nText';

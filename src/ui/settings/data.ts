@@ -26,6 +26,6 @@ export function dataSettings(ctx: SettingsContext): void {
  new Setting(host).setName(tr("settings.reset_session")).setDesc(tr("settings.cancels_running_requests_and_removes_field_ideas")).addButton(b => b.setButtonText(tr("settings.clear_session")).onClick(() => {c.clearSession(); ctx.report(tr("settings.session_data_removed"));}));
  const journal = disclosure(host, tr("settings.manage_undo_journal"));
  new Setting(journal).setName(tr("settings.delete_journal")).setDesc(tr("settings.removes_saved_undo_options_your_notes_remain_unchanged")).addButton(b => b.setButtonText(tr("settings.delete_journal")).onClick(() => {
-  c.writer.journal.splice(0); void c.persist().then(() => ctx.report(tr("settings.journal_deleted"))).catch(e => ctx.report(errorMessage(e), true));
+  b.setDisabled(true);void c.writer.clearJournal().then(() => ctx.report(tr("settings.journal_deleted"))).catch(e => ctx.report(errorMessage(e), true)).finally(()=>b.setDisabled(false));
  }));
 }

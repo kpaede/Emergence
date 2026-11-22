@@ -1,3 +1,5 @@
+import {companion} from './en/companion';
+import {tetrad} from './en/tetrad';
 import {messages} from './en/messages';
 import {labels} from './en/labels';
 import {preferences} from './en/preferences';
@@ -7,4 +9,4 @@ import {argdown} from './en/argdown';
 import {graph} from './en/graph';
 import {fieldIdeas} from './en/fieldIdeas';
 import {mermaid} from './en/mermaid';
-export const en = {...messages,...labels,...preferences,...common,...settings,...argdown,...graph,...fieldIdeas,...mermaid} as const;
+export const en = {...messages,...labels,...preferences,...common,...settings,...argdown,...graph,...fieldIdeas,...mermaid,...tetrad,...companion} as const;

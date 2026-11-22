@@ -56,6 +56,7 @@ export interface Profile {
  templates: Record<PromptKey, string>; outputs: OutputModule[];
 }
 export interface Settings {
+ companion?:{storage:import('./companion/model').StorageOptions};
  features?:Partial<Record<import('./features').Feature,boolean>>;
  uiLanguage?: import('./i18n').InterfaceLanguage;
  citekeyFormat?: 'brackets' | 'at' | 'plain';

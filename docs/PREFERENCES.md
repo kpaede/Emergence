@@ -1,6 +1,6 @@
 # Allgemeine Einstellungen
 
-Unter **Einstellungen → Emergence** liegen die Sprache und die fünf Bereiche Graph, Feldideen, Mermaid, Argdown und Suche. Die Modell-, Beziehungs-, Profil- und Datenkonfiguration bleibt unter Feldideen.
+Unter **Einstellungen → Emergence** liegen die Sprache und die sieben Bereiche Begleitdokument, Graph, Feldideen, Mermaid, Argdown, Tetrader und Suche, in derselben Reihenfolge wie im Seitenpanel. Die Modell-, Beziehungs-, Profil- und Datenkonfiguration bleibt unter Feldideen.
 
 ## Bereiche aktivieren
 

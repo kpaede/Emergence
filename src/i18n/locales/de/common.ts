@@ -72,7 +72,7 @@ export const common = {
   "common.not_reported": "nicht gemeldet",
   "common.emergence_context": "Emergence Kontext",
   "common.open_emergence": "Emergence öffnen",
-  "common.open_knowledge_graph_and_analysis": "Wissensgraph und Analyse öffnen",
+  "common.open_knowledge_graph_and_analysis": "Arbeitsbereich öffnen",
   "common.open_argdown_editor": "Argdown-Editor öffnen",
   "common.open_mermaid_editor": "Mermaid-Editor öffnen",
   "common.classify_current_note_locally": "Aktuelle Notiz lokal klassifizieren",
@@ -234,5 +234,6 @@ export const common = {
   "common.only_this_search_term_is_sent_to_wikipedia_your_note_text": "Nur dieser Suchbegriff geht an Wikipedia. Dein Notiztext bleibt lokal.",
   "common.no_wikipedia_excerpt_used": "Kein Wikipedia-Auszug verwendet.",
   "common.excerpt_shortened": " · Auszug gekürzt",
-  "common.linked_concepts": "Verknüpfte Begriffe: {{value1}}"
+  "common.linked_concepts": "Verknüpfte Begriffe: {{value1}}",
+  "common.workspace_close_failed": "Beim Schließen ist ein Fehler aufgetreten. Öffne Emergence erneut und prüfe die wiederherstellbaren Entwürfe. {{details}}"
 };

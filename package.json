@@ -50,7 +50,17 @@
     "test:argdown-selection-ui": "node scripts/argdown-selection-native-check.mjs",
     "test:i18n-ui": "node scripts/i18n-native-check.mjs",
     "test:preferences-ui": "node scripts/preferences-native-check.mjs",
-    "test:argdown-direction-ui": "node scripts/argdown-direction-native-check.mjs"
+    "test:argdown-direction-ui": "node scripts/argdown-direction-native-check.mjs",
+    "test:tetrad-ui": "node scripts/tetrad-native-check.mjs",
+    "test:companion-ui": "node scripts/companion-native-check.mjs",
+    "test:companion-storage-ui": "node scripts/companion-storage-native-check.mjs",
+    "test:companion-views-ui": "node scripts/companion-views-native-check.mjs",
+    "test:companion-design-ui": "node scripts/companion-design-native-check.mjs",
+    "test:companion-lifecycle-ui": "node scripts/companion-lifecycle-native-check.mjs",
+    "test:companion-scale-ui": "node scripts/companion-scale-native-check.mjs",
+    "test:plugin-audit-ui": "node scripts/plugin-audit-native-check.mjs",
+    "test:companion-shutdown-ui": "node scripts/companion-shutdown-native-check.mjs",
+    "test:companion-chapter-repair-ui": "node scripts/companion-chapter-repair-native-check.mjs"
   },
   "overrides": {
     "lodash-es": "4.18.1"
@@ -75,7 +85,8 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.59.1",
     "vite": "^7.3.7",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "@codemirror/language": "^6.13.1"
   },
   "dependencies": {
     "@argdown/core": "^2.0.1",

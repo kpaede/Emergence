@@ -1,7 +1,7 @@
 import {t as tr} from '../../i18n';
 import type {Setting, SettingDefinitionItem} from 'obsidian';
 export type SettingsSection = 'model' | 'relations' | 'profiles' | 'data' | 'graph';
-export interface FeatureSettings {language: SettingDefinitionItem; fieldIdeas?:SettingDefinitionItem[]; mermaid: SettingDefinitionItem[]; argdown: SettingDefinitionItem[]; search: SettingDefinitionItem[]; graph: SettingDefinitionItem[]}
+export interface FeatureSettings {language: SettingDefinitionItem; fieldIdeas?:SettingDefinitionItem[]; mermaid: SettingDefinitionItem[]; argdown: SettingDefinitionItem[]; tetrad?: SettingDefinitionItem[]; companion?:SettingDefinitionItem[]; search: SettingDefinitionItem[]; graph: SettingDefinitionItem[]}
 /** Composite editors stay transactional; aliases make their actual controls discoverable in Obsidian search. */
 export function settingsDefinitions(render: (setting: Setting, section: SettingsSection) => void | (() => void), fields: readonly string[], profiles: readonly string[], features?: FeatureSettings): SettingDefinitionItem[] {
  const pages: {id: SettingsSection; name: string; desc: string; editor: string; aliases: string[]}[] = [
@@ -23,10 +23,12 @@ export function settingsDefinitions(render: (setting: Setting, section: Settings
  }]}));
  if (!features) return fieldPages;
  return [features.language,
+  ...features.companion?[{type:'page' as const,name:tr('companion.title'),desc:tr('companion.description'),items:features.companion}]:[],
   {type:'page',name:tr('settings.graph'),desc:tr('settings.graphDescription'),items:features.graph},
   {type:'page',name:tr('settings.fieldIdeas'),desc:tr('settings.fieldIdeasDescription'),items:[...features.fieldIdeas??[],...fieldPages]},
   {type:'page',name:tr('settings.mermaid'),desc:tr('settings.mermaidDescription'),items:features.mermaid},
   {type:'page',name:tr('settings.argdown'),desc:tr('settings.argdownDescription'),items:features.argdown},
+  ...features.tetrad?[{type:'page' as const,name:tr('tetrad.title'),desc:tr('tetrad.description'),items:features.tetrad}]:[],
   {type:'page',name:tr('settings.search'),desc:tr('settings.searchDescription'),items:features.search},
  ];
 }

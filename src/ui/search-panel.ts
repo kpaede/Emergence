@@ -2,7 +2,7 @@ import {t as tr} from '../i18n';
 import {literatureActions} from '../graph/zotlit-actions';
 import {formatZotlitReference} from '../graph/zotlit-bibliography';
 import {literatureReference} from './literature-reference';
-import {Keymap} from 'obsidian';
+import {Keymap,Menu} from 'obsidian';
 import type {EmergenceController} from '../controller';
 import {ConceptRegistry} from '../graph/registry';
 import {openZotlitLibrary, searchZotlitLibrary} from '../graph/zotlit';
@@ -53,7 +53,10 @@ export class SearchPanel {
      if (featureEnabled(c.settings(),'graph')&&this.state().mode === 'explore' && event.button !== 1 && !Keymap.isModEvent(event)) {this.explore(concept.id); return;}
      if (event.button === 1 && isLiterature) return;
      void c.run(() => isLiterature ? openZotlitLibrary(c.app, {path: concept.id}) : openSynopsisNote(c, note, event.button === 1 ? 'tab' : Keymap.isModEvent(event)));
-    }, inspect: () => this.explore(concept.id),
+    }, inspect: (_note,event) => {
+     if(!event)return;const menu=new Menu();menu.addItem(item=>item.setTitle(tr('common.open')).setIcon('file-text').onClick(()=>{void c.run(()=>openSynopsisNote(c,note));}));
+     if(featureEnabled(c.settings(),'graph'))menu.addItem(item=>item.setTitle(tr('graph.explore_in_graph')).setIcon('network').onClick(()=>this.explore(concept.id)));menu.showAtMouseEvent(event);
+    },
    });
    row.createDiv({text: concept.exists ? concept.id : tr("common.not_created_yet"), cls: 'em-path'});
   }

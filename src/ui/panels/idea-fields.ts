@@ -22,7 +22,7 @@ export function renderIdeaFields(host: HTMLElement, ctx: PanelContext): void {
  const selected = pending.find(s => s.id === state.selectedIdea);
  const fields = c.analysisFields.filter(field => !a?.associative || a.source !== c.activePath || a.fields?.includes(field));
  const box = host.createDiv({cls: 'em-idea-fields', attr: {'aria-label': tr("fieldIdeas.breadcrumbs_fields_for_assignment")}});
- box.createDiv({text: selected ? tr("fieldIdeas.choose_a_field_for_the_selected_concept") : tr("fieldIdeas.drag_concepts_onto_a_field_or_select_a_concept_first_and"), cls: 'em-muted em-caption'});
+ if(pending.length)box.createDiv({text: selected ? tr("fieldIdeas.choose_a_field_for_the_selected_concept") : tr("fieldIdeas.drag_concepts_onto_a_field_or_select_a_concept_first_and"), cls: 'em-muted em-caption'});
  const list = box.createDiv({cls: 'em-idea-field-targets'});
  for (const field of fields) {
   const target = list.createEl('button', {text: field, cls: 'em-idea-field-target', attr: {type: 'button', 'data-idea-field': field, 'aria-label': tr("messages.assignField",{field})}});
