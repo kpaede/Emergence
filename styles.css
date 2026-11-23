@@ -695,6 +695,7 @@
 	min-width: 0;
 	gap: 2em;
 }
+.tetrader-tetrad .tetrader-law:not(:has(> .tetrader-glosses > .tetrader-gloss)) { gap: 0; }
 
 .tetrader-tetrad .tetrader-enhances { --tetrader-column: 1; --tetrader-row: 1; }
 .tetrader-tetrad .tetrader-reverses { --tetrader-column: 2; --tetrader-row: 1; }
@@ -743,15 +744,6 @@
 	align-self: end;
 }
 
-.tetrader-tetrad .tetrader-grid.tetrader-empty {
-	grid-template-rows: auto;
-	row-gap: 0;
-}
-
-.tetrader-tetrad .tetrader-empty > .tetrader-center {
-	grid-row: 1;
-}
-
 .tetrader-tetrad :is(.tetrader-center, .tetrader-label-cross, .tetrader-law, .tetrader-missing-label)[hidden] {
 	display: none;
 }
@@ -788,7 +780,8 @@
 .tetrader-tetrad .tetrader-glosses {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
-	gap: clamp(1.75em, 5cqi, 2.5em);
+	--tetrader-paragraph-gap: 2em;
+	gap: 0;
 	text-align: right;
 	font-size: 0.92em;
 	line-height: var(--line-height-tight);
@@ -798,6 +791,8 @@
 .tetrader-tetrad :is(.tetrader-reverses, .tetrader-obsolesces) > .tetrader-glosses {
 	text-align: left;
 }
+
+.tetrader-tetrad .tetrader-glosses > .tetrader-gloss ~ .tetrader-gloss { margin-block-start: var(--tetrader-paragraph-gap); }
 
 /* Equal text widths: move each gloss instead of progressively narrowing it. */
 .tetrader-tetrad .tetrader-gloss {
@@ -821,15 +816,41 @@
 .tetrader-tetrad :is(.tetrader-statement, .tetrader-gloss) > :last-child {
 	margin-block-end: 0;
 }
+/* Editor controls must not change which Markdown block owns the final margin. */
+.tetrader-tetrad :is(.tetrader-statement,.tetrader-gloss) > :nth-last-child(1 of :not(.em-tetrad-row-actions,.em-tetrad-edit-overlay)) { margin-block-end: 0; }
 
 .tetrader-tetrad :is(.tetrader-statement, .tetrader-gloss) p {
-	white-space: pre-line;
+	white-space: pre-wrap;
+	word-break: normal;
+	overflow-wrap: anywhere;
 }
 
 /* Preserve the wing's text edge even when a theme styles paragraphs directly. */
 .tetrader-tetrad :is(.tetrader-statement, .tetrader-gloss) > p {
 	text-align: inherit;
 }
+
+/* Markdown lists delimit movable entries; the diagram presents plain text. */
+.tetrader-tetrad .tetrader-gloss :is(ul, ol, li) { list-style: none; }
+.tetrader-tetrad .tetrader-gloss li::marker { content: ''; }
+.tetrader-tetrad .tetrader-gloss .list-bullet { display: none; }
+.tetrader-tetrad .tetrader-gloss > :is(ul, ol) { margin: 0; padding-inline-start: 0; }
+.tetrader-tetrad .tetrader-gloss > :is(ul, ol) > li { margin-inline-start: 0; }
+
+/* The four statements stay close to the center. The outer text is ordinary
+   native Markdown flowing between complementary diagonal CSS Shapes. */
+.tetrader-tetrad .tetrader-statement { max-inline-size: 16ch; }
+.tetrader-tetrad :is(.tetrader-enhances,.tetrader-retrieves) .tetrader-statement { margin-inline-start: auto; }
+.tetrader-tetrad .tetrader-line-flow { --tetrader-flow-inset: 45%; display: flow-root; block-size: var(--tetrader-flow-content-height, auto); }
+.tetrader-tetrad .tetrader-law > .tetrader-line-flow > .tetrader-gloss { width: 100%; justify-self: stretch; margin-inline: 0; }
+.tetrader-flow-edge { display: block; width: var(--tetrader-flow-inset); height: var(--tetrader-flow-height, 0); pointer-events: none; }
+.tetrader-flow-left { float: left; shape-outside: polygon(0 0, 0 100%, 100% 100%); }
+.tetrader-flow-right { float: right; shape-outside: polygon(0 0, 100% 0, 100% 100%); }
+:is(.tetrader-reverses,.tetrader-retrieves) .tetrader-flow-left { shape-outside: polygon(0 0, 100% 0, 0 100%); }
+:is(.tetrader-reverses,.tetrader-retrieves) .tetrader-flow-right { shape-outside: polygon(100% 0, 0 100%, 100% 100%); }
+.tetrader-tetrad .tetrader-line-flow:is(.is-measuring,.is-single-line) > .tetrader-flow-edge { display: none; }
+.tetrader-tetrad .tetrader-line-flow:is(.is-measuring,.is-single-line) > .tetrader-gloss { width: calc(100% - var(--tetrader-flow-inset)); margin-inline-start: auto; }
+.tetrader-tetrad :is(.tetrader-reverses,.tetrader-obsolesces) .tetrader-line-flow:is(.is-measuring,.is-single-line) > .tetrader-gloss { margin-inline-start: 0; margin-inline-end: auto; }
 
 .tetrader-tetrad .tetrader-missing-label {
 	display: block;
@@ -845,6 +866,7 @@
 	text-transform: none;
 	border: 0;
 }
+.tetrader-tetrad .tetrader-statement > .tetrader-missing-label { font: inherit; color: inherit; margin: 0; }
 
 .tetrader-tetrad .tetrader-source-heading {
 	position: absolute;
@@ -867,6 +889,7 @@
 	font-weight: var(--font-normal);
 	font-style: italic;
 }
+.tetrader-tetrad .tetrader-gloss.tetrader-placeholder { font: inherit; }
 
 .tetrader-tetrad .tetrader-legend {
 	--tetrader-cross-size: 1.4em;
@@ -974,14 +997,82 @@
 
 /* Tetrader workspace editor. */
 .em-panel-tetrad { padding: 0; overflow: hidden; }
+.em-tetrad .em-mm-tools > button:disabled { opacity: .45; cursor: default; }
 .em-tetrad .em-mm-tools select { min-width: 60px; max-width: 140px; flex: 1; }
 .em-tetrad-stage { display: flex; flex-direction: column; }
-.em-tetrad-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 8px; flex: none; }
-.em-tetrad-fields button { height: auto; min-width: 0; white-space: normal; overflow-wrap: anywhere; font-size: var(--font-ui-smaller); }
 .em-tetrad-preview { overflow: auto; padding: 12px; min-height: 0; flex: 1; }
-.em-tetrad-selected { outline: 2px solid var(--interactive-accent); outline-offset: 3px; border-radius: var(--radius-s); }
-.em-tetrad-open { margin-block: 8px; font-size: var(--font-ui-smaller); }
-.em-tetrad-open[hidden] { display: none; }
+.em-tetrad-graphic > .em-mm-split { display: flex; }
+.em-tetrad-graphic > .em-mm-split > :is(.em-mm-code,.em-mm-divider) { display: none; }
+.em-tetrad-graphic .em-tetrad-stage { width: 100%; flex: 1; }
+.em-tetrad-preview :is(.tetrader-law,.callout-title) { position: relative; }
+.em-tetrad-preview .tetrader-law { outline: none; border-radius: var(--radius-s); }
+.em-tetrad-preview { position: relative; scrollbar-gutter: stable; overflow-anchor: none; padding-inline: 28px; }
+.em-tetrad-preview .tetrader-law:focus-visible { outline: none; }
+.em-tetrad .em-mm-error:empty { display: none; }
+.em-tetrad .em-mm-error button { margin-inline-start: 8px; }
+.em-tetrad-preview :is([data-em-core],.tetrader-gloss) { position: relative; border-radius: var(--radius-s); }
+.em-tetrad-preview :is([data-em-core],.tetrader-gloss):focus-visible { outline: none; }
+.em-tetrad-preview .tetrader-gloss.is-selected { background: transparent; outline: none; }
+.em-tetrad-preview :is([data-em-core],.tetrader-gloss):focus-visible,
+.em-tetrad-preview .tetrader-law:focus-visible .tetrader-statement,
+.em-tetrad-preview .tetrader-gloss.is-selected:not(.is-editing) { text-decoration: underline; text-decoration-color: var(--interactive-accent); text-underline-offset: 3px; }
+.em-tetrad-preview .tetrader-gloss.is-dragging { opacity: .4; }
+.em-tetrad-preview .tetrader-glosses { gap: 0; }
+.em-tetrad-preview .em-tetrad-gap { position: relative; height: 0; min-height: 0; min-width: 0; width: 100%; transform: translateY(calc(var(--tetrader-paragraph-gap) / 2)); }
+.em-tetrad-preview .em-tetrad-gap.is-before { transform: translateY(calc(var(--tetrader-paragraph-gap) / 2)); }
+.em-tetrad-preview .em-tetrad-gap.is-outer.is-before { transform: translateY(calc(var(--tetrader-paragraph-gap) / -2)); }
+.em-tetrad-gap::before { content: ''; position: absolute; top: 50%; inset-inline: 0; border-top: 1px solid var(--interactive-accent); opacity: 0; }
+.em-tetrad-gap > button { position: absolute; top: 50%; left: 0; transform: translateY(-50%); background: transparent; width: 100%; height: max(24px, calc(var(--tetrader-paragraph-gap) - 8px)); padding: 0; opacity: 0; z-index: 2; cursor: pointer; }
+.em-tetrad-gap > button:is(:hover,:focus-visible) { background: transparent; }
+.em-tetrad-gap > button > svg { background: var(--background-primary); padding: 2px; box-sizing: content-box; }
+.em-tetrad-gap:is(:hover,:focus-within)::before,.em-tetrad-gap:is(:hover,:focus-within) > button { opacity: 1; }
+/* During a drag only the one shared overlay can draw an insertion line. */
+.is-tetrad-dragging .em-tetrad-gap::before { display: none; }
+.is-tetrad-dragging .em-tetrad-gap > button { visibility: hidden; }
+.em-tetrad-preview.is-tetrad-dragging .tetrader-gloss { outline: none; box-shadow: none; text-decoration: none; }
+.em-tetrad-preview.is-tetrad-dragging .tetrader-gloss.is-selected { background: transparent; }
+.em-tetrad-drop-indicator { position: absolute; height: 2px; margin: 0; padding: 0; background: var(--interactive-accent); pointer-events: none; z-index: 6; }
+.em-tetrad-drop-indicator[hidden] { display: none; }
+.em-tetrad-preview .em-tetrad-row-actions { position: absolute; inset: 0; visibility: visible; pointer-events: none; user-select: none; z-index: 4; }
+.em-tetrad-row-actions > button { position: absolute; width: 30px; height: 30px; padding: 7px; opacity: 0; pointer-events: none; background: transparent; }
+.em-tetrad-row-actions > button > svg { background: var(--background-primary); }
+.em-tetrad-row-actions > button[draggable] { cursor: grab; }
+.em-tetrad-row-actions.has-line > button,.em-tetrad-row-actions > button:focus-visible { opacity: 1; pointer-events: auto; }
+.em-tetrad-edit-target { position: relative; visibility: hidden; }
+.em-tetrad-preview .em-tetrad-edit-overlay { position: absolute; inset-block-start: 0; inset-inline-start: 0; width: 100%; visibility: visible; z-index: 2; }
+.em-tetrad-edit-edge { display: block; pointer-events: none; }
+.em-tetrad-edit-edges { display: inline; font-size: 0; line-height: 0; }
+.em-tetrad-edit-edges + .cm-widgetBuffer,
+.cm-widgetBuffer:has(+ .em-tetrad-edit-edges) { height: 0; vertical-align: baseline; }
+.em-tetrad-preview .tetrader-gloss.is-new { min-height: 1lh; }
+.em-tetrad-preview :is([data-em-core],.tetrader-gloss,.callout-title-inner) { cursor: text; }
+.em-tetrad-preview .callout-title-inner { min-width: 0; flex: 1; }
+.em-tetrad-inline { color: inherit; font: inherit; text-align: inherit; }
+.em-tetrad-inline .em-error:empty { display: none; }
+.em-tetrad-inline .em-error { font: var(--font-ui-small)/1.4 var(--font-interface); text-align: start; }
+.em-tetrad-inline-surface { height: var(--em-tetrad-edit-height); overflow: clip; overflow-clip-margin: .5em; }
+.em-tetrad-inline-surface .markdown-source-view.mod-cm6 { padding: 0; background: transparent; font: inherit; }
+.em-tetrad-inline-surface .cm-editor { height: auto; min-height: 0; font: inherit; background: transparent; color: var(--text-normal); border: 0; outline: 0; box-shadow: none; }
+.em-tetrad-inline-surface .cm-scroller { min-height: 0; max-height: none; overflow: auto; font: inherit; line-height: inherit; }
+.em-tetrad-inline-surface .cm-sizer { min-height: 0 !important; margin: 0; padding: 0; }
+.em-tetrad-inline-surface .markdown-source-view.mod-cm6 .cm-content { padding: 0; min-height: 1lh; white-space: pre-wrap; font: inherit; line-height: inherit; }
+.em-tetrad-inline.is-single-line .cm-content { white-space: pre; }
+.em-tetrad-inline-surface .cm-content,.em-tetrad-inline-surface .cm-line { text-align: inherit; }
+.em-tetrad-inline-surface .cm-line { padding: 0; min-height: 1lh; }
+/* Keep the native editing surface on the same baseline and projection as the
+   reading text, including themes that justify Markdown editors globally. */
+.em-tetrad-edit-overlay .markdown-source-view.mod-cm6 .cm-editor .cm-scroller { font: inherit; line-height: inherit; overflow: clip; overflow-clip-margin: .5em; }
+.em-tetrad-edit-overlay .markdown-source-view.mod-cm6 .cm-editor .cm-contentContainer { padding: 0; margin: 0; }
+.em-tetrad-edit-overlay .markdown-source-view.mod-cm6 .cm-editor .cm-content { height: var(--em-tetrad-edit-height); min-height: 0; padding: 0; overflow: clip; overflow-clip-margin: .5em; }
+.em-tetrad-edit-overlay .markdown-source-view.mod-cm6 .cm-editor .cm-line { padding: 0; text-align: inherit; word-break: normal; overflow-wrap: anywhere; }
+.em-tetrad-edit-overlay .cm-widgetBuffer { vertical-align: middle; }
+/* A transient, inert sizing surface uses the same flow rules as the diagram. */
+.em-tetrad-flow-probe { position: fixed; left: -100000px; top: 0; width: var(--em-tetrad-probe-width); height: auto; visibility: hidden; pointer-events: none; contain: layout style; margin: 0; padding: 0; }
+.em-tetrad-flow-probe .em-tetrad-probe-entry { display: block !important; position: static !important; height: auto !important; width: 100%; visibility: hidden; overflow: visible; min-height: 0; padding: 0; }
+.em-tetrad-flow-probe .cm-content { display: block !important; position: static !important; width: 100% !important; max-width: none !important; height: auto; min-height: 0; padding: 0; overflow: visible; }
+.em-tetrad-probe-media { display: inline-block; }
+.em-tetrad-preview .em-tetrad-graph-error { position: sticky; inset-block-end: 0; background: var(--background-primary); padding: 6px; }
+@media (hover: none) { .em-tetrad-gap > button,.em-tetrad-preview .em-tetrad-row-actions { opacity: 1; } }
 @container (max-width: 420px) { .em-tabs > button { flex-direction: column; font-size: 10px; gap: 2px; padding-inline: 0; } }
 
 /* Companion presentation contract. Host layout, theme tokens and native surfaces
@@ -1074,13 +1165,25 @@
 .em-hierarchy-reader button.em-reader-preview:hover, .em-hierarchy-reader button.em-reader-preview:focus-visible { background: var(--background-modifier-hover); border-color: var(--em-companion-border); }
 .em-reader-up { flex: none; color: var(--text-accent); }
 .em-reader-root { color: var(--text-muted); font-size: var(--font-ui-smaller); }
-.em-reader-stream { grid-row: 4; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; overflow-anchor: none; padding: 6px 8px; scroll-padding-block: 6px; }
+.em-reader-stream { position: relative; grid-row: 4; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; overflow-anchor: none; padding: 16px 8px; scroll-padding-block: 16px; }
 .em-reader-node { position: relative; min-height: 42px; margin: 0 0 8px; padding: 10px 12px; border: 1px solid transparent; border-inline-start: 2px solid transparent; border-radius: var(--radius-s); overflow-wrap: anywhere; }
-.em-reader-node + .em-reader-node { border-top-color: var(--em-companion-border); }
+.em-reader-node ~ .em-reader-node { border-top-color: var(--em-companion-border); }
 .em-reader-node.is-active { border-inline-start-color: var(--interactive-accent); background: color-mix(in srgb, var(--interactive-accent) 5%, var(--em-companion-canvas)); }
 .em-reader-node.is-selected:not(.is-active) { background: var(--background-modifier-hover); }
 .em-reader-node.is-cut { border-style: dashed; border-color: var(--text-muted); }
-.em-reader-node.is-complete:not(.is-editing) .em-reader-text { color: var(--em-companion-muted); }
+.em-reader-node.is-complete:not(.is-editing) > .em-reader-text,
+.em-hierarchy-reader button.em-reader-preview.is-complete > span:not(.em-reader-up) { color: var(--em-companion-muted); text-decoration: line-through; text-decoration-color: var(--em-companion-fg); text-decoration-thickness: 1.5px; }
+.em-reader-slot { position: relative; height: 0; transform: translateY(-4px); z-index: 4; }
+.em-reader-slot > button { position: absolute; left: 0; top: -12px; width: 100%; height: 24px; padding: 0; opacity: 0; background: transparent; box-shadow: none; cursor: pointer; }
+.em-reader-slot > button:is(:hover,:focus-visible) { background: transparent; }
+.em-reader-slot > button::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--interactive-accent); z-index: -1; }
+.em-reader-slot > button > svg { padding: 2px; background: var(--em-companion-canvas); box-sizing: content-box; }
+.em-reader-slot:is(:hover,:focus-within) > button { opacity: 1; }
+.em-hierarchy-reader.is-editing .em-reader-slot > button { visibility: hidden; }
+.em-hierarchy-reader.is-dragging .em-reader-slot > button { opacity: 0; }
+.em-hierarchy-reader.is-dragging .em-reader-node { border-top-color: transparent; outline: none; }
+.em-reader-drop-line { position: absolute; height: 2px; margin: 0; padding: 0; background: var(--interactive-accent); pointer-events: none; z-index: 5; }
+.em-reader-drop-line[hidden] { display: none; }
 .em-reader-connector-hint { margin-bottom: 4px; color: var(--text-muted); font: var(--font-ui-smaller)/1.4 var(--font-interface); }
 .em-reader-node > [hidden], .em-reader-empty[hidden] { display: none; }
 .em-reader-node:focus-visible, .em-reader-stream:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: -2px; }
@@ -1126,7 +1229,8 @@
 .em-reader-drop-zones [data-reader-placement=last] { grid-area: last; }
 [data-reader-drop] > .em-reader-drop-zones { background: color-mix(in srgb, var(--em-companion-canvas) 85%, transparent); }
 [data-reader-drop] > .em-reader-drop-zones span { color: var(--text-muted); }
-[data-reader-drop=before] > .em-reader-drop-zones [data-reader-placement=before], [data-reader-drop=after] > .em-reader-drop-zones [data-reader-placement=after] { border-block: 2px solid var(--interactive-accent); color: var(--text-normal); }
+[data-reader-drop=before] > .em-reader-drop-zones [data-reader-placement=before] { border-top: 2px solid var(--interactive-accent); }
+[data-reader-drop=after] > .em-reader-drop-zones [data-reader-placement=after] { border-bottom: 2px solid var(--interactive-accent); }
 [data-reader-drop=first] > .em-reader-drop-zones [data-reader-placement=first], [data-reader-drop=last] > .em-reader-drop-zones [data-reader-placement=last] { outline: 2px solid var(--interactive-accent); outline-offset: -2px; background: var(--em-companion-selection); color: var(--text-normal); }
 .em-companion .em-companion-native-stage { flex: 1; position: relative; min-width: 0; min-height: 0; overflow: clip; contain: layout paint; isolation: isolate; background: var(--em-companion-canvas); }
 .em-companion .em-companion-native-stage > .workspace-leaf-content { width: 100%; height: 100%; overflow: clip; background: var(--em-companion-canvas); }
@@ -1237,5 +1341,3 @@
 .em-heading-line { min-height: 20px; }
 
 .em-hierarchy-reader.is-editing .em-reader-node-tools { pointer-events: none; opacity: .45; }
-
-.em-reader-stream.is-append-target::after { content: ''; display: block; height: 12px; margin-top: 2px; border-top: 2px solid var(--interactive-accent); pointer-events: none; }

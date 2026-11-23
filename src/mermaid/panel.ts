@@ -1,5 +1,6 @@
 import {t as tr} from '../i18n';
 import {Component, MarkdownView, Menu, Modal, Notice, type App, type TFile} from 'obsidian';
+import {nameWithoutTooltip} from '../ui/accessibility';
 import {iconButton,relabelIcon} from '../ui/panel';
 import {fencedSource, mermaidBlocks} from './blocks';
 import {MermaidBinding, noteText} from './binding';
@@ -67,7 +68,7 @@ export class MermaidPanel extends Component implements InteractionHost {
   this.updateStatus();
   this.relabel=()=>{
    relabelIcon(this.undoButton,tr('argdown.undo_ctrl_cmd_z'));relabelIcon(this.redoButton,tr('labels.redo_ctrl_cmd_shift_z'));relabelIcon(maximize,tr('mermaid.open_mermaid_full_screen'));relabelIcon(this.directionButton,tr('mermaid.main_graph_direction'));
-   this.insertButton.setText(tr('argdown.insert_into_note'));divider.setAttribute('aria-label',tr('mermaid.size_of_source_and_diagram'));this.preview.setAttribute('aria-label',tr('mermaid.mermaid_diagram'));this.toolbar.setAttribute('aria-label',tr('mermaid.edit_diagram_selection'));this.editor.setLabel(tr('labels.mermaid_source'));
+   this.insertButton.setText(tr('argdown.insert_into_note'));divider.setAttribute('aria-label',tr('mermaid.size_of_source_and_diagram'));nameWithoutTooltip(this.preview,tr('mermaid.mermaid_diagram'),this.stage);nameWithoutTooltip(this.toolbar,tr('mermaid.edit_diagram_selection'),this.overlay);this.editor.setLabel(tr('labels.mermaid_source'));
   };
  }
  refreshLanguage():void{this.directionMenu?.hide();this.relabel();this.libraryMenu.refreshLanguage();this.updateStatus();this.paint();}
@@ -76,6 +77,7 @@ export class MermaidPanel extends Component implements InteractionHost {
   const win = this.root.ownerDocument.defaultView ?? window;
   const resize = new ResizeObserver(() => {this.interactions.paint();}); resize.observe(this.stage); this.register(() => resize.disconnect());
   const transforms = new MutationObserver(() => this.interactions.paint()); transforms.observe(this.preview, {subtree: true, attributes: true, attributeFilter: ['transform', 'style', 'viewBox']}); this.register(() => transforms.disconnect());
+  nameWithoutTooltip(this.preview,tr('mermaid.mermaid_diagram'),this.stage);nameWithoutTooltip(this.toolbar,tr('mermaid.edit_diagram_selection'),this.overlay);
   this.registerDomEvent(this.preview, 'scroll', () => this.interactions.paint());
   this.registerDomEvent(this.preview, 'wheel', () => {win.requestAnimationFrame(() => this.interactions.paint());}, {passive: true});
   this.registerDomEvent(this.root, 'keydown', event => {

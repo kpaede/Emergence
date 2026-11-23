@@ -1,4 +1,3 @@
-import {t} from '../../i18n';
 import type { CenterDisplay, TetraderSettings } from '../settings-model';
 import { createElement } from './dom';
 import { LAWS } from './laws';
@@ -11,7 +10,7 @@ export function createCenter(document: Document): {
 	const element = createElement(document, 'div', 'tetrader-center');
 	const labels = createElement(document, 'div', 'tetrader-label-cross');
 	labels.setAttribute('role', 'group');
-	labels.setAttribute('aria-label', t('tetrad.labels'));
+
 	const entries = LAWS.map(law => {
 		const entry = createElement(document, 'span', 'tetrader-center-label');
 		entry.dataset.law = law.id;
@@ -24,7 +23,7 @@ export function createCenter(document: Document): {
 	return {
 		element,
 		update(settings, empty) {
-			const mode = empty && settings.centerDisplay === 'none' ? 'labels' : settings.centerDisplay;
+			const mode = settings.centerDisplay;
 			element.hidden = mode === 'none';
 			labels.hidden = mode !== 'labels';
 			legend.hidden = mode !== 'legend';

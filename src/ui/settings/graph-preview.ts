@@ -1,3 +1,4 @@
+import {nameWithoutTooltip} from '../accessibility';
 import {t as tr} from '../../i18n';
 import type {GraphSnapshot,Settings} from '../../types';
 import {synopsisFields} from '../../graph/synopsis';
@@ -24,7 +25,7 @@ export function previewGraph(snapshot:GraphSnapshot,settings:Settings):{graph:Gr
 }
 export function graphPreview(ctx:SettingsContext,host:HTMLElement,select:(relation:SynopsisRelation)=>void,changed:()=>void):{refresh():void;mark(relation:SynopsisRelation):void}{
  const preview=host.createDiv({cls:'em-graph-settings-preview em-workspace'}),canvas=preview.createDiv({cls:'em-graph-settings-canvas'});
- canvas.setAttribute('aria-label',tr('settings.graphPreview'));
+ nameWithoutTooltip(canvas,tr('settings.graphPreview'));
  let selected:SynopsisRelation='broader',dragged:SynopsisRelation|undefined,current=ctx.draft;
  const renderer=new RelationsSynopsis(canvas,()=>current,(relation,depth)=>{ctx.draft.synopsis={...ctx.draft.synopsis,depths:{...ctx.draft.synopsis?.depths,[relation]:depth}};ctx.changed();changed();}, {activate:note=>{const relation=synopsisRelations.find(item=>note.id.startsWith(item+'-'));if(relation)select(relation);},inspect:()=>{}});
  ctx.register?.(()=>renderer.destroy());

@@ -28,7 +28,7 @@ export class DiagramControls extends Component {
     const candidate = enclosing ?? (diagram.parentElement === this.scopeEl ? this.scopeEl : diagram), root = this.scopeEl.contains(candidate) ? candidate : this.scopeEl;
     if (this.controls.has(root) || root.querySelector('.em-mm-open')) continue;
     const label=typeof this.label==='function'?this.label():this.label;
-    root.addClass('em-mm-note-diagram'); const button = root.createEl('button', {cls: 'em-mm-open clickable-icon', attr: {type: 'button', 'aria-label': label, title: label,'data-em-diagram-kind':this.selector.includes('argdown')?'argdown':'mermaid'}}); setIcon(button, 'pencil'); resize.observe(root);
+    root.addClass('em-mm-note-diagram'); const button = root.createEl('button', {cls: 'em-mm-open clickable-icon', attr: {type: 'button', 'aria-label': label, title: label,'data-em-diagram-kind':this.selector.includes('argdown')?'argdown':this.selector.includes('tetrad')?'tetrad':'mermaid'}}); setIcon(button, 'pencil'); resize.observe(root);
     button.onclick = event => {event.stopPropagation(); event.preventDefault();if(this.enabled())void this.open(root).catch(this.report);}; this.controls.set(root, button);
    }
    for (const [root, button] of this.controls) {

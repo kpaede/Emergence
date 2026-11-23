@@ -1,6 +1,6 @@
 {
   "name": "emergence",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Lokaler Multiplex-Wissensgraph und kontrollierte KI-Vorschläge für Obsidian",
   "main": "main.js",
   "type": "module",
@@ -70,6 +70,7 @@
   "license": "0-BSD",
   "devDependencies": {
     "@codemirror/commands": "^6.11.1",
+    "@codemirror/language": "^6.13.1",
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.43.13",
     "@eslint/js": "^9.39.4",
@@ -86,12 +87,12 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.59.1",
     "vite": "^7.3.7",
-    "vitest": "^5.0.5",
-    "@codemirror/language": "^6.13.1"
+    "vitest": "^5.0.5"
   },
   "dependencies": {
     "@argdown/core": "^2.0.1",
     "@hpcc-js/wasm-graphviz": "^1.30.0",
+    "@lezer/markdown": "^1.8.1",
     "ajv": "^8.20.0",
     "cytoscape": "^3.34.4",
     "cytoscape-elk": "^2.3.0",

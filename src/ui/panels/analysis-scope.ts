@@ -1,3 +1,4 @@
+import {nameWithoutTooltip} from '../accessibility';
 import {t as tr} from '../../i18n';
 import {validateSettings} from '../../config';
 import {button, input, select} from '../helpers';
@@ -9,6 +10,7 @@ export function renderAnalysisScope(ctx: PanelContext): boolean {
  const fieldBox = disclosure(host, tr("fieldIdeas.fields", {value1: fields.length}), state.fieldsOpen ?? !fields.length, 'analysis-fields');
  trackDisclosure(fieldBox, open => {state.fieldsOpen = open;});
  const list = fieldBox.createDiv({cls: 'em-analysis-field-list', attr: {role: 'list', 'aria-label': tr("fieldIdeas.breadcrumbs_fields_from_frontmatter")}});
+ nameWithoutTooltip(list,tr('fieldIdeas.breadcrumbs_fields_from_frontmatter'));
  for (const field of fields) {
   list.createSpan({text: field, attr: {role: 'listitem', 'data-em-field': field}});
  }

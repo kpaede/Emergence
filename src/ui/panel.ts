@@ -45,7 +45,7 @@ export function noteContext(parent: HTMLElement, path: string, label = tr("label
  const row = parent.createDiv({cls: 'em-note-context'}); setIcon(row.createSpan({cls: 'em-context-icon', attr: {'aria-hidden': 'true'}}), 'file-text');
  const text = row.createDiv(); text.createEl('small', {text: label});
  text.createDiv({text: path.split('/').at(-1)?.replace(/\.md$/u, '') || tr("common.no_note_open"), cls: 'em-note-title'});
- if (path.includes('/')) text.createDiv({text: path, cls: 'em-path', attr: {title: path}});
+ if (path.includes('/')) text.createDiv({text: path, cls: 'em-path'});
 }
 export function badge(parent: HTMLElement, text: string, status = ''): HTMLElement {return parent.createSpan({text, cls: `em-badge ${status ? 'em-badge-' + status : ''}`});}
 export const decisionLabel: Record<Decision, string> = {get pending() {return tr("common.unreviewed");}, get accepted() {return tr("labels.accepted");}, get rejected() {return tr("labels.rejected");}};

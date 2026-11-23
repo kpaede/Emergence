@@ -1,3 +1,4 @@
+import {nameWithoutTooltip} from '../ui/accessibility';
 import {t as tr} from '../i18n';
 /*! Native editor discovery adapted from Excerpt Outline Mindmap Editor.
 https://github.com/kpaede/Excerpt-Outline-Mindmap-Editor
@@ -24,7 +25,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 import {Component, Scope, type App, type Editor, type MarkdownFileInfo, type TFile} from 'obsidian';
-import {Prec, type Extension} from '@codemirror/state';
+import {EditorState, Prec, type Extension} from '@codemirror/state';
 import {EditorView, keymap, type KeyBinding} from '@codemirror/view';
 
 // Obsidian has no public API for embedding its Markdown editor. Keep the
@@ -54,6 +55,8 @@ export interface EmbeddedMarkdownKeys {
  onChange?(view:EditorView):void;
  selectAll?:boolean;
  inline?:boolean;
+ singleLine?:boolean;
+ extensions?:Extension[];
 }
 function nativeEditorClass(app: App, doc: Document): EditorConstructor {
  const cached = constructors.get(app); if (cached) return cached;
@@ -91,9 +94,12 @@ export class MermaidMarkdownEditor extends Component {
      {key:'Mod-Enter',run:view=>keys.onEnter(view,true,false),shift:view=>keys.onEnter(view,true,true)},
     ]:[{key:'Mod-Enter',run:()=>{submit();return true;}}];
     if(keys?.onDelete)for(const key of ['Mod-Delete','Mod-Backspace'])bindings.push({key,run:()=>{keys.onDelete?.();return true;}});
-    return [...super.buildLocalExtensions(), Prec.highest(keymap.of([...bindings,
+    return [...super.buildLocalExtensions(),...(keys?.extensions??[]), Prec.highest(keymap.of([...bindings,
      {key: 'Escape', run: () => {if(keys?.onEscape)return keys.onEscape();cancel(); return true;}},
-    ])), EditorView.domEventHandlers({focus: activate, blur:()=>{deactivate();keys?.onBlur?.();}}),...(keys?.onChange?[EditorView.updateListener.of(update=>{if(update.docChanged)keys.onChange?.(update.view);})]:[])];
+    ])), EditorView.domEventHandlers({focus: activate, blur:()=>{deactivate();keys?.onBlur?.();}}),...(keys?.singleLine?[
+     EditorView.clipboardInputFilter.of(text=>text.replace(/[\r\n]+/gu,' ')),
+     EditorState.changeFilter.of(transaction=>!transaction.docChanged||transaction.newDoc.lines===1),
+    ]:[]),...(keys?.onChange?[EditorView.updateListener.of(update=>{if(update.docChanged)keys.onChange?.(update.view);})]:[])];
    }
   }
   this.native = new CaptionEditor(app, host, this.owner);
@@ -106,7 +112,7 @@ export class MermaidMarkdownEditor extends Component {
    if (this.native.sourceMode) this.native.toggleSource();
    this.native.set(value, false);
    if(keys?.selectAll)this.native.cm.dispatch({selection:{anchor:0,head:value.length}});
-   this.native.cm.contentDOM.setAttribute('aria-label', tr("labels.markdown_label"));
+   nameWithoutTooltip(this.native.cm.contentDOM,tr("labels.markdown_label"),host);
   } catch (error) {this.load(); this.unload(); throw error;}
  }
  get value(): string {return this.native.cm.state.doc.toString();}

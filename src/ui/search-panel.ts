@@ -1,3 +1,4 @@
+import {nameWithoutTooltip} from './accessibility';
 import {t as tr} from '../i18n';
 import {literatureActions} from '../graph/zotlit-actions';
 import {formatZotlitReference} from '../graph/zotlit-bibliography';
@@ -21,7 +22,7 @@ export class SearchPanel {
  mount(): void {
   const search = input(this.host, tr("common.search_notes_and_zotero"), this.state().query, value => {this.state().query = value; this.limit = 30; this.draw();}) as HTMLInputElement;
   search.type = 'search'; search.placeholder = tr("common.term_title_alias_or_citekey");
-  const choices = this.host.createDiv({cls: 'em-search-modes', attr: {role: 'radiogroup', 'aria-label': tr("common.action_when_selecting_a_note")}}), name = crypto.randomUUID();
+  const choices = this.host.createDiv({cls: 'em-search-modes', attr: {role: 'radiogroup', 'aria-label': tr("common.action_when_selecting_a_note")}}), name = crypto.randomUUID();nameWithoutTooltip(choices,tr('common.action_when_selecting_a_note'));
   for (const [mode, text] of [['open', tr("common.open")], ['explore', tr("common.explore")]] as const) {
    const row = choices.createEl('label', {cls: 'em-check-row'}), box = row.createEl('input', {type: 'radio', attr: {name, value: mode}});
    box.checked = this.state().mode === mode; row.appendText(text); box.onchange = () => {if (box.checked) this.state().mode = mode;};

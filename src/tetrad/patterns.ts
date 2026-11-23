@@ -34,20 +34,22 @@ function readPattern(value: unknown): TetradPattern | undefined {
 }
 export class TetradStore {
  private custom: TetradPattern[] = [];
+ private labels:Record<string,TetraderSettings['lawText']>={};
  display: TetraderSettings;
  private listeners = new Set<() => void>();
  private queue: Promise<void> = Promise.resolve();
  constructor(data: unknown, private persist: () => Promise<void>) {
-  const saved = data && typeof data === 'object' ? data as {patterns?:unknown[]; display?:unknown} : {};
+  const saved = data && typeof data === 'object' ? data as {patterns?:unknown[]; display?:unknown;labels?:Record<string,unknown>} : {};
   const ids = new Set(['tetrad']);
   for (const value of Array.isArray(saved.patterns) ? saved.patterns : []) {
    const p = readPattern(value); if (p && !ids.has(p.id)) {ids.add(p.id); this.custom.push(p);}
   }
   this.display = loadSettings(saved.display);
+  for(const [id,value]of Object.entries(saved.labels??{}))if(this.custom.some(p=>p.id===id))this.labels[id]=loadSettings({lawText:value}).lawText;
  }
  list(): TetradPattern[] {return structuredClone([DEFAULT_PATTERN, ...this.custom]);}
  pattern(id: string): TetradPattern | undefined {return this.list().find(p=>p.id === id.toLowerCase());}
- snapshot(): unknown {return structuredClone({patterns:this.custom,display:this.display});}
+ snapshot(): unknown {return structuredClone({patterns:this.custom,display:this.display,...Object.keys(this.labels).length?{labels:this.labels}:{}});}
  subscribe(listener: () => void): () => void {this.listeners.add(listener); return ()=>this.listeners.delete(listener);}
  add(pattern: TetradPattern): Promise<void> {
   validatePattern(pattern);
@@ -55,14 +57,15 @@ export class TetradStore {
   return this.change(async()=>{if(this.pattern(copy.id)) throw new Error(t('tetrad.patternExists')); this.custom.push(copy);});
  }
  setDisplay(display: TetraderSettings): Promise<void> {return this.change(async()=>{this.display=loadSettings(display);});}
+ setAppearance(pattern:TetradPattern,display:TetraderSettings):Promise<void>{return this.change(async()=>{const next=loadSettings(display);this.display={...next,lawText:pattern.id==='tetrad'?next.lawText:this.display.lawText};if(pattern.id!=='tetrad')this.labels[pattern.id]=next.lawText;});}
  private change(apply:()=>Promise<void>):Promise<void>{
   const job=this.queue.then(async()=>{
-   const previous=structuredClone({custom:this.custom,display:this.display});
-   try{await apply();await this.persist();}catch(error){this.custom=previous.custom;this.display=previous.display;throw error;}
+   const previous=structuredClone({custom:this.custom,display:this.display,labels:this.labels});
+   try{await apply();await this.persist();}catch(error){this.custom=previous.custom;this.display=previous.display;this.labels=previous.labels;throw error;}
    for(const listener of this.listeners)listener();
   });this.queue=job.catch(()=>{});return job;
  }
  settings(pattern: TetradPattern): TetraderSettings {
-  return {...this.display,lawText: pattern.id === 'tetrad' ? this.display.lawText : Object.fromEntries(LAWS.map(law=>[law.id,{label:pattern.headings[law.id],abbreviation:pattern.headings[law.id].slice(0,4)}])) as TetraderSettings['lawText']};
+  return structuredClone({...this.display,lawText: pattern.id === 'tetrad' ? this.display.lawText : this.labels[pattern.id]??Object.fromEntries(LAWS.map(law=>[law.id,{label:pattern.headings[law.id],abbreviation:pattern.headings[law.id].slice(0,4)}])) as TetraderSettings['lawText']});
  }
 }

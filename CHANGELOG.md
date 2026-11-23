@@ -1,3 +1,21 @@
+# 0.0.5
+
+Begleitdokumente und Tetrader sind jetzt Teil von Emergence. Benötigt **Obsidian Desktop ab 1.15.0**.
+
+- **Begleitdokumente:** Notizen folgen der Gliederung der Hauptdatei, ohne Kennungen in die Hauptdatei einzutragen. Eine gemeinsame Datei oder einzelne Kapiteldateien, konfigurierbare Ablage neben der Quelle, in einem Unterordner oder einem festen Vault-Ordner. Fehlende Kapiteldateien lassen sich zuordnen oder neu erstellen; unklare Überschriftenzuordnungen bleiben zur Prüfung erhalten.
+- **Hierarchical Outline:** Standardansicht mit vollständigen Textauszügen, nativer Markdown-Bearbeitung, Tastaturnavigation, Abhaken und Ein-/Ausblenden erledigter Einträge. Erledigte Verbindungseinträge bleiben sichtbar, wenn offene Nachfahren sie benötigen. Neue Einträge entstehen direkt an ihrer Position, auch per Klick auf die Einfügelinien am Anfang, zwischen Einträgen und am Ende einer Liste.
+- **Drag-and-drop im Begleitdokument:** eine gemeinsame Ablageposition je Zwischenraum, unabhängig von der zuvor überfahrenen Karte. Unterordnen, vollständige Teilbäume und Mehrfachauswahlen bleiben erhalten. Veraltete Ansichtsstände dürfen nach Speichern oder Undo die aktuelle Reihenfolge nicht mehr überschreiben.
+- **EOME und Lineage:** separat installierte Originaleditoren als zusätzliche Ansichten. Die Speicherung bleibt gewöhnliches eingerücktes Markdown nach EOMEs mehrzeiligem Format; Emergence benötigt keine lokal modifizierte Lineage-Installation. Darstellungs- und Integrationsgrenzen sind im README beschrieben.
+- **Native Listendarstellung:** eingebettete Markdown-Listen verwenden jetzt Obsidians eigene Aufzählungszeichen und die Marker-Einstellungen des Themes. Verschachtelung, nummerierte Listen und Aufgaben-Checkboxen bleiben erhalten. Abgehakte Einträge in Hierarchical Outline sind zusätzlich deutlich durchgestrichen.
+- **Tetrader:** direktes Bearbeiten von Titel, Kerntexten und äußeren Absätzen, einschließlich nativer Obsidian-Linkvervollständigung. Callouts unterstützen fett gesetzte Bereichstitel oder einheitliche Überschriften jeder Ebene. Schreibweise neuer Diagramme und Legendenposition sind allgemein konfigurierbar.
+- **Tetradenlayout und Bedienung:** automatische diagonale Zeilenstaffelung nach den Buchvorlagen, mehrere Absätze, schmale Ansichten sowie Hell- und Dunkelmodus. Ziehgriffe folgen der überfahrenen Textzeile, bleiben beim Greifen stehen und funktionieren auch während der Bearbeitung. Einfügelinien sind über ihre ganze Breite anklickbar. Die Ablage verwendet genau eine Markierung.
+- **Anlegen und Speichern:** neue Tetraden im Editor erstellen und am Cursor in eine Notiz einfügen; bestehende Diagramme über ihr Stiftsymbol öffnen. Änderungen werden nur nach erfolgreichem Schreiben übernommen. Undo/Redo, Quellenansicht und Vollbild bleiben verfügbar. Die redundante Statuszeile entfällt bei eingefügten Tetraden.
+- **Kompaktere Oberfläche:** Begleitdokument als erster Tab, einzeilige Tabnavigation, reduzierte redundante Bedienelemente und Tooltips bei erhaltenen zugänglichen Beschriftungen.
+
+Geprüft mit automatisierten Tests sowie nativen Obsidian-Bedienprüfungen für Begleitdokument und Tetrader, einschließlich Hell-/Dunkelmodus, Tastaturbedienung, Mauswegen zu Ziehgriffen, Schreibkonflikten und Rückgängigmachen.
+
+Zum Installieren `main.js`, `manifest.json` und `styles.css` aus diesem Release in den Emergence-Pluginordner legen und das Plugin neu laden. `SHA256SUMS.txt` enthält die Prüfsummen.
+
 # 0.0.4
 
 Stabiler Release auf Basis der geprüften Beta 2. Benötigt **Obsidian Desktop ab 1.15.0**.

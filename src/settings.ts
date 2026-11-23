@@ -16,6 +16,8 @@ import {validTemplateFolder,type TemplateKind} from './diagrams/template-notes';
 import {features,featureEnabled,type Feature} from './features';
 import {companionStorageDefaults,validStorage,defaultCompanionView,validCompanionView} from './companion/preferences';
 import {companionViews} from './companion/native-types';
+import {defaultTetradFormat,validTetradFormat} from './tetrad/preferences';
+import {appearanceDefinitions,displayField,setDisplayValue} from './tetrad/appearance-settings';
 interface EditorMount {section:SettingsSection;body:HTMLElement;message:HTMLElement;saveButton:HTMLButtonElement;discardButton:HTMLButtonElement;cleanups:(()=>void)[]}
 export class EmergenceSettingsTab extends PluginSettingTab {
  private draft?: Settings; private field = '';
@@ -23,6 +25,7 @@ export class EmergenceSettingsTab extends PluginSettingTab {
  private dirty = false; private saving = false; private revision = 0; private mounts = new Set<EditorMount>();
  constructor(app: App, private plugin: EmergencePlugin) {super(app, plugin);}
  getSettingDefinitions(): SettingDefinitionItem[] {
+  const tetradFormats:Record<string,string>={bold:tr('tetrad.formatBold')};for(let level=1;level<=6;level++)tetradFormats['headings-'+level]=tr('tetrad.formatHeading',{level:'#'.repeat(level)});
   // Called for search indexing before the tab opens: no draft changes, I/O or model requests.
   return settingsDefinitions((setting, section) => this.renderEditor(setting, section),
    this.plugin.controller.graph.snapshot.fields, this.plugin.settings.profiles.map(profile => profile.name), {
@@ -31,7 +34,8 @@ export class EmergenceSettingsTab extends PluginSettingTab {
     fieldIdeas:[this.enableDefinition('fieldIdeas')],
     mermaid:this.diagramDefinitions('mermaid'),
     argdown:this.diagramDefinitions('argdown'),
-    tetrad:[this.enableDefinition('tetrad'),{name:tr('tetrad.title'),desc:tr('tetrad.editorHelp')}],
+    tetrad:[this.enableDefinition('tetrad'),{name:tr('tetrad.title'),desc:tr('tetrad.editorHelp')},
+     {name:tr('tetrad.defaultFormat'),desc:tr('tetrad.defaultFormatHelp'),control:{type:'dropdown',key:'tetrad_format',defaultValue:'headings-2',options:tetradFormats,disabled:()=>this.saving}},...appearanceDefinitions(()=>this.saving)],
     companion:this.companionDefinitions(),
     search:[this.enableDefinition('search'),{name:tr('settings.search'),desc:tr('settings.searchPreferences')}],
    });
@@ -51,7 +55,7 @@ export class EmergenceSettingsTab extends PluginSettingTab {
    {name:tr('settings.templateFolder'),desc:tr('settings.templateFolderHelp'),control:{type:'folder',key:kind+'TemplateFolder',defaultValue:'',includeRoot:false,filter:folder=>validTemplateFolder(folder.path,this.app.vault.configDir),disabled:()=>this.saving}},
    {name:tr('settings.templateFolderRefresh'),desc:library.folderStatus||tr('settings.templateFolderCount',{count:library.list().filter(item=>item.path).length}),render:setting=>{setting.addButton(button=>button.setButtonText(tr('settings.templateFolderRefresh')).onClick(()=>{void this.plugin.controller.run(async()=>{await library.refresh();this.update();});}));}}];
  }
- override getControlValue(key:string):unknown{const feature=features.find(feature=>key==='feature_'+feature);if(feature)return featureEnabled(this.plugin.settings,feature);if(key==='companion_defaultView')return defaultCompanionView(this.plugin.settings);if(key.startsWith('companion_'))return companionStorageDefaults(this.plugin.settings)[key.slice(10) as keyof import('./companion/model').StorageOptions];if(key==='mermaidTemplateFolder'||key==='argdownTemplateFolder')return this.plugin.settings.templateFolders?.[key==='mermaidTemplateFolder'?'mermaid':'argdown']??'';return super.getControlValue(key);}
+ override getControlValue(key:string):unknown{const display=displayField(key);if(display)return this.plugin.tetradStore.display[display];const feature=features.find(feature=>key==='feature_'+feature);if(feature)return featureEnabled(this.plugin.settings,feature);if(key==='tetrad_format')return defaultTetradFormat(this.plugin.settings);if(key==='companion_defaultView')return defaultCompanionView(this.plugin.settings);if(key.startsWith('companion_'))return companionStorageDefaults(this.plugin.settings)[key.slice(10) as keyof import('./companion/model').StorageOptions];if(key==='mermaidTemplateFolder'||key==='argdownTemplateFolder')return this.plugin.settings.templateFolders?.[key==='mermaidTemplateFolder'?'mermaid':'argdown']??'';return super.getControlValue(key);}
  private async setTemplateFolder(kind:TemplateKind,path:string):Promise<void>{
   path=path.trim().replace(/\/+$/u,'');if(!validTemplateFolder(path,this.app.vault.configDir))throw new Error(tr('settings.invalidTemplateFolder'));
   const previous=this.plugin.settings.templateFolders;this.saving=true;this.updateSave();this.refreshDomState();
@@ -61,6 +65,15 @@ export class EmergenceSettingsTab extends PluginSettingTab {
   await this.plugin.templateFolders.refresh(kind);
  }
  override async setControlValue(key:string,value:unknown):Promise<void> {
+  const display=displayField(key);if(display&&!this.saving){
+   this.saving=true;this.updateSave();this.refreshDomState();
+   try{await setDisplayValue(this.plugin.tetradStore,display,value);}finally{this.saving=false;this.updateSave();this.refreshDomState();}return;
+  }
+  if(key==='tetrad_format'&&!this.saving){
+   if(!validTetradFormat(value))throw new Error(tr('tetrad.invalidFormat'));const previous=this.plugin.settings.tetrad;this.saving=true;this.updateSave();this.refreshDomState();
+   try{this.plugin.settings.tetrad={format:value};await this.plugin.saveSettings();if(this.draft)this.draft.tetrad={format:value};}catch(error){this.plugin.settings.tetrad=previous;throw error;}finally{this.saving=false;this.updateSave();this.refreshDomState();}
+   for(const leaf of this.app.workspace.getLeavesOfType('emergence-workspace'))await (leaf.view as import('./ui/view').EmergenceView).tetradPanel?.updateDefaultFormat();return;
+  }
   if(key.startsWith('companion_')&&typeof value==='string'&&!this.saving){
    if(key==='companion_defaultView'){
     if(!validCompanionView(value))throw new Error(tr('companion.invalidView'));const previous=this.plugin.settings.companion;this.saving=true;this.updateSave();this.refreshDomState();

@@ -1,8 +1,9 @@
-import {t} from '../../i18n';
 import { createElement } from './dom';
 import { hasContent } from './content';
 import type { LawId } from './laws';
 import type { LawSection } from './parse';
+import {sectionEntries} from './entries';
+import type {RenderedEntry} from './parse';
 
 export interface Wing {
 	law: LawId;
@@ -14,46 +15,49 @@ export interface Wing {
 export function createWing(document: Document, law: LawId, source?: LawSection): Wing {
 	const element = createElement(document, 'section', `tetrader-law tetrader-${law}`);
 	const core = createElement(document, 'div', 'tetrader-core');
-	const originalClass = source?.heading.getAttribute('class');
-	if (source) {
+	core.dataset.emCore = 'true';
+	const entries = sectionEntries(source);
+	if (entries.core) core.dataset.emEntryIndex = String(entries.core.index);
+	const originalClass = source?.heading?.getAttribute('class');
+	if (source?.heading) {
 		source.heading.classList.add('tetrader-source-heading');
 		core.append(source.heading);
 	}
 	const statement = createElement(document, 'div', 'tetrader-statement');
 	let missingLabel: HTMLElement | undefined;
-	if (source?.core && hasContent(source.core)) {
-		statement.append(source.core);
+	if (entries.core?.nodes.some(hasContent)) {
+		statement.append(...entries.core.nodes);
 	} else {
-		missingLabel = createElement(document, 'span', 'tetrader-missing-label');
-		core.append(missingLabel);
-		statement.append(createElement(document, 'p', 'tetrader-placeholder', t('tetrad.notWritten')));
+		missingLabel = createElement(document, 'p', 'tetrader-missing-label tetrader-placeholder');
+		statement.append(missingLabel);
 	}
 	core.append(statement);
 	element.append(core);
-	appendGlosses(document, element, source, law === 'enhances' || law === 'reverses');
+	appendGlosses(document, element, entries.glosses, law === 'enhances' || law === 'reverses');
 	return {
 		law, element, missingLabel,
 		destroy() {
-			if (!source) return;
+			entries.restore();
+			if (!source?.heading) return;
 			source.heading.classList.remove('tetrader-source-heading');
 			if (originalClass === null && !source.heading.className) source.heading.removeAttribute('class');
 		},
 	};
 }
 
-function appendGlosses(document: Document, section: HTMLElement, source: LawSection | undefined, upper: boolean): void {
+function appendGlosses(document: Document, section: HTMLElement, entries: readonly RenderedEntry[], upper: boolean): void {
 	const glosses = createElement(document, 'div', 'tetrader-glosses');
-	const nodes = (source?.nodes ?? []).filter(node => node !== source?.core && hasContent(node));
-	for (const [index, node] of nodes.entries()) {
+	for (const [index, entry] of entries.entries()) {
 		const gloss = createElement(document, 'div', 'tetrader-gloss');
+		gloss.dataset.emEntryIndex = String(entry.index);
 		// Source order always runs from the core outward in every quadrant.
 		const distance = index;
 		gloss.dataset.tetraderDistance = String(distance);
-		gloss.style.setProperty('--tetrader-outward', String(distance / Math.max(nodes.length - 1, 1)));
-		gloss.append(node);
+		gloss.style.setProperty('--tetrader-outward', String(distance / Math.max(entries.length - 1, 1)));
+		gloss.append(...entry.nodes);
 		// Above the core, later (farther) blocks go above earlier (nearer) ones.
 		if (upper) glosses.prepend(gloss);
 		else glosses.append(gloss);
 	}
-	if (glosses.childNodes.length > 0) section.append(glosses);
+	section.append(glosses);
 }

@@ -1,3 +1,4 @@
+import {nameWithoutTooltip} from '../ui/accessibility';
 import {Component,type App,type TFile} from 'obsidian';
 import {EditorView} from '@codemirror/view';
 import {EditorState,StateEffect} from '@codemirror/state';
@@ -23,7 +24,7 @@ export class ReaderEditor extends Component {
   this.registerDomEvent(host,'keydown',event=>{if(event.key==='Escape'&&!event.defaultPrevented&&!event.isComposing&&this.escape())event.preventDefault();event.stopPropagation();});this.register(()=>{this.disposed=true;if(this.blurTimer)window.clearTimeout(this.blurTimer);host.remove();});
  }
  get value():string{return this.markdown.value;}
- refreshLanguage():void{this.markdown.native.cm.contentDOM.setAttribute('aria-label',t('companion.thoughtText'));this.host.querySelector('.em-reader-editor-surface')?.setAttribute('title',t(this.options.singleLine&&this.markdown.native.cm.state.doc.lines===1?'companion.readerEditSingleHelp':'companion.readerEditHelp'));const buttons=this.host.querySelectorAll<HTMLButtonElement>('.em-reader-editor-actions button');if(buttons[0])relabelIcon(buttons[0],t(this.options.adding?'companion.addSibling':'companion.saveThought'));if(buttons[1])relabelIcon(buttons[1],t('companion.cancel'));}
+ refreshLanguage():void{nameWithoutTooltip(this.markdown.native.cm.contentDOM,t('companion.thoughtText'),this.host);this.host.querySelector('.em-reader-editor-surface')?.setAttribute('title',t(this.options.singleLine&&this.markdown.native.cm.state.doc.lines===1?'companion.readerEditSingleHelp':'companion.readerEditHelp'));const buttons=this.host.querySelectorAll<HTMLButtonElement>('.em-reader-editor-actions button');if(buttons[0])relabelIcon(buttons[0],t(this.options.adding?'companion.addSibling':'companion.saveThought'));if(buttons[1])relabelIcon(buttons[1],t('companion.cancel'));}
  focus():void{this.markdown.focus();}
  private completing():boolean{const suggest=(this.app.workspace as SuggestWorkspace).editorSuggest?.currentSuggest;return !!suggest&&suggest.context?.editor===this.markdown?.native.editor;}
  private escape():boolean{

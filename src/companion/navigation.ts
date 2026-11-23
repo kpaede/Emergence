@@ -1,3 +1,4 @@
+import {tooltipForClippedText} from '../ui/accessibility';
 import {Component,setIcon} from 'obsidian';
 import {t} from '../i18n';
 import type {CompanionDocument,CompanionSection} from './model';
@@ -18,7 +19,7 @@ export class CompanionNavigation extends Component{
    const section=linked[index]!,level=section.level;while(ancestors.length&&linked[ancestors[ancestors.length-1]!]!.level>=level)ancestors.pop();
    const parent=ancestors.length?containers.get(ancestors[ancestors.length-1]!)??tree:tree,item=parent.createDiv({cls:'tree-item',attr:{role:'treeitem','aria-level':String(ancestors.length+1),'aria-selected':String(section.id===selected)}});
    const row=item.createDiv({cls:'tree-item-self is-clickable em-companion-section',attr:{tabindex:'-1','aria-current':String(section.id===selected)}});row.dataset.emSection=section.id;row.toggleClass('is-active',section.id===selected);
-   const hasChildren=(linked[index+1]?.level??0)>level,icon=row.createDiv({cls:'tree-item-icon collapse-icon'}),text=row.createDiv({cls:'tree-item-inner',text:section.title||t('companion.untitled')});text.title=section.title;
+   const hasChildren=(linked[index+1]?.level??0)>level,icon=row.createDiv({cls:'tree-item-icon collapse-icon'}),text=row.createDiv({cls:'tree-item-inner',text:section.title||t('companion.untitled')});tooltipForClippedText(text,section.title);
    if(hasChildren){setIcon(icon,'right-triangle');item.setAttribute('aria-expanded',String(!this.collapsed.has(section.id)));icon.toggleClass('is-collapsed',this.collapsed.has(section.id));}else icon.addClass('em-outline-leaf');
    const unavailable=!!document.unavailableFiles?.[section.id],count=unavailable?0:thoughts(section).length;row.createSpan({cls:'em-companion-outline-count',text:unavailable?'—':String(count),attr:{'aria-label':unavailable?t('companion.countUnavailable'):t('companion.chapterThoughts',{count})}});this.fileControls(lifecycle,row,document,section);
    const children=item.createDiv({cls:'tree-item-children',attr:{role:'group'}});children.hidden=this.collapsed.has(section.id);containers.set(index,children);ancestors.push(index);

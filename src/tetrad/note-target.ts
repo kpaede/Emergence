@@ -18,7 +18,7 @@ export async function resolveNoteTarget(app:App,path:string,blocks:TetradBlock[]
  for(const block of candidates){
   const lifecycle=new Component();lifecycle.load();
   try{
-   const rendered=createDiv();await MarkdownRenderer.render(app,block.source,rendered,path,lifecycle);
+   const rendered=createDiv({cls:'em-tetrad-source-probe'});await MarkdownRenderer.render(app,block.source,rendered,path,lifecycle);
    const callout=rendered.querySelector<HTMLElement>('.callout');if(!callout)continue;
    const candidate=tetradFingerprint(callout);if(candidate.title===fingerprint.title&&candidate.body===fingerprint.body)matches.push(block);
   }finally{lifecycle.unload();}

@@ -1,4 +1,5 @@
 import {t as tr} from '../i18n';
+import {nameWithoutTooltip} from '../ui/accessibility';
 import {Component, sanitizeHTMLToDom} from 'obsidian';
 import type {MermaidTemplate} from './library';
 /** Late renders never replace another hovered template; no editor state is touched. */
@@ -9,14 +10,14 @@ export class LibraryPreview extends Component {
  private current?: string;
  private cache = new Map<string, string>();
  constructor(host: HTMLElement, private render: (source: string) => Promise<string>) {
-  super(); this.root = host.createDiv({cls: 'em-mm-library-preview', attr: {role: 'img', 'aria-label': tr("mermaid.diagram_preview")}}); this.root.hidden = true;
+  super(); this.root = host.createDiv({cls: 'em-mm-library-preview', attr: {role: 'img', 'aria-label': tr("mermaid.diagram_preview")}}); this.root.hidden = true;nameWithoutTooltip(this.root,tr('mermaid.diagram_preview'),host);
  }
  onload(): void {this.register(() => {this.clear(); this.cache.clear(); this.root.remove();});}
  clear(): void {this.generation++; this.current = undefined; if (this.timer) window.clearTimeout(this.timer); this.timer = undefined; this.root.hidden = true; this.root.empty();}
  show(item: MermaidTemplate): void {
   if (this.current === item.id) return;
   this.clear(); this.current = item.id; const generation = this.generation;
-  this.root.hidden = false; this.root.setAttribute('aria-label', tr("labels.preview") + item.name); this.root.setText(tr("mermaid.loading_preview"));
+  this.root.hidden = false; nameWithoutTooltip(this.root,tr('labels.preview')+item.name); this.root.setText(tr("mermaid.loading_preview"));
   this.timer = window.setTimeout(() => {this.timer = undefined; void this.draw(item, generation);}, 120);
  }
  private async draw(item: MermaidTemplate, generation: number): Promise<void> {

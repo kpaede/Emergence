@@ -14,7 +14,7 @@ Das Plugin ist aus philosophischer Begriffsarbeit in einem persönlichen Forschu
 | Beziehungen zwischen Notizen verstehen und ordnen | [**Graph**](#notizen-erkunden-und-ordnen) zeigt die aktuelle Notiz im Zusammenhang mit deinen Breadcrumbs-Feldern und vorhandenen Links. |
 | Neue Zusammenhänge finden | [**Feldideen**](#neue-zusammenhänge-entwickeln) schlägt mit einem lokalen Sprachmodell Begriffe vor. Du entscheidest, welche Beziehungen du übernimmst. |
 | Abläufe, Mindmaps oder Argumentationen darstellen | [**Mermaid** und **Argdown**](#diagramme-neben-ihrem-quelltext-bearbeiten) verbinden grafische Bearbeitung mit einem ständig sichtbaren Quelltexteditor. |
-| Vier Perspektiven gegenüberstellen | [**Tetrader**](#tetrader-und-eigene-markdown-muster) verbindet einen grafischen Editor mit eigenen Markdown-Mustern. |
+| Vier Perspektiven gegenüberstellen | [**Tetrader**](#tetrader) bearbeitet Tetraden grafisch mit Fettüberschriften oder gleichrangigen Markdown-Überschriften. |
 | Notizen und Literatur finden | [**Suche**](#notizen-und-literatur-finden) durchsucht Notiztitel, Aliase und Tags sowie über ZotLit deine Zotero-Bibliothek. |
 
 Die sieben Tabs stehen in der Reihenfolge **Begleitdokument → Graph → Feldideen → Mermaid → Argdown → Tetrader → Suche**. Jeden davon kannst du in den Einstellungen deaktivieren.
@@ -86,15 +86,49 @@ Beide Editoren haben dasselbe **Neu**-Menü mit mitgelieferten Beispielen, Vorsc
 
 </details>
 
-### Tetrader und eigene Markdown-Muster
+### Tetrader
 
-Der neue Tab **Tetrader** integriert die Schmetterlingsdarstellung von Tetrader mit Quelltext, Vorschau, Vollbild und gemeinsamem Rückgängig/Wiederholen. Bearbeite die vier Felder über ihre Schaltflächen oder per Doppelklick mit dem eingebetteten Markdown-Editor. Wähle vorhandene Tetraden über die Notizauswahl, **In Tetrader bearbeiten** am Callout oder den Befehl **Tetrade am Cursor bearbeiten**. Entwürfe werden erst mit **In Notiz einfügen** geschrieben; anschließend speichert der Editor nur diesen Block automatisch.
+Der Tab **Tetrader** bearbeitet Tetraden im ursprünglichen Schmetterlingsdiagramm. Öffne eine Tetrade über den Stift am Diagrammrand oder **Tetrade am Cursor bearbeiten**. Ein Klick auf Titel, Kerntext oder Absatz startet die Bearbeitung an Ort und Stelle mit Obsidians Linkvervollständigung. Enter fügt einen Zeilenumbruch ein, Strg/Cmd+Enter oder Verlassen des Feldes übernimmt die Eingabe; Escape bricht ab. Der Titel bleibt einzeilig. Es gibt dafür keine Dialogfenster oder einzelnen Bearbeiten-Schaltflächen.
 
-Mit **+ → Neues Muster** legst du Name, eindeutige Callout-Kennung, Überschriftenebene und die vier Überschriften selbst fest. Das Muster **McLuhan** unterstützt weiterhin das ursprüngliche Format `> [!tetrad]` mit englischen Überschriften und deren Aliasnamen. Eigene Muster können beispielsweise `> [!vier-perspektiven]` mit **Stärken**, **Risiken**, **Chancen** und **Verluste** verwenden. Die vier Positionen bleiben eindeutig: oben links, oben rechts, unten links, unten rechts. Der erste Absatz ist die Kernaussage; weitere Absätze erläutern sie von innen nach außen. Markdown, Links und Zeilenumbrüche bleiben erhalten.
+Der Editor startet mit den vier Kerntexten „Enhances“, „Reverses into“, „Retrieves“ und „Obsolesces“ sowie jeweils „Gloss“ als ersetzbaren Anfangstexten. Alle Bereiche sind sofort unabhängig bearbeitbar. **Neue Tetrade** und **In Notiz einfügen** bleiben getrennte Aktionen. Auch vor dem Einfügen kann eine neue Tetrade begonnen werden; Rückgängig holt den vorherigen Inhalt zurück. Mit **In Notiz einfügen** setzt du es an die Cursorposition der geöffneten Markdown-Notiz; danach werden Änderungen dort automatisch gespeichert. Der Befehl **Neue Tetrade im Editor anlegen** öffnet diesen Einstieg direkt. Vor dem Einfügen zeigt die Kopfzeile die Zielnotiz und **noch nicht eingefügt**.
 
-Gespeicherte Muster bleiben stabil, damit bestehende Notizen erkannt werden. Für eine andere Struktur legst du ein neues Muster an. Frei konfigurierbar sind Kennung und Überschriften, keine beliebigen Markdown-Grammatiken. Muster und Darstellungseinstellungen liegen lokal in den Plugin-Daten. **Darstellung der Tetraden** konfiguriert Mitte, Legende, Gesetzesnamen und Kürzel. Falls ein gebundener Block parallel geändert oder entfernt wird, stoppt das Speichern und erhält den Entwurf. **Als Entwurf kopieren** löst die Bindung für die Wiederherstellung. Öffne den ursprünglichen Block erneut, um dessen aktuellen Stand zu bearbeiten.
+Ein Klick auf die Einfügelinie ergänzt einen Absatz; die gesamte Breite mit mindestens 24 Pixeln Trefferhöhe ist anklickbar. **+** am äußeren Ende ergänzt den nächsten Absatz. Leere neue Eingaben schließen ohne Fehlermeldung; geleerte Absätze werden entfernt. Ein geleerter Kerntext erhält wieder seine Grundbeschriftung, ohne einen Flügeltext zum Kern zu machen. Die oberen Bereiche wachsen nach oben, die unteren nach unten. Im Diagramm erscheinen die Einträge ohne Aufzählungszeichen. Vorhandene Absätze bleiben direkt bearbeitbar. Zwischen bestehenden Absätzen erscheint beim Überfahren ein weiteres **+**; die Griffe folgen der überfahrenen Textzeile links und rechts am Text. An ihnen lassen sich ganze Einträge auch zwischen Bereichen verschieben. Klick auf den Griff oder Strg/Cmd+Klick markiert Absätze, Umschalt+Klick einen Bereich. **Entf** oder die Löschschaltfläche entfernt die Auswahl. Wie im ursprünglichen Tetrader bleibt ein Zeilenumbruch innerhalb desselben Absatzes; eine Leerzeile beginnt eine neue Erläuterung. Oben werden ganze Absätze umgekehrt angeordnet, ihre Zeilen behalten die normale Reihenfolge. Die sichtbaren Zeilen werden automatisch umgebrochen und innerhalb jedes Quadranten schräg nach außen gestaffelt, auch wenn ein Absatz im Markdown nur eine einzige Zeile belegt. Zusätzliche Absätze erhalten einen Absatzabstand. Der Versatz und die automatischen Umbrüche ändern den gespeicherten Text nicht. Die Einfügeflächen erzeugen keinen zusätzlichen Zeilenabstand. Vorhandene Markdown-Listen und ihre Unterinhalte bleiben als Einheiten erhalten. Rückgängig, Wiederholen, Darstellung und Vollbild stehen in der Werkzeugleiste.
 
-Das eigenständige Tetrader-Plugin ist dafür nicht erforderlich. Der Renderer basiert auf Tetrader 0.2.3, Commit `77a502800ccc924ece5b6c027ca1b99794205b45`; die Lizenz liegt unter `third-party/Tetrader-LICENSE.txt`. Es kommen keine Netzwerkzugriffe hinzu.
+Die Griffe sind auch während des Bearbeitens erreichbar. Ihre Trefferfläche schließt direkt an den Text an; beim Anfassen bleibt der Griff stehen. Nach **Esc** navigieren die Pfeiltasten zwischen den Texten: links/rechts zum gegenüberliegenden Eintrag, oben/unten entlang der sichtbaren Anordnung. Ganze Quadranten sind keine Fokusziele. Fokus und Auswahl werden am Text statt als rechteckige Flächen angezeigt.
+
+Beim Verschieben markiert eine einzige Linie die Einfügeposition. Beide angrenzenden Absätze und der Zwischenraum verwenden dieselbe Position. Eine laufende Texteingabe wird vor dem Verschieben übernommen; der angefasste Griff bleibt währenddessen bestehen.
+
+Unter **Einstellungen → Emergence → Tetrader → Schreibweise neuer Tetraden** legst du **Fett gesetzte Titel** oder Überschriften mit einem bis sechs `#` fest. Die Vorgabe gilt für neue Diagramme im Editor und beim Einfügen per Befehl. Bestehende Diagramme behalten ihre Schreibweise aus der Datei. Innerhalb eines Diagramms müssen alle vier Bereichstitel dieselbe Schreibweise und Überschriften dieselbe Ebene verwenden. Die vier Bereiche bleiben Enhances, Reverses into, Retrieves und Obsolesces; englische Aliasnamen und die deutschen Titel Verstärkt, Kehrt um in, Holt zurück und Verdrängt werden erkannt. Sichtbare Beschriftungen sind in der Darstellung konfigurierbar und gelten gemeinsam für Diagramm und Editor.
+
+Unter **Einstellungen → Emergence → Tetrader** platzierst du mit **Position der Legende** die Legende unten links oder rechts oder blendest sie aus. Standard ist wie im ursprünglichen Tetrader unten rechts. **Anzeige in der Mitte** bietet unabhängig davon nichts, Beschriftungen oder eine Legende. Das Einstellungssymbol im Editor ändert dieselben allgemeinen Vorgaben für Editor und gerenderte Notizen.
+
+Beispiel für fett gesetzte Bereichstitel:
+
+```markdown
+> [!tetrad] Internet
+>
+> **Enhances**
+>
+> Kommunikation mit [[Medientheorie]].
+>
+> **Reverses into**
+>
+> Permanente Erreichbarkeit.
+>
+> **Retrieves**
+>
+> Gemeinschaft über Entfernungen hinweg.
+>
+> **Obsolesces**
+>
+> Bestimmte ortsgebundene Kommunikationsformen.
+```
+
+Der erste Absatz ist die Kernaussage; die folgenden Absätze erläutern sie von innen nach außen. Die ursprüngliche Anordnung bleibt erhalten. Beide Schreibweisen bleiben normales Markdown im Callout: Links und Einbettungen werden von Obsidian für seine Verknüpfungen erkannt. Einzelne Bearbeitungen werden vor der Übernahme validiert und bei einer gebundenen Tetrade gespeichert, bevor die normale Diagrammansicht wieder erscheint. Bei einem Schreibkonflikt bleibt die externe Fassung geschützt; die aktuelle Tetrade kann aus der Notiz neu geöffnet werden. Es entstehen keine Sicherungs- oder Entwurfskopien. Früher gespeicherte eigene Callout-Kennungen bleiben lesbar; die frühere Musterverwaltung wird nicht mehr angeboten.
+
+Das eigenständige Tetrader-Plugin ist nicht erforderlich. Der Renderer basiert auf Tetrader 0.2.3, Commit `77a502800ccc924ece5b6c027ca1b99794205b45`; die Lizenz liegt unter `third-party/Tetrader-LICENSE.txt`. Es kommen keine Netzwerkzugriffe hinzu.
+
+Die drei Buchvorlagen liegen als normale Markdown-Beispiele unter [Crowd](examples/tetrads/Crowd.md), [Microphone](examples/tetrads/Microphone.md) und [Newspaper](examples/tetrads/Newspaper.md). Ihre Erläuterungen stehen jeweils als eine Quelltextzeile pro Absatz; Umbruch und diagonaler Verlauf entstehen ausschließlich bei der Darstellung.
 
 ### Begleitdokument
 
@@ -107,6 +141,8 @@ Die **Dateiaufteilung für ein neues Begleitdokument** wählst du direkt in der 
 Unter **Einstellungen → Emergence → Begleitdokument** legst du Vorgaben fest: eine gemeinsame Begleitdatei oder eine Datei je Überschrift, jeweils neben der Originaldatei, in einem festen Vault-Ordner oder in einem benannten Unterordner bei der Originaldatei (Vorgabe: `Companions`). Beim Anlegen wählst du **Allgemeine Vorgaben verwenden** oder **Für dieses Dokument festlegen**. Die Ablage wird je Dokumentpaar gespeichert; spätere Änderungen an den Vorgaben gelten für neue Paare. Fehlende Ordner werden angelegt. Bei Abschnittsdateien enthält eine zusätzliche Markdown-Indexdatei die Gliederung, Dateiverbindungen und Zuordnungsinformationen; Einträge stehen ausschließlich in den Abschnittsdateien. Dateinamen bleiben bei Überschriftenänderungen stabil. Relative Ablagen folgen Ordnerwechseln des Hauptdokuments; ein fester Zielordner bleibt bestehen.
 
 Die Kapitelnavigation verwendet Obsidian-Überschriftenmetadaten und den Syntaxbaum des offenen Editors sowie die Theme-Klassen der Outline. Sie folgt der Schreibposition; das Fadenkreuz schaltet diese Funktion um. Einträge bleiben von der Kapitelgliederung getrennt. Die Auswahl **Ansicht** liegt direkt unter der Gliederung beim Bearbeitungsbereich und bietet die installierten Originalansichten von **Excerpt Outline Mindmap Editor** und **Lineage** an derselben Stelle. **Hierarchical Outline** benötigt kein zusätzliches Plugin. Die Ansicht zeigt die vollständigen Texte einer Ebene zwischen kurzen Vorschauen des übergeordneten Eintrags und seiner Untereinträge, mit Pfeiltastennavigation, Enter zum Bearbeiten, Markdown-Editor, Aufgabencheckboxen und Unterbaum-Verschiebungen. Die Anlegekürzel folgen EOME: Strg/Cmd+←/→ fügt Einträge davor oder danach hinzu, Strg/Cmd+↓ einen Untereintrag. ↑/↓ wechselt zwischen Einträgen derselben Ebene, ← zum übergeordneten Eintrag, → zu den Untereinträgen. Neue Einträge werden direkt an ihrer Einfügeposition bearbeitet. Die freie Fläche unter der Liste nimmt per Drag-and-drop Einträge samt Unterbaum als letzte Einträge auf derselben Ebene auf; eine Markierung zeigt das Ablageziel. Rückgängig stellt die vorherige Struktur wieder her. Das Eingabefeld beginnt einzeilig und wächst mit dem Text; Bestätigen und Abbrechen stehen als Symbolschalter rechts in der Zeile. Escape verwirft auch bei Fokus auf diesen Schaltern; offene Linkvorschläge werden zuerst geschlossen. **Abgehakte ausblenden** blendet erledigte Zweige aus; nötige Verbindungen zu offenen Nachkommen bleiben sichtbar. Im Editor übernimmt Enter außerhalb von Listen; Shift+Enter fügt einen Zeilenumbruch ein. Linkvorschläge kommen direkt aus Obsidian. Escape verwirft. Einträge werden als Markdown mit Einrückungen gespeichert; Kennungen stehen nur an den Kapitelüberschriften. Fehlgeschlagene Reader-Änderungen werden abgelehnt und der aktuelle Dateistand angezeigt; es entsteht kein Sicherungsdokument. Alle drei Ansichten verwenden dieselben Begleitdateien. **Hierarchical Outline** ist die Standardansicht und steht zuerst in der Auswahl. Unter **Einstellungen → Emergence → Begleitdokument → Standardansicht** lässt sich die Vorgabe ändern. Eine ausdrücklich je Begleitdokument gewählte Ansicht bleibt erhalten. Deaktivierte Plugins können ausdrücklich aktiviert werden. Die Haupt-Tabs bleiben einzeilig und horizontal scrollbar; Suche und Bearbeitungsfunktionen liegen im jeweiligen Originaleditor unterhalb der Kapitelnavigation.
+
+In **Hierarchical Outline** erscheint beim Überfahren zwischen Einträgen sowie am Listenanfang und -ende eine über die ganze Breite anklickbare Einfügelinie. Sie ergänzt einen Eintrag auf derselben Ebene. Drag-and-drop verwendet dort dieselbe Position, unabhängig davon, welcher angrenzende Eintrag zuvor überfahren wurde. Abgehakte Einträge sind zusätzlich durchgestrichen; notwendige Verbindungseinträge bleiben beim Ausblenden erledigter Einträge erhalten.
 
 Im Modus **Eine Datei je Kapitel** zeigt die Gliederung den Dateistatus direkt am Kapitel an: **Datei fehlt** oder **Datei prüfen**. Die Dateischaltfläche öffnet die jeweilige Kapiteldatei in einem Obsidian-Tab und verwendet einen bereits offenen Tab erneut. Bei fehlenden Dateien ist sie deaktiviert. Fehlende oder nicht lesbare Kapitel blockieren die übrige Gliederung und die Bearbeitung vorhandener Kapitel nicht. Auch Überschriftenänderungen werden weiter abgeglichen; nicht verfügbare Dateien werden dabei weder als leer behandelt noch automatisch neu angelegt. Wiederhergestellte Dateien werden erneut eingelesen. Für eine fehlende Datei bietet die Ansicht **Vorhandene Datei auswählen** oder **Neue leere Kapiteldatei anlegen** nach dem gespeicherten Ablagemuster.
 
@@ -159,7 +195,7 @@ Die [Versionsgeschichte](CHANGELOG.md) beschreibt die Änderungen je Release. In
 Verwende Node.js ab 22.12 innerhalb der unterstützten 22er- oder 24er-LTS-Reihen und npm. So baust du die veröffentlichte Version:
 
 ```sh
-git clone --branch 0.0.4 https://github.com/kpaede/Emergence.git
+git clone --branch 0.0.5 https://github.com/kpaede/Emergence.git
 cd Emergence
 npm ci
 npm run build

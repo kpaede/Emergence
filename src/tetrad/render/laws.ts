@@ -1,8 +1,8 @@
 export const LAWS = [
-	{ id: 'enhances', label: 'Enhances', short: 'Enh', aliases: ['enhance', 'enhances', 'enhancement'] },
-	{ id: 'reverses', label: 'Reverses into', short: 'Rev', aliases: ['reverse', 'reverses', 'reverse into', 'reverses into', 'reversal'] },
-	{ id: 'retrieves', label: 'Retrieves', short: 'Ret', aliases: ['retrieve', 'retrieves', 'retrieval'] },
-	{ id: 'obsolesces', label: 'Obsolesces', short: 'Obs', aliases: ['obsolesce', 'obsolesces', 'obsolescence'] },
+	{ id: 'enhances', label: 'Enhances', short: 'Enh', aliases: ['enhance', 'enhances', 'enhancement', 'verstärkt', 'erweitert'] },
+	{ id: 'reverses', label: 'Reverses into', short: 'Rev', aliases: ['reverse', 'reverses', 'reverse into', 'reverses into', 'reversal', 'kehrt um in', 'verkehrt sich in'] },
+	{ id: 'retrieves', label: 'Retrieves', short: 'Ret', aliases: ['retrieve', 'retrieves', 'retrieval', 'holt zurück', 'bringt zurück'] },
+	{ id: 'obsolesces', label: 'Obsolesces', short: 'Obs', aliases: ['obsolesce', 'obsolesces', 'obsolescence', 'verdrängt', 'macht überflüssig'] },
 ] as const;
 
 export type LawId = typeof LAWS[number]['id'];

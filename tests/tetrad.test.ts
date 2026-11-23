@@ -12,8 +12,8 @@ describe('Tetrader patterns and Markdown editing',()=>{
  it('round trips the original format and custom headings with stable positions',()=>{
   for(const pattern of patterns){const source=starter(pattern,'**Medium**'),doc=parseSource(source,pattern);expect(doc.title).toBe('**Medium**');expect(doc.sections.size).toBe(4);for(const [law,section]of doc.sections)expect(editSection(source,pattern,law,section.body)).toBe(source);}
  });
- it('supports existing aliases, any heading level, and source order independently of position',()=>{
-  const source='> [!TeTrAd] Test\n> # Obsolescence\n> Old\n> #### ENHANCEMENT:\n> **Voice**\n>\n> Gloss\n> ## Retrieval\n> Group\n> # Reversal\n> Noise\n';
+ it('supports existing aliases and source order independently of position',()=>{
+  const source='> [!TeTrAd] Test\n> ## Obsolescence\n> Old\n> ## ENHANCEMENT:\n> **Voice**\n>\n> Gloss\n> ## Retrieval\n> Group\n> ## Reversal\n> Noise\n';
   const doc=parseSource(source,DEFAULT_PATTERN);expect(doc.sections.get('enhances')?.body).toBe('**Voice**\n\nGloss');expect(doc.sections.get('obsolesces')?.body).toBe('Old');expect(doc.sections.size).toBe(4);
  });
  it('keeps headings inside code and nested quotes as content and refuses duplicate sections',()=>{
@@ -50,7 +50,7 @@ describe('Tetrader layout integration',()=>{
  it('renders custom headings and reverses upper gloss blocks only, and restores original DOM',()=>{
   const dom=tetradDom('<div class="callout"><div class="callout-title">Medium</div><div class="callout-content"><h3>Stärken</h3><p>Kern</p><p>Nahe</p><p>Fern</p><h3>Chancen</h3><p>Gruppe</p><p>Erstens</p><p>Zweitens</p></div></div>');
   const callout=dom.window.document.querySelector<HTMLElement>('.callout')!,before=callout.innerHTML,store=new TetradStore(undefined,async()=>{}),layout=mountTetrad(callout,store.settings(custom),custom);
-  expect(callout.querySelector('.tetrader-enhances .tetrader-statement')?.textContent).toBe('Kern');expect(Array.from(callout.querySelectorAll('.tetrader-enhances .tetrader-gloss')).map(e=>e.textContent)).toEqual(['Fern','Nahe']);expect(Array.from(callout.querySelectorAll('.tetrader-retrieves .tetrader-gloss')).map(e=>e.textContent)).toEqual(['Erstens','Zweitens']);expect(callout.querySelector('.tetrader-reverses')?.getAttribute('aria-label')).toBe('Risiken');
+  expect(callout.querySelector('.tetrader-enhances .tetrader-statement')?.textContent).toBe('Kern');expect(Array.from(callout.querySelectorAll('.tetrader-enhances .tetrader-gloss')).map(e=>e.textContent)).toEqual(['Fern','Nahe']);expect(Array.from(callout.querySelectorAll('.tetrader-retrieves .tetrader-gloss')).map(e=>e.textContent)).toEqual(['Erstens','Zweitens']);expect(callout.ownerDocument.getElementById(callout.querySelector('.tetrader-reverses')!.getAttribute('aria-labelledby')!)?.textContent).toBe('Risiken');expect(callout.querySelector('.tetrader-reverses')!.hasAttribute('aria-label')).toBe(false);
   layout.destroy();expect(callout.innerHTML).toBe(before);dom.window.close();
  });
  it('supports center and legend settings and shows duplicate sections without moving content',()=>{

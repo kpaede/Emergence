@@ -3,6 +3,7 @@ import {synopsisRelations} from './graph/synopsis-types';
 import {synopsisPositions} from './graph/synopsis-layout';
 import {features} from './features';
 import {validStorage,validCompanionView} from './companion/preferences';
+import {validTetradFormat} from './tetrad/preferences';
 import type {OutputModule, Profile, RelationRule, Settings} from './types';
 import {assert, clone, safeProperty} from './util';
 export const templateVariables = ['language', 'instructions', 'note.title', 'note.path', 'note.content', 'selection',
@@ -44,6 +45,7 @@ export function validateSettings(s: Settings): void {
  assert(s.uiLanguage === undefined || ['auto','de','en'].includes(s.uiLanguage), tr("common.invalid_interface_language"));
  if(s.companion!==undefined)assert(validStorage(s.companion?.storage),tr('companion.invalidStorage'));
  if(s.companion?.defaultView!==undefined)assert(validCompanionView(s.companion.defaultView),tr('companion.invalidView'));
+ if(s.tetrad!==undefined)assert(s.tetrad!==null&&typeof s.tetrad==='object'&&!Array.isArray(s.tetrad)&&validTetradFormat(s.tetrad.format),tr('tetrad.invalidFormat'));
  if(s.features!==undefined)assert(s.features!==null&&typeof s.features==='object'&&!Array.isArray(s.features)&&Object.entries(s.features).every(([key,value])=>features.includes(key as typeof features[number])&&typeof value==='boolean'),tr('settings.invalidFeatures'));
  assert(s.citekeyFormat === undefined || ['brackets','at','plain'].includes(s.citekeyFormat), tr("common.invalid_citekey_format"));
  assert(s.schemaVersion === 1, tr("common.unsupported_settings_version"));

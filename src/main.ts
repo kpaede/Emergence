@@ -3,6 +3,7 @@ import {registerCompanionLive} from './companion/live';
 import {registerCompanionCommands} from './companion/register';
 import {TetradStore} from './tetrad/patterns';
 import {registerTetrad} from './tetrad/register';
+import {defaultTetradFormat} from './tetrad/preferences';
 import type {TetradProcessor} from './tetrad/processor';
 import {t as tr} from './i18n';
 import {getLanguage, Notice, Plugin, setTooltip, type Command} from 'obsidian';
@@ -53,7 +54,7 @@ export default class EmergencePlugin extends Plugin {
   this.registerView(VIEW_TYPE, leaf => new EmergenceView(leaf, c, this.mermaidLibrary, this.argdownLibrary,this.tetradStore,this.companionService));
   registerMermaidNoteControls(this, async (file, index) => {if(!featureEnabled(this.settings,'mermaid'))return;const view = await this.open(); if (view) {view.switchTab('mermaid'); await view.mermaidPanel?.openBlock(file, index);}}, error => new Notice(error instanceof Error ? error.message : String(error)),()=>featureEnabled(this.settings,'mermaid'));
   registerArgdown(this, async (file, index) => {if(!featureEnabled(this.settings,'argdown'))return;const view = await this.open(); if (view) {view.switchTab('argdown'); await view.argdownPanel?.openBlock(file, index);}}, error => new Notice(error instanceof Error ? error.message : String(error)),()=>featureEnabled(this.settings,'argdown'));
-  this.tetradProcessor=registerTetrad(this,this.tetradStore,()=>featureEnabled(this.settings,'tetrad'),async(file,index)=>{const view=await this.open();if(view){view.switchTab('tetrad');await view.tetradPanel?.openBlock(file,index);}},()=>this.open());
+  this.tetradProcessor=registerTetrad(this,this.tetradStore,()=>featureEnabled(this.settings,'tetrad'),async(file,index)=>{const view=await this.open();if(view){view.switchTab('tetrad');await view.tetradPanel?.openBlock(file,index);}},()=>this.open(),()=>defaultTetradFormat(this.settings));
   this.addSettingTab(new EmergenceSettingsTab(this.app, this));
   this.ribbon=this.addRibbonIcon('network', tr("common.open_emergence"), () => {void c.run(() => this.open());});
   this.ribbon.addClass('em-ribbon');
@@ -112,7 +113,7 @@ export default class EmergencePlugin extends Plugin {
   refreshCommandLanguage(this);this.tetradProcessor?.update();
   if(this.ribbon)setTooltip(this.ribbon,tr('common.open_emergence'));
   for(const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE))if(leaf.view instanceof EmergenceView)leaf.view.refreshLanguage();
-  for(const leaf of this.app.workspace.getLeavesOfType('markdown'))for(const button of leaf.view.containerEl.querySelectorAll<HTMLElement>('.em-mm-open')){const label=button.dataset.emDiagramKind==='argdown'?tr('argdown.edit_in_argdown'):tr('mermaid.edit_in_mermaid');button.setAttribute('aria-label',label);button.title=label;}
+  for(const leaf of this.app.workspace.getLeavesOfType('markdown'))for(const button of leaf.view.containerEl.querySelectorAll<HTMLElement>('.em-mm-open')){const label=button.dataset.emDiagramKind==='argdown'?tr('argdown.edit_in_argdown'):button.dataset.emDiagramKind==='tetrad'?tr('tetrad.edit'):tr('mermaid.edit_in_mermaid');button.setAttribute('aria-label',label);button.removeAttribute('title');}
  }
  async open(): Promise<EmergenceView | undefined> {
   this.controller.captureActive();

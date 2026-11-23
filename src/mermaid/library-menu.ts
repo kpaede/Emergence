@@ -1,3 +1,4 @@
+import {nameWithoutTooltip} from '../ui/accessibility';
 import {t as tr} from '../i18n';
 import {Component, setIcon} from 'obsidian';
 import {MermaidLibrary, type MermaidTemplate} from './library';
@@ -28,7 +29,8 @@ export class MermaidLibraryMenu extends Component {
   form.onsubmit = event => {event.preventDefault(); void this.run(async () => {const source = actions.source(); actions.validate(source); submit.disabled = true; try {await library.add(name.value, source); name.value = ''; form.hidden = true;} finally {submit.disabled = false;}});};
   this.undo = footer.createEl('button', {text: tr("mermaid.undo"), attr: {'aria-label': tr("mermaid.undo_last_template_change")}}); this.undo.onclick = () => {void this.run(() => library.undo());};
   this.status = this.root.createDiv({cls: 'em-muted', attr: {role: 'status'}});
-  this.relabel=()=>{this.trigger.setText(tr('mermaid.new'));this.trigger.setAttribute('aria-label',tr('mermaid.open_templates'));this.root.setAttribute('aria-label',tr('mermaid.diagram_templates'));this.search.placeholder=tr('mermaid.search_templates');this.search.setAttribute('aria-label',tr('mermaid.search_diagram_templates'));save.setText(tr('mermaid.save_current_diagram_as_template'));name.placeholder=tr('mermaid.template_name');name.setAttribute('aria-label',tr('mermaid.template_name_2'));submit.setText(tr('mermaid.save'));this.undo.setText(tr('mermaid.undo'));this.undo.setAttribute('aria-label',tr('mermaid.undo_last_template_change'));};
+  nameWithoutTooltip(this.trigger,tr('mermaid.open_templates'));nameWithoutTooltip(this.root,tr('mermaid.diagram_templates'));nameWithoutTooltip(this.search,tr('mermaid.search_diagram_templates'),this.root);nameWithoutTooltip(name,tr('mermaid.template_name_2'),this.root);
+  this.relabel=()=>{this.trigger.setText(tr('mermaid.new'));nameWithoutTooltip(this.trigger,tr('mermaid.open_templates'));nameWithoutTooltip(this.root,tr('mermaid.diagram_templates'));this.search.placeholder=tr('mermaid.search_templates');nameWithoutTooltip(this.search,tr('mermaid.search_diagram_templates'),this.root);save.setText(tr('mermaid.save_current_diagram_as_template'));name.placeholder=tr('mermaid.template_name');nameWithoutTooltip(name,tr('mermaid.template_name_2'),this.root);submit.setText(tr('mermaid.save'));this.undo.setText(tr('mermaid.undo'));this.undo.setAttribute('aria-label',tr('mermaid.undo_last_template_change'));};
  }
  refreshLanguage():void{this.relabel();this.render();}
  onload(): void {
@@ -50,8 +52,8 @@ export class MermaidLibraryMenu extends Component {
  private row(item: MermaidTemplate): void {
   const row = this.list.createDiv({cls: 'em-mm-library-row', attr: {role: 'listitem', 'data-template-id': item.id}});
   row.onpointerenter = () => this.preview.show(item);
-  const open = row.createEl('button', {text: item.name, cls: 'em-mm-template-open', attr: {type: 'button', 'data-template-open': item.id, title: tr("mermaid.open_in_editor")}}); open.onclick = () => {void this.run(async () => {await this.actions.open(item.source); this.hide();});};
-  const icon = (name: string, label: string, run: () => Promise<void>): HTMLButtonElement => {const button = row.createEl('button', {cls: 'clickable-icon', attr: {type: 'button', 'aria-label': label, title: label}}); setIcon(button, name); button.onclick = () => {void this.run(run);}; return button;};
+  const open = row.createEl('button', {text: item.name, cls: 'em-mm-template-open', attr: {type: 'button', 'data-template-open': item.id}}); open.onclick = () => {void this.run(async () => {await this.actions.open(item.source); this.hide();});};
+  const icon = (name: string, label: string, run: () => Promise<void>): HTMLButtonElement => {const button = row.createEl('button', {cls: 'clickable-icon', attr: {type: 'button', 'aria-label': label}}); setIcon(button, name); button.onclick = () => {void this.run(run);}; return button;};
   const favorite = icon('star', this.library.isFavorite(item.id) ? tr("labels.remove_from_favorites") : tr("mermaid.add_to_favorites"), () => this.library.favorite(item.id));
   favorite.setAttribute('aria-pressed', String(this.library.isFavorite(item.id)));
   icon('file-plus', tr("mermaid.insert_template_into_current_note"), async () => {await this.actions.insert(item.source); this.hide();});

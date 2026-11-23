@@ -14,7 +14,7 @@ It grew out of philosophical concept work in a personal research vault. The rela
 | Understand and organize relationships between notes | [**Graph**](#explore-and-organize-your-notes) shows the current note in context, using your Breadcrumbs fields and existing links. |
 | Find new connections | [**Field ideas**](#develop-new-connections) uses a local language model to suggest concepts. You choose which relationships to keep. |
 | Draw a process, mind map or argument | [**Mermaid** and **Argdown**](#edit-diagrams-alongside-their-source) combine graphical editing with an always-visible source editor. |
-| Compare four perspectives | [**Tetrader**](#tetrader-and-custom-markdown-patterns) combines a graphical editor with custom Markdown patterns. |
+| Compare four perspectives | [**Tetrader**](#tetrader) edits tetrads graphically using bold titles or Markdown headings at the same level. |
 | Find notes and references | [**Search**](#find-notes-and-literature) searches note titles, aliases and tags, plus your Zotero library through ZotLit. |
 
 The seven tabs appear in this order: **Companion Document → Graph → Field ideas → Mermaid → Argdown → Tetrader → Search**. Each can be disabled in settings.
@@ -86,15 +86,47 @@ Both editors share a **New** menu with built-in examples, previews, favorites an
 
 </details>
 
-### Tetrader and custom Markdown patterns
+### Tetrader
 
-The **Tetrader** tab integrates Tetrader locally, with Markdown source, butterfly preview, full screen and shared undo/redo. Edit a wing using its button or a double click in the embedded Obsidian Markdown editor. Open existing callouts using the note selector, **Edit in Tetrader** below a rendered callout, or **Edit tetrad at cursor**. Drafts stay separate until **Insert into note**; the editor then saves only that block automatically.
+The **Tetrader** tab edits tetrads using the original butterfly diagram. Open a tetrad using the pencil at the diagram edge or **Edit tetrad at cursor**. Click the title, a core text or a paragraph to edit it directly with native Obsidian link completion. Enter inserts a line break; Ctrl/Cmd+Enter or leaving the field applies; Escape cancels. Titles remain single-line. Text editing needs no dialogs or individual edit buttons.
 
-Use **+ → New pattern** to define a name, unique callout identifier, heading level and four headings. The built-in **McLuhan** pattern preserves `> [!tetrad]` with English headings and their aliases. A custom pattern can use `> [!four-perspectives]` with **Strengths**, **Risks**, **Opportunities**, and **Losses**. Positions stay fixed: top left, top right, bottom left, bottom right. The first paragraph is the core statement; further paragraphs are glosses written from the center outward. Upper gloss blocks are reversed visually. Markdown, links and line breaks are retained.
+The editor starts with replaceable “Enhances”, “Reverses into”, “Retrieves” and “Obsolesces” core texts and a “Gloss” in every wing. All fields are editable independently from the start. **New tetrad** and **Insert into note** remain separate actions. Starting another uninserted diagram keeps the previous content available through Undo. **Insert into note** inserts it at the cursor in the open Markdown note; subsequent edits save there automatically. The **Create a new tetrad in the editor** command opens this entry point directly. Before insertion, the header identifies the target note and says **not inserted yet**.
 
-Patterns and appearance settings are stored locally in Emergence's plugin data. Saved pattern definitions remain stable so existing notes continue to work; create another pattern for a different structure. This supports configurable identifiers and headings, rather than arbitrary Markdown grammars. **Tetrad appearance** controls the center, legend, law names and abbreviations. If a bound block changes externally or becomes ambiguous, saving stops and retains the draft. **Copy as draft** detaches it for recovery; reopen the original block to work with its current source.
+Click an insertion line to add a paragraph; its full width is clickable with a hit area at least 24 pixels high. Use **+** at the outer end to add the next paragraph. Empty new input closes without an error; clearing an existing gloss removes it. Clearing a core restores its basic law text without promoting a gloss. Upper wings grow upward; lower wings grow downward. Entries appear without list markers in the diagram. Existing paragraphs stay directly editable. Hover between existing paragraphs to insert another paragraph, or drag complete entries by the handles following the hovered text line on its left and right, including between wings. Click a handle or Ctrl/Cmd+click to select paragraphs; Shift+click selects a range. **Delete** or the delete button removes the selection. As in the original Tetrader, line breaks stay within the same paragraph; a blank line starts another gloss. Upper wings reverse whole paragraphs while preserving their internal line order. Visible lines wrap automatically and progress diagonally outward in each quadrant, even when a paragraph occupies one source line. Additional paragraphs receive paragraph spacing. Shaping and automatic wrapping never rewrite the saved text. Insertion handles add no vertical spacing. Existing Markdown list items retain their descendants as one movable unit. Undo, redo, appearance and full screen are available in the toolbar.
 
-The standalone Tetrader plugin is not required. The renderer is adapted from Tetrader 0.2.3, commit `77a502800ccc924ece5b6c027ca1b99794205b45`, with its [license](third-party/Tetrader-LICENSE.txt). No runtime downloads or network requests are added.
+Drag handles remain reachable while editing. Their hit areas meet the text edge, and pressing a handle locks its position. After **Escape**, arrow keys navigate between text entries: left/right crosses to the corresponding entry, while up/down follows the visible order. Quadrants are not focus targets. Focus and selection are indicated on the text instead of rectangular block areas.
+
+When moving an entry, a single line marks its insertion position. Both adjacent paragraph halves and their gap resolve to the same position. An active text edit is accepted before the move, while its drag handle remains mounted.
+
+In **Settings → Emergence → Tetrader → Format of new tetrads**, choose bold section titles or headings with one to six `#`. This preference applies to new diagrams in the editor and the insert command. Existing diagrams keep their format in the file. All four section titles within a diagram must use the same format and heading level. The sections remain Enhances, Reverses into, Retrieves and Obsolesces. English aliases and German equivalents Verstärkt, Kehrt um in, Holt zurück and Verdrängt are recognized. Appearance settings provide the same visible labels in the diagram and editor.
+
+In **Settings → Emergence → Tetrader**, **Legend position** places the legend below the diagram on the left or right, or hides it. The default is bottom right, as in the original Tetrader. **Center display** independently offers no center content, labels or a legend. The toolbar's appearance button changes these same global settings for the editor and rendered notes.
+
+Example with bold section titles:
+
+```markdown
+> [!tetrad] Internet
+>
+> **Enhances**
+>
+> Communication with [[Media theory]].
+>
+> **Reverses into**
+>
+> Permanent availability.
+>
+> **Retrieves**
+>
+> Community across distances.
+>
+> **Obsolesces**
+>
+> Some location-bound forms of communication.
+```
+
+The first paragraph is the core statement; further paragraphs are glosses from the center outward. The original arrangement is retained. Both formats remain ordinary Markdown within a callout: Obsidian recognizes their links and embeds. Section changes are validated before acceptance and, when bound to a note, saved before the normal diagram view returns. Write conflicts protect external changes; reopen the current tetrad from its note. No recovery or draft copies are created. Previously saved custom callout identifiers remain readable; the old pattern-management interface is no longer offered.
+
+The standalone Tetrader plugin is not required. Rendering is based on Tetrader 0.2.3, commit `77a502800ccc924ece5b6c027ca1b99794205b45`; its license is in `third-party/Tetrader-LICENSE.txt`. No network requests are added.
 
 ### Companion Document
 
@@ -107,6 +139,8 @@ Choose **File layout for a new companion** directly in the start view: **All cha
 In **Settings → Emergence → Companion Document**, choose creation defaults: one shared companion file or one file per heading, stored beside the original, in a fixed vault folder, or in a named subfolder beside the original (default: `Companions`). When creating a pair, choose **Use general defaults** or **Customize for this document**. The resulting location is saved per pair; later default changes apply to new pairs. Missing folders are created. With section files, an extra Markdown index stores the outline, file links and assignment metadata; entries live only in the section files. Heading renames keep file names stable. Relative storage follows source-folder moves; a fixed folder stays in place.
 
 The chapter navigation uses Obsidian’s heading metadata and live editor syntax tree, with native Outline theme classes. It follows the writing cursor; the crosshair toggles this behavior. Entries stay separate from the chapter tree. The **Entry view** selector sits directly after the outline in the editing area and offers the installed **Excerpt Outline Mindmap Editor** and **Lineage** in the same panel. **Hierarchical Outline** needs no other plugin. It shows complete sibling texts between short parent and child previews, with arrow-key navigation, Enter to edit, Markdown editing, task checkboxes and subtree moves. Ctrl/Cmd+←/→ adds siblings and Ctrl/Cmd+↓ adds a child, as in EOME. ↑/↓ selects the previous/next entry at the same level; ← selects its parent and → its first child. New entries are edited directly at their insertion position. Drop entries onto the free area below the list to append them at that level, retaining their complete subtrees. A marker identifies the target; undo restores the original structure. The editor starts at one line and grows with the text, with confirm and cancel icons in the same row. Escape also cancels when either action has focus; an open link suggestion closes first. **Hide checked** hides completed branches while keeping checked ancestors that connect open descendants. In the editor, Enter saves outside lists; Shift+Enter inserts a line break. Link completion comes directly from Obsidian. Escape cancels. Entries use plain indented Markdown; only chapter headings carry stored identifiers. Failed reader edits are rejected and the current file is shown; no recovery document is created. All three views use the same companion files. **Hierarchical Outline** is the default and appears first. Change it under **Settings → Emergence → Companion Document → Default view**. Explicit choices saved for an individual companion remain in effect. Disabled plugins have an activation button. The main tabs remain in one horizontally scrollable row; each editor provides its own search and editing controls below the chapter navigation.
+
+In **Hierarchical Outline**, hover between entries or at either end of the list to reveal a full-width insertion line. Clicking it adds an entry at the same level. Drag and drop uses the same boundary from either neighboring entry. Completed entries also have a strikethrough; necessary ancestors remain available when completed entries are hidden.
 
 In **One file per chapter** mode, the outline shows **File missing** or **Check file** beside affected chapters. Each file button opens that chapter’s Markdown in an Obsidian tab and reuses an existing tab. The button is disabled for missing files. Missing or unreadable chapters do not block the rest of the outline or editing available chapters. Heading changes continue to reconcile; unavailable files are never treated as empty or automatically recreated. Restored files are read again. For a missing file, the view offers **Select existing file** or **Create new empty chapter file** using the stored location and naming pattern.
 
@@ -161,7 +195,7 @@ See the [changelog](CHANGELOG.md) for release history. Integrations with other p
 Use Node.js 22.12+ in the supported 22.x or 24.x LTS lines and npm. To build the released version:
 
 ```sh
-git clone --branch 0.0.4 https://github.com/kpaede/Emergence.git
+git clone --branch 0.0.5 https://github.com/kpaede/Emergence.git
 cd Emergence
 npm ci
 npm run build

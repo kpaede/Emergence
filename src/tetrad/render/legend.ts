@@ -1,6 +1,7 @@
 import { createElement } from './dom';
 import { LAWS } from './laws';
 import { DEFAULT_SETTINGS, type TetraderSettings } from '../settings-model';
+import {t} from '../../i18n';
 
 export function createLegend(document: Document, lawText = DEFAULT_SETTINGS.lawText): HTMLElement {
 	const legend = createElement(document, 'div', 'tetrader-legend');
@@ -36,13 +37,17 @@ export function createLegend(document: Document, lawText = DEFAULT_SETTINGS.lawT
 }
 
 export function updateLegend(legend: HTMLElement, lawText: TetraderSettings['lawText']): void {
-	const positions = ['top left', 'top right', 'bottom left', 'bottom right'];
-	legend.setAttribute('aria-label', `Law positions: ${LAWS.map((law, index) => `${lawText[law.id].label} at ${positions[index]}`).join('; ')}.`);
+	const positions = LAWS.map(law => t('tetrad.labelAtPosition', {
+		label: lawText[law.id].label,
+		position: t(`tetrad.${law.id}`),
+	})).join('; ');
+	legend.removeAttribute('aria-label');legend.setAttribute('aria-description',t('tetrad.legendAria',{positions}));const names:string[]=[];
 	for (const law of LAWS) {
 		const entry = legend.querySelector<HTMLElement>(`abbr[data-law="${law.id}"]`);
 		if (!entry) continue;
-		entry.textContent = lawText[law.id].abbreviation;
+		if(!entry.id)entry.id='em-law-'+crypto.randomUUID();names.push(entry.id);entry.textContent = lawText[law.id].abbreviation;
 		entry.title = lawText[law.id].label;
 	}
+	legend.setAttribute('aria-labelledby',names.join(' '));
 	legend.classList.toggle('tetrader-legend-wide', LAWS.some(law => lawText[law.id].abbreviation.length > 3));
 }

@@ -40,7 +40,7 @@ export function loadSettings(data: unknown): TetraderSettings {
 	const centerDisplay = saved.centerDisplay === 'none' || saved.centerDisplay === 'labels' || saved.centerDisplay === 'legend'
 		? saved.centerDisplay : saved.showLawLabels === true ? 'labels' : DEFAULT_SETTINGS.centerDisplay;
 	const legendPosition = saved.legendPosition === 'none' || saved.legendPosition === 'bottom-left' || saved.legendPosition === 'bottom-right'
-		? saved.legendPosition : saved.showLegend === false ? 'none' : DEFAULT_SETTINGS.legendPosition;
+		? saved.legendPosition : saved.showLegend === false ? 'none' : saved.showLegend === true ? 'bottom-right' : DEFAULT_SETTINGS.legendPosition;
 	const texts = record(saved.lawText);
 	const lawText = {} as Record<LawId, LawText>;
 	for (const law of LAWS) {

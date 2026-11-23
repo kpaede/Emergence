@@ -1,4 +1,5 @@
 import {t as tr} from '../i18n';
+import {nameWithoutTooltip} from '../ui/accessibility';
 import {Component} from 'obsidian';
 export interface ArgdownNavigationState {focus?: string; visible: boolean; mode: 'all' | 'none' | 'mixed'; hasDerivations: boolean; valid?: boolean}
 /** View navigation never modifies the diagram source. Visibility is an independent action. */
@@ -16,8 +17,8 @@ export class ArgdownNavigation extends Component {
   this.update({visible: false, mode: 'none', hasDerivations: false}); this.register(() => this.root.remove());
  }
  update(state: ArgdownNavigationState): void {
-  this.root.setAttribute('aria-label',tr('argdown.argument_map_and_reconstruction'));this.back.setText(tr('argdown.main_map'));this.back.setAttribute('aria-label',tr('argdown.back_to_main_map'));
-  this.check.setAttribute('aria-label',tr('argdown.show_this_reconstruction_in_the_main_map'));this.visibility.querySelector('span')?.setText(tr('argdown.show_in_main_map'));this.globalControl.querySelector('span')?.setText(tr('argdown.reconstructions'));this.select.setAttribute('aria-label',tr('argdown.reconstructions_in_main_map'));
+  nameWithoutTooltip(this.root,tr('argdown.argument_map_and_reconstruction'));this.back.setText(tr('argdown.main_map'));nameWithoutTooltip(this.back,tr('argdown.back_to_main_map'),this.root);
+  this.check.removeAttribute('aria-label');this.visibility.querySelector('span')?.setText(tr('argdown.show_in_main_map'));this.globalControl.querySelector('span')?.setText(tr('argdown.reconstructions'));this.select.removeAttribute('aria-label');
   for(const [value,text]of [['empty',tr('argdown.no_reconstructions_yet')],['none',tr('argdown.hide_all')],['all',tr('argdown.show_all')],['mixed',tr('labels.individual')]])this.select.querySelector(`[value="${value}"]`)?.setText(text!);
   this.back.hidden = !state.focus; this.title.setText(state.focus ? tr("argdown.reconstruction", {value1: state.focus}) : tr("argdown.main_map_2")); this.visibility.hidden = !state.focus; this.check.disabled = state.valid === false; if (state.valid !== false) this.check.checked = state.visible;
   this.globalControl.hidden = !!state.focus; this.select.value = state.hasDerivations ? state.mode : 'empty'; this.select.disabled = !state.hasDerivations;

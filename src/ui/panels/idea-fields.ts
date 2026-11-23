@@ -1,3 +1,4 @@
+import {nameWithoutTooltip} from '../accessibility';
 import {t as tr} from '../../i18n';
 import type {Suggestion} from '../../types';
 import {validateSuggestion} from '../../review/validator';
@@ -23,6 +24,7 @@ export function renderIdeaFields(host: HTMLElement, ctx: PanelContext): void {
  const fields = c.analysisFields.filter(field => !a?.associative || a.source !== c.activePath || a.fields?.includes(field));
  const box = host.createDiv({cls: 'em-idea-fields', attr: {'aria-label': tr("fieldIdeas.breadcrumbs_fields_for_assignment")}});
  if(pending.length)box.createDiv({text: selected ? tr("fieldIdeas.choose_a_field_for_the_selected_concept") : tr("fieldIdeas.drag_concepts_onto_a_field_or_select_a_concept_first_and"), cls: 'em-muted em-caption'});
+ nameWithoutTooltip(box,tr('fieldIdeas.breadcrumbs_fields_for_assignment'));
  const list = box.createDiv({cls: 'em-idea-field-targets'});
  for (const field of fields) {
   const target = list.createEl('button', {text: field, cls: 'em-idea-field-target', attr: {type: 'button', 'data-idea-field': field, 'aria-label': tr("messages.assignField",{field})}});

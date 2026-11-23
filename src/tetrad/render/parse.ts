@@ -1,10 +1,20 @@
 import { identifyLaw, type LawId } from './laws';
 import {patternLaw, type TetradPattern} from '../patterns';
 
+export interface RenderedEntry {
+	/** Index in the shared source-entry snapshot, including the core entry. */
+	index: number;
+	nodes: Node[];
+}
+
 export interface LawSection {
-	heading: HTMLElement;
+	/** Present only when adapting already rendered Markdown without source. */
+	heading?: HTMLElement;
 	nodes: Node[];
 	core?: HTMLElement;
+	/** Explicit source-entry boundaries take precedence over DOM inspection. */
+	coreEntry?: RenderedEntry;
+	glossEntries?: RenderedEntry[];
 }
 
 export interface ParsedTetrad {

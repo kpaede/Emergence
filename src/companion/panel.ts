@@ -1,6 +1,7 @@
 import {Component,Modal,Menu,type WorkspaceLeaf,type App} from 'obsidian';
 import {t} from '../i18n';
 import {settleSteps} from '../cleanup';
+import {nameWithoutTooltip} from '../ui/accessibility';
 import {iconButton,relabelIcon} from '../ui/panel';
 import {FilePicker,StorageModal,RecoveryModal} from './dialogs';
 import {CompanionSplit} from './split';
@@ -47,7 +48,7 @@ export class CompanionPanel extends Component {
   const split=this.splitHost=this.root.createDiv({cls:'em-companion-split'}),nav=split.createDiv({cls:'em-companion-nav-pane'}),navHeader=nav.createDiv({cls:'em-companion-nav-heading'});navHeader.createSpan({text:t('companion.outline')});
   const follow=iconButton(navHeader,'crosshair',t('companion.followCursor'),()=>{this.followCursor=!this.followCursor;follow.setAttribute('aria-pressed',String(this.followCursor));if(this.followCursor)this.followPosition();});follow.setAttribute('aria-pressed','true');
   const toggle=iconButton(navHeader,'panel-top-close',t('companion.showOutline'),()=>{nav.toggleClass('is-collapsed',!nav.hasClass('is-collapsed'));this.split.setCollapsed(nav.hasClass('is-collapsed'));toggle.setAttribute('aria-expanded',String(!nav.hasClass('is-collapsed')));});toggle.setAttribute('aria-expanded','true');
-  this.sections=nav.createDiv({cls:'em-companion-sections'});this.editorHost=split.createDiv({cls:'em-companion-content'});const thoughtTools=this.thoughtTools=this.editorHost.createDiv({cls:'em-companion-thought-tools'});const viewLabel=thoughtTools.createEl('label',{cls:'em-companion-view-label'});viewLabel.createSpan({text:t('companion.viewMode')});this.viewPick=viewLabel.createEl('select',{attr:{'aria-label':t('companion.viewMode')}});for(const mode of companionViews)this.viewPick.createEl('option',{value:mode,text:t(`companion.${mode}`)});this.viewPick.onchange=()=>{void this.chooseView(this.viewPick.value as CompanionViewMode);};this.nativeHost=this.editorHost.createDiv({cls:'em-companion-native-host'});this.readerHost=this.editorHost.createDiv({cls:'em-companion-native-host'});this.readerHost.hidden=true;this.reader=this.addChild(new HierarchyReader(app,this.readerHost,service,()=>this.message.empty()));
+  this.sections=nav.createDiv({cls:'em-companion-sections'});this.editorHost=split.createDiv({cls:'em-companion-content'});const thoughtTools=this.thoughtTools=this.editorHost.createDiv({cls:'em-companion-thought-tools'});const viewLabel=thoughtTools.createEl('label',{cls:'em-companion-view-label'});viewLabel.createSpan({text:t('companion.viewMode')});this.viewPick=viewLabel.createEl('select');for(const mode of companionViews)this.viewPick.createEl('option',{value:mode,text:t(`companion.${mode}`)});this.viewPick.onchange=()=>{void this.chooseView(this.viewPick.value as CompanionViewMode);};this.nativeHost=this.editorHost.createDiv({cls:'em-companion-native-host'});this.readerHost=this.editorHost.createDiv({cls:'em-companion-native-host'});this.readerHost.hidden=true;this.reader=this.addChild(new HierarchyReader(app,this.readerHost,service,()=>this.message.empty()));
   this.sectionProblem=this.editorHost.createDiv({cls:'em-companion-section-problem'});this.editorHost.insertBefore(this.sectionProblem,this.nativeHost);this.sectionProblem.hidden=true;this.layoutLabel=thoughtTools.createSpan({cls:'em-companion-layout-label'});
   this.split=this.addChild(new CompanionSplit(split,this.editorHost,service.layoutPreferences(),value=>service.setLayoutPreferences(value)));
   this.navigation=this.addChild(new CompanionNavigation(this.sections,section=>{void this.run(()=>this.chooseSection(section));},operations=>{void this.run(()=>this.service.executeMany(this.path,operations));},section=>this.openChapter(section)));
@@ -59,7 +60,7 @@ export class CompanionPanel extends Component {
   this.registerDomEvent(this.root.ownerDocument,'pointerup',release);this.registerDomEvent(this.root.ownerDocument,'pointercancel',release);this.registerDomEvent(this.root,'dragstart',()=>{this.dragging=true;},{capture:true});this.registerDomEvent(this.root.ownerDocument,'dragend',()=>{this.dragging=false;release();});this.registerDomEvent(this.root.ownerDocument,'drop',()=>{this.dragging=false;release();},{capture:true});
   this.register(()=>{this.generation++;if(this.cursorTimer)window.clearTimeout(this.cursorTimer);this.fullscreen?.close();for(const modal of this.dialogs)modal.close();this.root.remove();});
   this.updateControls=()=>{more.hidden=!this.document||this.readPath!==this.path;recover.hidden=!this.service.needsRecovery(this.path);sync.disabled=!this.service.pair(this.path)||!this.app.vault.getFileByPath(this.path);};
-  this.relabel=()=>{this.pick.setAttribute('aria-label',t('companion.chooseCompanion'));relabelIcon(pin,t('companion.pin'));relabelIcon(sync,t('companion.refresh'));relabelIcon(full,t('companion.fullscreen'));relabelIcon(follow,t('companion.followCursor'));relabelIcon(toggle,t('companion.showOutline'));relabelIcon(more,t('companion.documentActions'));recover.setText(t('companion.recoverWrites'));viewLabel.querySelector('span')?.setText(t('companion.viewMode'));for(const option of this.viewPick.options)option.text=t(`companion.${option.value as CompanionViewMode}`);this.sections.setAttribute('aria-label',t('companion.sections'));};this.context();
+  this.relabel=()=>{nameWithoutTooltip(this.pick,t('companion.chooseCompanion'),this.root);relabelIcon(pin,t('companion.pin'));relabelIcon(sync,t('companion.refresh'));relabelIcon(full,t('companion.fullscreen'));relabelIcon(follow,t('companion.followCursor'));relabelIcon(toggle,t('companion.showOutline'));relabelIcon(more,t('companion.documentActions'));recover.setText(t('companion.recoverWrites'));viewLabel.querySelector('span')?.setText(t('companion.viewMode'));for(const option of this.viewPick.options)option.text=t(`companion.${option.value as CompanionViewMode}`);nameWithoutTooltip(this.sections,t('companion.sections'),this.root);};nameWithoutTooltip(this.pick,t('companion.chooseCompanion'),this.root);this.context();
  }
  setVisible(visible:boolean):void{this.active=visible;if(!visible){this.viewChange++;this.pendingViewFocus=undefined;this.navigationRequest++;this.navigating=false;void this.closeThoughts().catch((error:unknown)=>this.showError(error));}}
  setEnabled(enabled:boolean):void{this.enabled=enabled;if(!enabled){this.viewChange++;this.pendingViewFocus=undefined;void this.closeThoughts().catch((error:unknown)=>this.showError(error));this.fullscreen?.close();for(const modal of this.dialogs)modal.close();}}
@@ -135,7 +136,7 @@ export class CompanionPanel extends Component {
  }
  private paint(document:CompanionDocument):void{
   this.review.empty();
-  const mode=document.storage?.mode??'document';this.layoutLabel.dataset.companionLayout=mode;this.layoutLabel.setText(t(mode==='sections'?'companion.layoutBadgeSections':'companion.layoutBadgeSingle'));this.layoutLabel.title=t('companion.savedLayout',{layout:t(mode==='sections'?'companion.perHeading':'companion.oneDocument')});
+  const mode=document.storage?.mode??'document';this.layoutLabel.dataset.companionLayout=mode;this.layoutLabel.setText(t(mode==='sections'?'companion.layoutBadgeSections':'companion.layoutBadgeSingle'));this.layoutLabel.removeAttribute('title');
   if(!document.sections.some(s=>s.id===this.selected))this.selected=document.sections.find(s=>s.state==='linked'||s.state==='general')?.id??document.sections[0]?.id??'';
   this.navigation.render(document,this.selected,this.path);
   const selected=document.sections.find(s=>s.id===this.selected);this.mode=this.service.viewMode(this.path);this.viewPick.value=this.mode;
@@ -149,9 +150,11 @@ export class CompanionPanel extends Component {
  private async retireThoughts():Promise<void>{this.reader.retire();await this.native.retire();}
  private async shutdownThoughts():Promise<void>{await this.reader.close();await this.native.shutdown();}
  private async renderThoughts(document:CompanionDocument,section:CompanionSection):Promise<void>{
-  const mode=this.mode,path=this.path,request=++this.thoughtRenderRequest;
-  if(mode==='reader'){await this.native.close();if(this.reader.editing&&this.reader.isShowing(path,section.id))return;await this.reader.flush();if(request===this.thoughtRenderRequest&&this.path===path&&this.mode===mode&&this.selected===section.id){this.reader.render(path,document,section);this.focusChosenView();}}
-  else{await this.reader.close();if(request===this.thoughtRenderRequest&&this.path===path&&this.mode===mode&&this.selected===section.id){await this.native.render(path,document,section,mode);if(request===this.thoughtRenderRequest&&this.path===path&&this.mode===mode)this.focusChosenView();}}
+  const mode=this.mode,path=this.path,request=++this.thoughtRenderRequest,revision=this.readPath===path?this.readRevision:this.service.pair(path)?.revision;
+  const current=()=>request===this.thoughtRenderRequest&&this.path===path&&this.mode===mode&&this.selected===section.id;
+  const fresh=()=>{if(revision===this.service.pair(path)?.revision)return true;this.fingerprint='';void this.refresh(true);return false;};
+  if(mode==='reader'){await this.native.close();if(this.reader.editing&&this.reader.isShowing(path,section.id))return;await this.reader.flush();if(current()&&fresh()){this.reader.render(path,document,section);this.focusChosenView();}}
+  else{await this.reader.close();if(current()&&fresh()){await this.native.render(path,document,section,mode);if(current())this.focusChosenView();}}
  }
  private selectPosition(document:CompanionDocument):void{
   if(!this.followCursor||this.editing||this.held||this.dragging||this.navigating)return;const line=this.service.currentPosition(document.source);if(line===undefined)return;const selected=this.service.sectionAt(this.path,line)??document.sections.filter(section=>section.state==='linked'&&section.base&&section.base.line<=line).at(-1)?.id;if(selected)this.selected=selected;

@@ -10,12 +10,15 @@ export interface CodeToken {from: number; to: number; className: string}
 export interface DiagramCodeOptions {label: string; tokens(source: string): CodeToken[]; syncSelection?: boolean}
 export class MermaidCodeEditor {
  readonly view: EditorView;
- private attributes=new Compartment();
+ private caption:HTMLElement;
+ private editing=new Compartment();
+ private readOnly=false;
  private replacing = false;
  private alive = true;
  private selectionVersion = 0;
  private highlighted: SourceRange[] = [];
  constructor(host: HTMLElement, source: string, change: (source: string) => void, select: (position: number) => void, undo: () => void, redo: () => void, readOnly = false, private options?: DiagramCodeOptions) {
+  this.readOnly=readOnly;this.caption=host.createSpan({cls:'em-sr-only',text:options?.label??tr("labels.mermaid_source"),attr:{id:'em-source-'+crypto.randomUUID()}});
   const decorate = (view: EditorView): DecorationSet => this.decorate(view);
   const notify = (state: EditorState): void => {const position = state.selection.main.head, version = ++this.selectionVersion; queueMicrotask(() => {if (this.alive && version === this.selectionVersion) select(position);});};
   const onUpdate = (update: ViewUpdate): void => {
@@ -27,8 +30,8 @@ export class MermaidCodeEditor {
    constructor(view: EditorView) {this.decorations = decorate(view);}
    update(update: ViewUpdate): void {if (update.docChanged || update.viewportChanged || update.transactions.length) this.decorations = decorate(update.view);}
   }, {decorations: plugin => plugin.decorations});
-  this.view = new EditorView({parent: host, state: EditorState.create({doc: source, extensions: [lineNumbers({domEventHandlers: options?.syncSelection ? {mousedown: (view, line, event) => {if (!('button' in event) || event.button !== 0) return false; event.preventDefault(); view.dispatch({selection: {anchor: line.from}}); notify(view.state); view.focus(); return true;}} : undefined}), drawSelection(), EditorView.lineWrapping, decorations, EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly),
-   this.attributes.of(EditorView.contentAttributes.of({'aria-label': options?.label ?? tr("labels.mermaid_source"), spellcheck: 'false'})),
+  this.view = new EditorView({parent: host, state: EditorState.create({doc: source, extensions: [lineNumbers({domEventHandlers: options?.syncSelection ? {mousedown: (view, line, event) => {if (!('button' in event) || event.button !== 0) return false; event.preventDefault(); view.dispatch({selection: {anchor: line.from}}); notify(view.state); view.focus(); return true;}} : undefined}), drawSelection(), EditorView.lineWrapping, decorations, this.editing.of([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
+   EditorView.contentAttributes.of({'aria-labelledby':this.caption.id,spellcheck:'false'}),
    keymap.of([{key: 'Mod-z', run: () => {undo(); return true;}}, {key: 'Mod-Shift-z', run: () => {redo(); return true;}}, {key: 'Mod-y', run: () => {redo(); return true;}},
     indentWithTab, ...defaultKeymap]),
    EditorView.domEventHandlers({click: (_event, view) => {if (options?.syncSelection) notify(view.state); return false;}}),
@@ -48,10 +51,11 @@ export class MermaidCodeEditor {
   this.replacing = true;
   try {this.view.dispatch({changes: {from: 0, to: this.view.state.doc.length, insert: source}});} finally {this.replacing = false;}
  }
- setLabel(label:string):void{this.view.dispatch({effects:this.attributes.reconfigure(EditorView.contentAttributes.of({'aria-label':label,spellcheck:'false'}))});}
+ setReadOnly(value:boolean):void {if(this.readOnly===value)return;this.readOnly=value;this.view.dispatch({effects:this.editing.reconfigure([EditorState.readOnly.of(value),EditorView.editable.of(!value)])});}
+ setLabel(label:string):void{this.caption.setText(label);}
  highlight(ranges: SourceRange[], reveal = false): void {
   this.highlighted = ranges; this.replacing = true;
   try {this.view.dispatch({...reveal && ranges[0] && this.options?.syncSelection ? {selection: {anchor: Math.min(ranges[0].from, this.view.state.doc.length)}} : {}, effects: reveal && ranges[0] ? EditorView.scrollIntoView(Math.min(ranges[0].from, this.view.state.doc.length), {y: 'nearest'}) : []});} finally {this.replacing = false;}
  }
- destroy(): void {this.alive = false; this.view.destroy();}
+ destroy(): void {this.alive = false; this.view.destroy();this.caption.remove();}
 }

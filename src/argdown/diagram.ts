@@ -1,4 +1,5 @@
 import {t as tr} from '../i18n';
+import {nameSvgWithoutTooltip} from '../ui/accessibility';
 import {sanitizeHTMLToDom} from 'obsidian';
 import {argdownNodeIds, themeArgdownNodes} from './theme';
 import {edgeKey, nodeKey, type ArgdownModel} from './model';
@@ -16,12 +17,12 @@ export class ArgdownDiagram {
   const nodes = argdownNodeIds(model); themeArgdownNodes(this.svg, model, nodes);
   for (const el of this.svg.querySelectorAll<SVGGElement>('.node,.cluster')) {
    const id = el.querySelector(':scope > title')?.textContent ?? '', node = nodes.get(id) ?? nodes.get(id.replace(/^cluster_/u, ''));
-   if (node) {if (nodeKey(node).startsWith('d:')) el.classList.add('em-ad-derivation-boundary'); el.dataset.argdownKey = nodeKey(node); el.setAttribute('aria-label', (nodeKey(node).startsWith('d:') ? '' : String(node.type) === 'argument-map-node' ? tr("argdown.argument_3") : String(node.type) === 'group-map-node' ? tr("argdown.group") : tr("argdown.statement_3")) + (node.title ?? ''));}
+   if (node) {if (nodeKey(node).startsWith('d:')) el.classList.add('em-ad-derivation-boundary'); el.dataset.argdownKey = nodeKey(node); nameSvgWithoutTooltip(el,(nodeKey(node).startsWith('d:')?'':String(node.type)==='argument-map-node'?tr('argdown.argument_3'):String(node.type)==='group-map-node'?tr('argdown.group'):tr('argdown.statement_3'))+(node.title??''));el.querySelector(':scope > title')?.remove();}
   }
   // Graphviz preserves the numeric edge IDs in DOM even when it reorders SVG groups.
   for (const el of this.svg.querySelectorAll<SVGGElement>('.edge')) {
    const id = el.id.replace(/^edge/u, 'e'), edge = model.edges.find(edge => edge.id === id); if (!edge) continue;
-   el.dataset.argdownKey = edgeKey(edge); el.setAttribute('aria-label', edge.relationType + ': ' + edge.from.title + ' → ' + edge.to.title);
+   el.dataset.argdownKey = edgeKey(edge); nameSvgWithoutTooltip(el,edge.relationType+': '+edge.from.title+' → '+edge.to.title);el.querySelector(':scope > title')?.remove();
    const path = el.querySelector('path'); if (path) {const hit = path.cloneNode() as SVGPathElement; hit.removeAttribute('id'); hit.setAttribute('class', 'em-ad-edge-hit'); el.append(hit);}
   }
   if (this.autoFit) this.fit(); else this.size();

@@ -13,7 +13,7 @@ export function renderSuggestion(parent: HTMLElement, s: Suggestion, source: str
  badge(heading, decisionLabel[s.status], s.status);
  const relation = card.createDiv({cls: 'em-relation-line'}); badge(relation, s.field || tr("labels.relation_is_missing"));
  relation.createSpan({text: s.targetKind === 'existing' ? tr("labels.existing_note") : tr("common.not_created_yet"), cls: 'em-muted'});
- if (s.target.includes('/')) card.createDiv({text: s.target, cls: 'em-path', attr: {title: s.target}});
+ if (s.target.includes('/')) card.createDiv({text: s.target, cls: 'em-path'});
  if (s.contract !== 'breadcrumbs-v2' && s.reason) card.createDiv({text: s.reason, cls: 'em-reason'});
  const details = disclosure(card, s.contract === 'breadcrumbs-v2' ? tr("fieldIdeas.source_location_and_verification") : tr("fieldIdeas.text_evidence_and_verification"), ctx.state.review.expanded === s.id);
  details.ontoggle = () => {if (details.open) ctx.state.review.expanded = s.id;};

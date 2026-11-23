@@ -1,3 +1,4 @@
+import {nameWithoutTooltip} from '../accessibility';
 import {t as tr} from '../../i18n';
 import {button} from '../helpers';
 import {badge, disclosure, iconButton, type PanelContext} from '../panel';
@@ -28,6 +29,7 @@ export function renderFieldIdeas(host: HTMLElement, ctx: PanelContext): void {
  for (const field of a.associative ? [''] : a.fields ?? [...new Set(a.suggestions.map(s => s.field))]) {
   const ideas = a.associative ? pending : pending.filter(s => s.field === field);
   const group = a.associative ? host.createDiv({cls: 'em-idea-pool', attr: {'aria-label': tr("fieldIdeas.unassigned_concepts")}}) : disclosure(host, field, ideas.length > 0, `ideas-${a.id}-${field}`);
+  if(a.associative)nameWithoutTooltip(group,tr('fieldIdeas.unassigned_concepts'));
   if (!a.associative) {group.addClass('em-idea-group');const summary = group.querySelector('summary')!;
    summary.createSpan({text: String(ideas.length), cls: 'em-idea-count'});summary.setAttribute('aria-label', tr("messages.fieldIdeas",{field,count:ideas.length}));}
   if (!ideas.length) group.createDiv({text: tr("fieldIdeas.no_pending_ideas_2"), cls: 'em-muted em-caption'});

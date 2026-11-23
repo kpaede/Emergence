@@ -1,6 +1,7 @@
 import {t as tr} from '../i18n';
 import {Component, sanitizeHTMLToDom, MarkdownView, Menu, Modal, type App, type TFile} from 'obsidian';
 import {showDiagramMenu} from '../diagrams/menu';
+import {nameWithoutTooltip,nameSvgWithoutTooltip} from '../ui/accessibility';
 import {iconButton,relabelIcon} from '../ui/panel';
 import {MermaidBinding, noteText} from '../mermaid/binding';
 import {MermaidCodeEditor} from '../mermaid/code-editor';
@@ -56,7 +57,7 @@ export class ArgdownPanel extends Component {
   this.navigation = this.addChild(new ArgdownNavigation(this.root, {back: () => this.showOverview(), visible: value => {if (this.focus) this.setVisible(this.focus, value);}, all: value => this.commit(model => setAllDerivations(this.engine!, model.source, value))}));
   const split = this.root.createDiv({cls: 'em-mm-split'}), code = split.createDiv({cls: 'em-mm-code'}), divider = split.createDiv({cls: 'em-mm-divider', attr: {role: 'separator', tabindex: '0', 'aria-label': tr("argdown.size_of_source_and_argument_map"), 'aria-valuemin': '20', 'aria-valuemax': '80', 'aria-valuenow': '36'}});
   this.stage = split.createDiv({cls: 'em-mm-stage'}); this.preview = this.stage.createDiv({cls: 'em-ad-preview', attr: {tabindex: '0', 'aria-label': tr("argdown.argdown_argument_map")}}); this.diagram = new ArgdownDiagram(this.preview);
-  this.overlay = this.stage.createDiv({cls: 'em-mm-overlay'}); this.toolbar = this.overlay.createDiv({cls: 'em-mm-toolbar', attr: {role: 'toolbar', 'aria-label': tr("argdown.edit_argument_map")}}); this.toolbar.hidden = true;
+  this.overlay = this.stage.createDiv({cls: 'em-mm-overlay'}); this.toolbar = this.overlay.createDiv({cls: 'em-mm-toolbar', attr: {role: 'toolbar', 'aria-label': tr("argdown.edit_argument_map")}}); this.toolbar.hidden = true;nameWithoutTooltip(this.preview,tr('argdown.argdown_argument_map'),this.stage);nameWithoutTooltip(this.toolbar,tr('argdown.edit_argument_map'),this.overlay);
   this.registerDomEvent(this.toolbar, 'click', () => this.activateTools(), {capture: true});
   const diagramTools = this.stage.createDiv({cls: 'em-ad-diagram-tools'});
   const createNode = diagramTools.createEl('button', {text: tr("argdown.add_element"), attr: {'aria-label': tr("argdown.add_unconnected_element"), title: tr("argdown.add_a_statement_or_argument_without_a_relation")}}); createNode.onclick = event => {this.menu?.hide(); const menu = this.menu = new Menu(); menu.addItem(item => item.setTitle(tr("argdown.add_argument")).setIcon('square').onClick(() => this.add('argument'))); menu.addItem(item => item.setTitle(tr("argdown.add_statement")).setIcon('message-square').onClick(() => this.add('statement'))); showDiagramMenu(menu, event, createNode);};
@@ -80,7 +81,7 @@ export class ArgdownPanel extends Component {
    relabelIcon(this.undoButton,tr('argdown.undo_ctrl_cmd_z'));relabelIcon(this.redoButton,tr('labels.redo_ctrl_cmd_shift_z'));relabelIcon(maximize,tr('argdown.open_argdown_full_screen'));this.insertButton.setText(tr('argdown.insert_into_note'));
    createNode.setText(tr('argdown.add_element'));createNode.setAttribute('aria-label',tr('argdown.add_unconnected_element'));createNode.title=tr('argdown.add_a_statement_or_argument_without_a_relation');relabelIcon(settings,tr('argdown.argument_map_appearance'));relabelIcon(direction,tr('argdown.argument_map_direction'));relabelIcon(section,tr('argdown.create_group'));
    const zoom=diagramTools.querySelectorAll<HTMLButtonElement>('button');for(const [index,key]of [[4,'argdown.fit_map'],[5,'argdown.zoom_in'],[6,'argdown.zoom_out']] as const)if(zoom[index])relabelIcon(zoom[index],tr(key));
-   divider.setAttribute('aria-label',tr('argdown.size_of_source_and_argument_map'));this.preview.setAttribute('aria-label',tr('argdown.argdown_argument_map'));this.toolbar.setAttribute('aria-label',tr('argdown.edit_argument_map'));this.root.querySelector('.em-mm-hint')?.setText(tr('argdown.hover_tools_click_select_shift_multiple_selection_double_click_edit'));this.editor.setLabel(tr('argdown.argdown_source'));
+   divider.setAttribute('aria-label',tr('argdown.size_of_source_and_argument_map'));nameWithoutTooltip(this.preview,tr('argdown.argdown_argument_map'),this.stage);nameWithoutTooltip(this.toolbar,tr('argdown.edit_argument_map'),this.overlay);this.root.querySelector('.em-mm-hint')?.setText(tr('argdown.hover_tools_click_select_shift_multiple_selection_double_click_edit'));this.editor.setLabel(tr('argdown.argdown_source'));
   };
  }
  refreshLanguage():void{this.menu?.hide();this.connectionMenu.hide();this.relabel();this.libraryMenu.refreshLanguage();this.context();this.updateNavigation();this.paint();}
@@ -124,7 +125,7 @@ export class ArgdownPanel extends Component {
   if (!this.engine || this.disposed) return; const generation = ++this.generation, source = this.source;
   try {const parsed = this.engine.parse(source); if (this.focus && !parsed.response.arguments?.[this.focus]?.pcs.length) {this.focus = undefined; this.codeScope = undefined;} const model = this.engine.project(source, this.focus), svg = await this.engine.svg(model); if (generation !== this.generation || source !== this.source || this.disposed) return;
    this.model = model; this.syncCode(); this.diagram.set(svg, model); this.error.empty(); this.updateNavigation(model.response.emergenceDerivation!.base);
-   for (const [key, role] of model.response.emergenceDerivation?.inferences ?? []) {const el = this.diagram.element(key); if (el) {const text = tr("argdown.inference_to_statement", {value1: role.argument, value2: (role.conclusion + 1)}); el.setAttribute('aria-label', text); const title = el.querySelector('title'); if (title) title.textContent = text;}}
+   for (const [key, role] of model.response.emergenceDerivation?.inferences ?? []) {const el = this.diagram.element(key); if (el) {const text = tr("argdown.inference_to_statement", {value1: role.argument, value2: (role.conclusion + 1)}); nameSvgWithoutTooltip(el as SVGElement,text); const title = el.querySelector('title'); if (title) title.textContent = text;}}
    if (this.pendingLogical) {const role = this.pendingLogical, key = [...(model.response.emergenceDerivation?.statements ?? [])].find(([,roles]) => roles.some(item => item.argument === role.argument && item.index === role.index))?.[0]; this.selected.clear(); if (key) this.selected.add(key); this.pendingLogical = undefined;}
    for (const key of this.selected) if (!this.diagram.element(key)) this.selected.delete(key);
    if (this.selectionOrigin === 'code') this.selectFromCode(this.codePosition); else this.paint();
@@ -239,7 +240,7 @@ export class ArgdownPanel extends Component {
  private updateNavigation(base?: ArgdownModel): void {
   this.navigation.update({focus: this.focus, visible: this.focus && base ? derivationOverride(base, this.focus) ?? globalDerivation(base) : false, mode: base ? derivationMode(base) : 'none', hasDerivations: Object.values(base?.response.arguments ?? {}).some(argument => argument.pcs.length), valid: !!base});
   for (const control of this.stage.querySelectorAll<HTMLElement>('[data-overview-only]')) control.hidden = !!this.focus;
-  this.preview.setAttribute('aria-label', this.focus ? tr("argdown.reconstruction", {value1: this.focus}) : tr("labels.argdown_main_map"));
+  nameWithoutTooltip(this.preview,this.focus?tr('argdown.reconstruction',{value1:this.focus}):tr('labels.argdown_main_map'),this.stage);
  }
  private syncCode(): void {
   if (this.focus && this.engine) {try {const base = this.engine.parse(this.source), scope = derivationScope(base, this.focus); if (scope) this.codeScope = scope;} catch {/* Keep the scoped editor usable while the user types incomplete syntax. */}}
