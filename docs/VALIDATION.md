@@ -1,3 +1,29 @@
+# Prüfstand: stabiler Release 0.0.6
+
+Stand: 24. November 2026. Ergänzt werden die Mausbearbeitung und Mehrfachauswahl
+in Hierarchical Outline. Benötigt **Obsidian Desktop ab 1.15.0**.
+
+- **1.038 automatisierte Tests bestanden**, sechs optionale Modelltests übersprungen.
+- **277 Prüfungen direkt in Obsidian bestanden**: echte Shift-/Cmd-Klicks und
+  Tastatureingaben, feste Auswahlbereiche, Kopieren, Ausschneiden und Einfügen,
+  gemeinsame Löschung und Undo. Eine geprüfte Gruppe umfasst 105 Einträge mit
+  Untereinträgen. Die Systemzwischenablage und die ursprüngliche Ansicht werden
+  nach den Prüfungen wiederhergestellt.
+- Mausbearbeitung setzt den Cursor auf die geklickte Textstelle, auch in
+  formatiertem Markdown, wiederholten Texten, internen Listen und Code. Die
+  Einfügelinien liegen auf den Kartentrennungen. Untereintrags-Pfeile, Light-/Dark-Mode,
+  schmale Panels, native Linkvervollständigung und Schreibkonflikte sind mitgeprüft.
+- Beide Ablagearten sind durch Tests für Mehrfachauswahl und vollständige
+  Unterbäume abgedeckt. Ungültige Gruppenverschiebungen erzeugen keine Teiländerungen.
+- Neue und bereinigte Dateien enthalten kein `emergence-companion-version`.
+  Abschnittskennungen bleiben in den Überschriften, individuelle Eintragskennungen
+  bleiben ausschließlich im Arbeitsspeicher. Wörtliche Kommentar-Beispiele bleiben erhalten.
+- Der Release-Workflow prüft Produktions-Audit, Build, Tests, Lint, Versionszuordnung
+  und die einzelnen Assets vor der Veröffentlichung. Er lädt die Assets vor dem
+  Freigeben erneut herunter und vergleicht Prüfsummen sowie Dateiinhalte.
+
+---
+
 Aktuelle produktübergreifende Entwicklungsprüfung vom 22. November 2026: [Kritischer Prüfdurchgang des gesamten Plugins](PLUGIN_AUDIT.md). Die folgenden Abschnitte dokumentieren frühere Prüfstände.
 
 # Prüfstand: stabiler Release 0.0.4

@@ -22,7 +22,7 @@ export function sessionThoughts(document:CompanionDocument,previous?:CompanionDo
  working.sections=working.sections.map(section=>{const before=old.get(section.id);return before&&!sameText(stripThoughtIds(before),stripThoughtIds(section))?retainUnambiguous(section,before):section;});validateThoughts(working);return working;
 }
 /** The stored originals are the actual bytes, independent of the working references. */
-export function storedThoughtIds(document:CompanionDocument):boolean{
- for(const text of [document.original,...Object.values(document.fileOriginals??{})])if(text){const stored=parseCompanion(text);if(parseDocument(stored.header).get('emergence-companion-role')==='index')continue;if(stored.sections.some(section=>stripThoughtIds(section)!==section.raw))return true;}
+export function needsCompanionCleanup(document:CompanionDocument):boolean{
+ for(const text of [document.original,...Object.values(document.fileOriginals??{})])if(text){const stored=parseCompanion(text),yaml=parseDocument(stored.header);if(yaml.has('emergence-companion-version'))return true;if(yaml.get('emergence-companion-role')==='index')continue;if(stored.sections.some(section=>stripThoughtIds(section)!==section.raw))return true;}
  return false;
 }

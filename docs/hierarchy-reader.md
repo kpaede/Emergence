@@ -41,10 +41,11 @@ dem Schreiben abgewiesen.
 In den Dateien stehen Einträge ausschließlich als Markdown mit Einrückungen.
 Die vorhandenen Kapitelkennungen bleiben an den Kapitelüberschriften. Es gibt
 keine gespeicherten Kennungen an einzelnen Einträgen und keine zusätzliche Tabelle
-mit Eintragskennungen. Die vorhandene Frontmatter-Formatversion wird auf 2 gesetzt,
-damit künftig auch wörtliche Beispiele alter Marker zum normalen Text gehören
-und beim erneuten Lesen erhalten bleiben. Version 1 bleibt lesbar. Der Serializer entfernt die früheren strukturellen
-`em-note`-Kommentare. Vorhandene Begleit-Dummydaten werden über den normalen
+mit Eintragskennungen. Eine Eigenschaft `emergence-companion-version` wird nicht
+mehr verlangt oder gespeichert; vorhandene Angaben werden beim normalen Öffnen
+oder Speichern entfernt. `eome-outline-format: 2` beschreibt weiterhin die mit EOME
+geteilten Einrückungsregeln. Wörtliche Markerbeispiele bleiben gewöhnlicher Text;
+nur ausdrücklich erkannte alte strukturelle `em-note`-Kommentare werden entfernt. Vorhandene Begleit-Dummydaten werden über den normalen
 Abgleich bereinigt; Kommentar-Beispiele innerhalb eines Eintrags oder von Code
 bleiben erhalten. Ein zusätzlicher Befehl oder eine Einstellung ist dafür nicht nötig.
 
@@ -67,6 +68,8 @@ seinem Inhalt bis höchstens 145 Pixeln und scrollt danach unabhängig.
 | ↑ / ↓ | Vorheriger / nächster Eintrag auf derselben Ebene, auch auf der obersten Ebene |
 | ← / → | Unmittelbarer übergeordneter Eintrag / erster Untereintrag |
 | Home / End | Erster / letzter Eintrag derselben Ebene |
+| Shift+↑ / ↓, Shift+Home / End | Auswahlbereich erweitern oder verkleinern |
+| Escape | Mehrfachauswahl auf den aktiven Eintrag begrenzen |
 | Enter | Gewählten Eintrag bearbeiten |
 | Strg/Cmd+Enter | Gewählten Eintrag bearbeiten, wie Enter |
 | Strg/Cmd+← / Strg/Cmd+→ | Eintrag davor / danach anlegen |
@@ -75,6 +78,20 @@ seinem Inhalt bis höchstens 145 Pixeln und scrollt danach unabhängig.
 | Strg/Cmd+A | Alle angezeigten Einträge auswählen |
 | Strg/Cmd+C / X / V | Kopieren / Ausschneiden / Einfügen |
 | Entf / Rücktaste | Löschen mit Bestätigung einschließlich der Untereinträge |
+
+Ein Klick wählt eine Karte aus; ein Doppelklick öffnet den Editor mit dem Cursor
+an der angeklickten Textstelle. Shift+Klick wählt einen Bereich mit festem
+Ausgangspunkt; Strg/Cmd+Klick schaltet einzelne Karten um. Die Anzahl der Auswahl
+steht neben der Suche. Ein kleiner Pfeil bei den Kartenwerkzeugen öffnet vorhandene
+Untereinträge und berücksichtigt den Abgehakt-Filter.
+
+Kopieren, Ausschneiden, Löschen und Verschieben verarbeiten alle ausgewählten
+Unterbäume gemeinsam. Das Kontextmenü benennt Sammelaktionen mit ihrer Anzahl.
+Beim Ausschneiden bleiben die Originale bis zum Einfügen erhalten. Einfügen erfolgt
+als Untereinträge eines einzelnen gewählten Ziels; alle eingefügten Wurzeleinträge
+bleiben ausgewählt. Jede Sammelaktion kann mit einem Schritt rückgängig gemacht
+werden. Änderungen der Zeilenenden in der Systemzwischenablage verändern die
+Gruppenstruktur nicht.
 
 Das Bearbeiten findet innerhalb derselben Zeile statt. Beim Hinzufügen erscheint die
 neue Zeile an ihrer tatsächlichen Einfügeposition; der übergeordnete Eintrag und

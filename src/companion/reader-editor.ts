@@ -6,16 +6,17 @@ import {MermaidMarkdownEditor} from '../mermaid/markdown-editor';
 import {cursorIsInMarkdownList,waitForListContext} from './reader-list-context';
 import {t} from '../i18n';
 import {iconButton,relabelIcon} from '../ui/panel';
+import type {ReaderPointer} from './reader-caret';
 
 interface SuggestWorkspace {editorSuggest?:{currentSuggest?:{context?:{editor?:unknown};close?():void}}}
-export interface ReaderEditOptions {singleLine?:boolean;adding?:boolean;remove?():void}
+export interface ReaderEditOptions {singleLine?:boolean;adding?:boolean;pointer?:ReaderPointer;remove?():void}
 /** EOME's node interaction rules around the original Obsidian Markdown editor. */
 export class ReaderEditor extends Component {
  private markdown:MermaidMarkdownEditor;private pending?:Promise<void>;private disposed=false;private parsing=false;private blurTimer?:number;private status:HTMLElement;
  constructor(private app:App,readonly host:HTMLElement,value:string,file:TFile|undefined,private save:(text:string,returnFocus:boolean)=>Promise<void>,private cancel:()=>void,private options:ReaderEditOptions={}){
   super();host.addClass('em-reader-editor');const surface=host.createDiv({cls:'em-reader-editor-surface'});this.status=host.createDiv({cls:'em-error',attr:{role:'status'}});
   this.markdown=this.addChild(new MermaidMarkdownEditor(app,surface,value,file,app.scope,()=>{void this.commit();},()=>{if(!this.pending&&!this.completing())this.cancel();},{
-   onEnter:(view,mod,shift)=>this.enter(view,mod,shift),onBlur:()=>this.blurred(),onEscape:()=>this.escape(),onDelete:()=>{if(!this.pending)this.options.remove?.();},selectAll:true,inline:true,
+   onEnter:(view,mod,shift)=>this.enter(view,mod,shift),onBlur:()=>this.blurred(),onEscape:()=>this.escape(),onDelete:()=>{if(!this.pending)this.options.remove?.();},selectAll:!options.pointer,inline:true,
   }));
   const actions=host.createDiv({cls:'em-reader-editor-actions'}),apply=iconButton(actions,'check',t(options.adding?'companion.addSibling':'companion.saveThought'),()=>{void this.commit();}),close=iconButton(actions,'x',t('companion.cancel'),()=>{if(!this.pending)this.cancel();});
   this.refreshLanguage();
@@ -25,7 +26,7 @@ export class ReaderEditor extends Component {
  }
  get value():string{return this.markdown.value;}
  refreshLanguage():void{nameWithoutTooltip(this.markdown.native.cm.contentDOM,t('companion.thoughtText'),this.host);this.host.querySelector('.em-reader-editor-surface')?.setAttribute('title',t(this.options.singleLine&&this.markdown.native.cm.state.doc.lines===1?'companion.readerEditSingleHelp':'companion.readerEditHelp'));const buttons=this.host.querySelectorAll<HTMLButtonElement>('.em-reader-editor-actions button');if(buttons[0])relabelIcon(buttons[0],t(this.options.adding?'companion.addSibling':'companion.saveThought'));if(buttons[1])relabelIcon(buttons[1],t('companion.cancel'));}
- focus():void{this.markdown.focus();}
+ focus():void{const cm=this.markdown.native.cm,point=this.options.pointer;if(point){const at=point.offset??cm.posAtCoords(point,false);if(at!==null)cm.dispatch({selection:{anchor:Math.max(0,Math.min(cm.state.doc.length,at))}});}this.markdown.focus();}
  private completing():boolean{const suggest=(this.app.workspace as SuggestWorkspace).editorSuggest?.currentSuggest;return !!suggest&&suggest.context?.editor===this.markdown?.native.editor;}
  private escape():boolean{
   if(this.disposed||this.pending)return true;

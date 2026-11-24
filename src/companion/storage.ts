@@ -55,7 +55,7 @@ export function planStorage(app:App,path:string,document:CompanionDocument):File
   if(doc.unavailableFiles?.[section.id])continue;
   const member=doc.files[section.id]??freePath(app,folder,doc.source.split('/').at(-1)!.replace(/\.md$/u,'')+' – '+section.title,reserved);doc.files[section.id]=member;
   const before=doc.fileOriginals?.[member]??null,part=before?parseCompanion(before):emptyCompanion(doc.source);part.source=doc.source;
-  if(before){const old=part.sections[0]!;if(old.title===section.title&&old.level===section.level&&old.state===section.state&&old.format===section.format&&old.raw===stripThoughtIds(section)&&part.source===parseCompanion(before).source)continue;}
+  if(before){const old=part.sections[0]!;if(!parseDocument(part.header).has('emergence-companion-version')&&old.title===section.title&&old.level===section.level&&old.state===section.state&&old.format===section.format&&old.raw===stripThoughtIds(section)&&part.source===parseCompanion(before).source)continue;}
   part.sections=[structuredClone(section)];const yaml=parseDocument(part.header||'');yaml.set('emergence-companion-role','section');yaml.set('emergence-parent-companion-id',doc.id);part.header=yaml.toString({lineWidth:0});plan.push({path:member,before,after:serializeCompanion(part)});
  }
  // Write the manifest last. Removed empty section files are retained, never silently deleted.

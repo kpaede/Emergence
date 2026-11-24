@@ -1,7 +1,7 @@
 {
   "id": "emergence",
   "name": "Emergence",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "minAppVersion": "1.15.0",
   "description": "Wissensgraph, Feldideen, Begleitdokumente, Notiz- und Zotero-Suche sowie visuelle Mermaid-, Argdown- und Tetrader-Editoren.",
   "author": "kpaede",

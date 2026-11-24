@@ -19,7 +19,7 @@ import {cachedOutline,liveOutline} from './native-outline';
 import type {SourceHeading} from './model';
 import {mergeNativeOutline} from './native-projection';
 import type {CompanionViewMode,NativeOption,NativeKind} from './native-types';
-import {sessionThoughts,storedThoughtIds} from './thought-session';
+import {sessionThoughts,needsCompanionCleanup} from './thought-session';
 import {prepareChapterFile as prepareChapter,type ChapterFilePlan} from './chapter-recovery';
 
 interface Runtime extends PairState {queue:Promise<void>;timer?:number;anchors:Map<string,number>;liveDoc?:Text;anchorDoc?:Text;anchorSource?:string;undo:HistoryAction[];redo:HistoryAction[];document?:CompanionDocument;working:boolean;outlineSource?:'editor'|'cache'|'fallback';relocation?:Promise<void>}
@@ -170,7 +170,7 @@ export class CompanionService extends Component {
   const cached=this.outlineCache.get(doc.source),native=liveOutline(this.app,doc.source,source),headings=native??(cached?.source===source?cached.headings:undefined);p.outlineSource=native?'editor':headings?'cache':'fallback';
   const result=reconcile(doc,source,p.liveDoc?.toString()===source&&p.anchors.size?p.anchors:undefined,headings);p.anchorSource=source;p.anchorDoc=p.liveDoc?.toString()===source?p.liveDoc:undefined;p.anchors=new Map(result.document.sections.filter(s=>s.state==='linked'&&s.base).map(s=>[s.id,s.base!.from]));
   const marked=markThoughts(result.document),newMarkers=marked.sections.some((s,i)=>s.raw!==result.document.sections[i]?.raw);
-  if(result.changed||newMarkers||storedThoughtIds(doc)||doc.storageDrift)await this.commit(p,doc.original,marked);else p.document=result.document;
+  if(result.changed||newMarkers||needsCompanionCleanup(doc)||doc.storageDrift)await this.commit(p,doc.original,marked);else p.document=result.document;
  }).then(async()=>{
   const p=runtime;if(!p||!p.document?.storage||p.document.storage.location==='folder'||p.path.split('/').slice(0,-1).join('/')===targetFolder(p.source,p.document.storage))return;
   if(p.relocation)return p.relocation;
@@ -191,7 +191,7 @@ export class CompanionService extends Component {
   // Creation is complete. A later reconciliation error belongs to the newly selected file.
   await this.sync(path).catch(error=>{if(!this.app.vault.getFileByPath(path))throw error;});return path;
  }
- normalize(path:string):Promise<void>{return this.enqueue(path,async p=>{const doc=await this.readForView(path),marked=markThoughts(doc);if(storedThoughtIds(doc))await this.commit(p,doc.original,marked);});}
+ normalize(path:string):Promise<void>{return this.enqueue(path,async p=>{const doc=await this.readForView(path),marked=markThoughts(doc);if(needsCompanionCleanup(doc))await this.commit(p,doc.original,marked);});}
  execute(path:string,operation:ThoughtOperation,history=true):Promise<void>{return this.enqueue(path,async p=>{
   const doc=markThoughts(await this.readForView(path)),result=applyThought(doc,operation);await this.commit(p,doc.original,result.document);
   if(history){const inverse=this.inverse(result);if(inverse)p.undo.push(inverse);p.redo=[];if(p.undo.length>100)p.undo.shift();}

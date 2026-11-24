@@ -15,6 +15,14 @@ export class TestComponent {
 export class TestModal extends TestComponent {
  contentEl=document.body.createDiv();modalEl=this.contentEl;setTitle():void{}setPlaceholder():void{}onOpen():void{}onClose():void{}open():void{this.onOpen();}close():void{this.onClose();this.contentEl.remove();}
 }
+interface TestMenuItem {title:string;disabled:boolean;action?:()=>void;setTitle(text:string):TestMenuItem;setIcon(icon:string):TestMenuItem;setDisabled(disabled:boolean):TestMenuItem;onClick(action:()=>void):TestMenuItem}
+export class TestMenu {
+ static latest:TestMenu;readonly items:TestMenuItem[]=[];
+ constructor(){TestMenu.latest=this;}
+ addItem(create:(item:TestMenuItem)=>void):this{const item:TestMenuItem={title:'',disabled:false,setTitle(text){this.title=text;return this;},setIcon(){return this;},setDisabled(disabled){this.disabled=disabled;return this;},onClick(action){this.action=action;return this;}};create(item);this.items.push(item);return this;}
+ addSeparator():this{return this;}
+ showAtPosition():void{/* Native menu placement is checked in Obsidian. */}
+}
 
 /** A test boundary only. Native completion and parsing run in the Obsidian checks. */
 export class TestMarkdownEditor extends TestComponent {
@@ -22,7 +30,7 @@ export class TestMarkdownEditor extends TestComponent {
  private input:HTMLTextAreaElement;
  constructor(_app:App,host:HTMLElement,value:string,_file:TFile|undefined,_scope:Scope,submit:()=>void,cancel:()=>void,keys?:EmbeddedMarkdownKeys){
   super();const input=this.input=host.createEl('textarea');input.value=value;
-  const state=()=>EditorState.create({doc:input.value,selection:{anchor:input.selectionStart,head:input.selectionEnd}}),cm={get state(){return state();},contentDOM:input,dispatch(spec:TransactionSpec){const next=state().update(spec).state;input.value=next.doc.toString();input.setSelectionRange(next.selection.main.anchor,next.selection.main.head);},focus:()=>input.focus()} as unknown as EditorView;
+  const state=()=>EditorState.create({doc:input.value,selection:{anchor:input.selectionStart,head:input.selectionEnd}}),cm={get state(){return state();},contentDOM:input,posAtCoords:()=>0,dispatch(spec:TransactionSpec){const next=state().update(spec).state;input.value=next.doc.toString();input.setSelectionRange(next.selection.main.anchor,next.selection.main.head);},focus:()=>input.focus()} as unknown as EditorView;
   this.native={cm,editor:{getValue:()=>input.value,setValue:value=>{input.value=value;input.setSelectionRange(value.length,value.length);}}};
   this.registerDomEvent(input,'keydown',event=>{const key=event as KeyboardEvent;if(key.key==='Escape'){if(keys?.onEscape?keys.onEscape():(cancel(),true))event.preventDefault();}else if(key.key==='Enter'){if(keys?keys.onEnter(cm,key.metaKey||key.ctrlKey,key.shiftKey):(submit(),true))event.preventDefault();}});
   this.registerDomEvent(input,'blur',()=>keys?.onBlur?.());if(keys?.selectAll)input.select();

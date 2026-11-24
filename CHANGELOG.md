@@ -1,3 +1,18 @@
+# 0.0.6
+
+Verbesserte Bedienung von **Hierarchical Outline** im Begleitdokument. Benötigt **Obsidian Desktop ab 1.15.0**.
+
+- **Mehrfachauswahl:** Shift+Klick und Shift+↑/↓ wählen einen Bereich, Strg/Cmd+Klick fügt einzelne Karten hinzu oder entfernt sie. Shift+Home/End erweitert die Auswahl bis zum Listenanfang/-ende; Strg/Cmd+A wählt die Einträge der aktuellen Ebene. Auswahlbereiche lassen sich wieder verkleinern; die Anzahl ausgewählter Einträge wird angezeigt.
+- **Gemeinsame Aktionen:** Kopieren, Ausschneiden, Löschen und Verschieben berücksichtigen die gesamte Auswahl mit allen Untereinträgen. Das Kontextmenü benennt Sammelaktionen mit ihrer Anzahl. Ausgeschnittene Einträge bleiben bis zum Einfügen sichtbar; eingefügt wird unter einem einzelnen Zieleintrag. Die eingefügten Gruppen bleiben ausgewählt. Jede Sammelaktion lässt sich gemeinsam rückgängig machen. Funktioniert bei gemeinsamer Begleitdatei und einzelnen Abschnittsdateien.
+- **Direkt bearbeiten:** Beim Doppelklick steht der Cursor an der angeklickten Textstelle, auch bei formatiertem Markdown. Das Öffnen mit Enter behält die EOME-Tastaturbedienung mit vollständiger Textauswahl bei.
+- **Klarere Navigation und Trennlinien:** Ein kleiner Pfeil an Karten mit Untereinträgen öffnet diese direkt und berücksichtigt den Abgehakt-Filter. Einfügelinien liegen auf den Kartentrennungen, der konkurrierende Fokusrahmen entfällt. Die gemeinsame Einfüge- und Ablageposition bleibt über einen größeren Bereich erreichbar.
+- **Weniger Frontmatter:** `emergence-companion-version` wird nicht mehr verlangt oder gespeichert. Vorhandene Angaben werden beim Öffnen beziehungsweise Speichern entfernt. Die Abschnittskennungen bleiben in den Überschriften; Einträge werden weiterhin ohne gespeicherte Gedankenkennungen abgelegt.
+- **Sicheres Einfügen:** Änderungen der Zeilenenden durch die Systemzwischenablage erhalten die Gruppenstruktur. Das gewählte Einfügeziel bleibt bei verzögertem Zwischenablagezugriff erhalten. Ungültige Verschiebungen in eigene Untereinträge werden ohne Teiländerungen abgewiesen.
+
+Geprüft mit **1.038 automatisierten Tests** und **277 Prüfungen direkt in Obsidian**, einschließlich echter Maus-/Tastaturbedienung, Gruppen mit 105 Einträgen samt Untereinträgen, Undo/Redo sowie Hell-/Dunkelmodus. Build und Lint erfolgreich.
+
+Zum Installieren `main.js`, `manifest.json` und `styles.css` aus diesem Release in den Emergence-Pluginordner legen und das Plugin neu laden. `SHA256SUMS.txt` enthält die Prüfsummen.
+
 # 0.0.5
 
 Begleitdokumente und Tetrader sind jetzt Teil von Emergence. Benötigt **Obsidian Desktop ab 1.15.0**.
