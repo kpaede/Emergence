@@ -52,6 +52,7 @@ export class EmergenceView extends ItemView {
  private interactionHeld = false; private dragging = false; private updatePending = false; private forcePending = false; private updateFrame?: number;
  constructor(leaf: WorkspaceLeaf, readonly controller: EmergenceController, private mermaidLibrary: MermaidLibrary, private argdownLibrary: MermaidLibrary, private tetradStore:TetradStore,private companionService:CompanionService) {super(leaf);}
  onNoteRename(oldPath:string,newPath:string):void{this.graphPanel?.onNoteRename(oldPath,newPath);this.fingerprint='';}
+ get usesKnowledgeGraph():boolean{return this.tab==='graph'||this.tab==='analysis'||this.tab==='search';}
  getViewType(): string {return VIEW_TYPE;}
  getDisplayText(): string {return tr("common.emergence");}
  getIcon(): string {return 'network';}
@@ -78,7 +79,7 @@ export class EmergenceView extends ItemView {
    this.panels.set(id, body.createDiv({cls: `em-panel em-panel-${id}`, attr: {role: 'tabpanel', id: `${this.tabId}-panel-${id}`, 'aria-labelledby': `${this.tabId}-${id}`, tabindex: '0'}}));
   }
   this.empty=body.createDiv({cls:'em-message',text:tr('settings.noFeatures')});this.applyFeatures();
-  this.registerEvent(this.app.workspace.on('layout-change',()=>this.graphPanel?.update()));
+  this.registerEvent(this.app.workspace.on('layout-change',()=>{if(this.tab==='graph')this.graphPanel?.update();}));
   const doc = this.contentEl.ownerDocument, win = doc.defaultView ?? window;
   this.registerDomEvent(this.contentEl, 'pointerdown', () => {this.interactionHeld = true;}, {capture: true});
   this.registerDomEvent(this.contentEl, 'keydown', event => {
@@ -95,8 +96,8 @@ export class EmergenceView extends ItemView {
    queueMicrotask(() => {if (event.defaultPrevented) {this.dragging = false; release();}});
   }, {capture: true});
   const endDrag = () => {this.dragging = false; release();};
-  this.registerDomEvent(doc, 'dragend', endDrag);
-  this.registerDomEvent(doc, 'drop', endDrag);
+  this.registerDomEvent(doc, 'dragend', endDrag,{capture:true});
+  this.registerDomEvent(doc, 'drop', endDrag,{capture:true});
   this.registerDomEvent(doc, 'pointerup', release, {capture: true});
   this.registerDomEvent(doc, 'pointercancel', release, {capture: true});
   this.registerDomEvent(doc, 'keyup', release, {capture: true});
@@ -109,7 +110,7 @@ export class EmergenceView extends ItemView {
   const visible=tabs.filter(tab=>featureEnabled(this.controller.settings(),featureForTab(tab.id)));if(!visible.length)return;
   if (!this.panels.has(tab)||!featureEnabled(this.controller.settings(),featureForTab(tab))) tab = visible[0]!.id;
   const previous = this.panels.get(this.tab); if (previous) this.disclosures.get(this.tab)?.capture(previous);
-  this.tab = tab; this.companionPanel?.setVisible(tab==='companion'); this.fingerprint = '';
+  this.tab = tab;if(this.usesKnowledgeGraph)this.controller.knowledgeViewOpened?.(); this.companionPanel?.setVisible(tab==='companion'); this.fingerprint = '';
   for (const [id, panel] of this.panels) panel.hidden = id !== tab;
   for (const [id, button] of this.nav) {button.setAttribute('aria-selected', String(id === tab)); button.tabIndex = id === tab ? 0 : -1;}
   const active=this.nav.get(tab),navigation=active?.parentElement;if(active&&navigation){if(active.offsetLeft<navigation.scrollLeft)navigation.scrollLeft=active.offsetLeft;else if(active.offsetLeft+active.offsetWidth>navigation.scrollLeft+navigation.clientWidth)navigation.scrollLeft=active.offsetLeft+active.offsetWidth-navigation.clientWidth;}this.update(); if (tab === 'graph') this.graphPanel?.resize(); if (tab === 'mermaid') void this.mermaidPanel?.activate(); if (tab === 'argdown') void this.argdownPanel?.activate(); if(tab==='tetrad')void this.tetradPanel?.activate();if(tab==='companion')void this.companionPanel?.activate();
@@ -132,7 +133,7 @@ export class EmergenceView extends ItemView {
  }
  private update(force = false): void {
   // Never replace a pressed control between pointer/key down and its click.
-  if (this.interactionHeld) {this.updatePending = true; this.forcePending ||= force; return;}
+  if (this.interactionHeld||this.companionPanel?.draggingEntries) {this.updatePending = true; this.forcePending ||= force; return;}
   const c = this.controller, g = c.graph.snapshot, a = c.review.analysis;
   const pending = (a?.source===c.activePath?a.suggestions.filter(s => s.status === 'pending').length:0) ?? 0;
   this.status.setText(c.abort ? tr("common.request_running") : pending ? tr("common.unreviewed_2", {value1: pending}) : tr("labels.local"));
@@ -141,7 +142,7 @@ export class EmergenceView extends ItemView {
   for (const [name, value] of [['Breadcrumbs', g.breadcrumbsVersion], [tr("labels.graph_index"), g.partial ? tr("common.still_incomplete") : tr("labels.current")], ['Ollama', c.ollamaStatus], [tr("common.model"), c.settings().model], [tr("labels.context_window"), String(c.settings().numCtx)], [tr("common.activity"), c.status]]) {
    list.createEl('dt', {text: name}); list.createEl('dd', {text: value});
   }
-  this.graphPanel?.update(); this.searchPanel?.update(); if(this.tab==='companion'){this.companionPanel?.context();return;} if(this.tab==='tetrad'){this.tetradPanel?.context();return;} if (this.tab === 'argdown') {this.argdownPanel?.context(); return;} if (this.tab === 'mermaid') {void this.mermaidPanel?.context(); return;} if (this.tab === 'graph' || this.tab === 'search') return;
+  if(this.tab==='graph')this.graphPanel?.update();if(this.tab==='search')this.searchPanel?.update();if(this.tab==='companion'){this.companionPanel?.context();return;} if(this.tab==='tetrad'){this.tetradPanel?.context();return;} if (this.tab === 'argdown') {this.argdownPanel?.context(); return;} if (this.tab === 'mermaid') {void this.mermaidPanel?.context(); return;} if (this.tab === 'graph' || this.tab === 'search') return;
   if(!featureEnabled(c.settings(),featureForTab(this.tab)))return;
   const fingerprint = JSON.stringify([this.tab, g.version, c.review.revision, c.activePath, c.status, !!c.abort, c.applyingIdea, !!c.profilePromptSave, c.settings().activeProfile]);
   if (!force && fingerprint === this.fingerprint) return; this.fingerprint = fingerprint;
@@ -173,6 +174,7 @@ export class EmergenceView extends ItemView {
  }
  onResize(): void {this.graphPanel?.resize();}
  refreshTheme(): void {this.graphPanel?.refreshTheme();}
+ refreshBacklinks():void{this.graphPanel?.refreshBacklinks();}
  refreshLanguage():void{
   this.empty?.setText(tr('settings.noFeatures'));
   this.status.setAttribute('aria-label',tr('common.show_operational_status'));const navigation=this.contentEl.querySelector<HTMLElement>('[role=tablist]');if(navigation)nameWithoutTooltip(navigation,tr('common.emergence_views'));

@@ -57,9 +57,10 @@ export interface Profile {
 }
 export interface Settings {
  tetrad?:{format:import('./tetrad/preferences').TetradFormat};
- companion?:{storage:import('./companion/model').StorageOptions;defaultView?:import('./companion/native-types').CompanionViewMode};
+ companion?:{storage:import('./companion/model').StorageOptions;defaultView?:import('./companion/native-types').CompanionViewMode;outlineSizes?:import('./companion/outline-size').OutlineSizeMode;countWhitespace?:boolean;countFootnotes?:boolean};
  features?:Partial<Record<import('./features').Feature,boolean>>;
  uiLanguage?: import('./i18n').InterfaceLanguage;
+ hideCompanionBacklinks?:boolean;
  citekeyFormat?: 'brackets' | 'at' | 'plain';
  schemaVersion: 1; endpoint: string; model: string; numCtx: number; timeoutMs: number;
  think: boolean; releaseModel: boolean; maxConcurrent: number;

@@ -1,3 +1,18 @@
+# 0.0.7
+
+Begleitdokumente: optionale Größenanzeige, schnellere externe Drops und klarere Graph-Rückverweise. Benötigt **Obsidian Desktop ab 1.15.0**.
+
+- **Graph-Rückverweise:** Automatisch erzeugte Zuordnungslinks von Begleitdokumenten und Kapiteldateien sind standardmäßig ausgeblendet. Unter **Einstellungen → Emergence → Graph → Automatische Begleitdokument-Verweise ausblenden** lässt sich das abschalten. Eigene Inhaltslinks bleiben sichtbar, auch wenn dieselbe Datei zusätzlich automatisch verknüpft ist. Obsidians eigener Rückverweisindex bleibt unverändert.
+- **Optionale Gliederungsgrößen:** Zeichenzahl und kleine proportionale Balken je Überschrift, wahlweise für den eigenen Abschnitt oder einschließlich Unterabschnitten. Gesamtzeichenzahl und konfigurierbares Zeichenziel ergänzen die Übersicht. Leerzeichen und Fußnoten einschließlich Inline-Fußnoten können getrennt ein- oder ausgeschlossen werden. Die Größenanzeige ist standardmäßig ausgeschaltet.
+- **Drag-and-drop:** Texte lassen sich auf Gliederungspunkte ablegen und werden dort als neue Einträge gespeichert. Zielmarkierungen bleiben auch bei ausgewählten Überschriften erkennbar. Überflüssige Neuaufbauten während des Ziehens entfallen; versteckte Graph- und Suchansichten werden nicht mitgerendert.
+- **Erster externer Drop:** Zugeordnete Dateien werden beim Öffnen der Begleitansicht mit begrenzter Parallelität lesend vorbereitet. Das verhindert die gemessene Verzögerung durch erst beim Schreiben nachgeladene iCloud-Dateien. Keine dauernde Abfrage, keine zusätzlichen Dateien und keine zurückbehaltenen Textpuffer; Änderungen verwenden weiterhin Obsidians geschützte Dateitransaktionen.
+- **Laden und Speichern:** Die Gliederung erscheint unabhängig von noch ladenden Kapitelinhalten. Bestätigte Schreibstände werden direkt angezeigt, ohne alle Kapiteldateien erneut zu lesen. Externe Änderungen invalidieren den Ansichtsstand weiterhin; fehlgeschlagene Änderungen werden nicht als gespeichert dargestellt.
+- **EOME und Theme:** Die eingebettete EOME-Ansicht verwendet die öffentliche Host-Option aus EOME 0.2.5 für strukturelle Überschriften. Eigenständige EOME-Ansichten bleiben unverändert. Native Theme-Regeln und farbige Ablagefelder bleiben erhalten. Untereintragspfeil, Kapiteldatei-Aktion und Anzahlen sind kompakter angeordnet.
+
+Build, Lint und **1.156 automatisierte Tests** erfolgreich. Der Produktions-Audit meldet keine bekannten Schwachstellen. Die Rückverweisfilterung wurde zusätzlich direkt in Obsidian geprüft; die Dateivorbereitung wurde mit echten Zotero-Drops auf unterschiedliche Überschriften und nach einer Pause bestätigt.
+
+Zum Installieren `main.js`, `manifest.json` und `styles.css` aus diesem Release in den Emergence-Pluginordner legen und das Plugin neu laden. `SHA256SUMS.txt` enthält die Prüfsummen.
+
 # 0.0.6
 
 Verbesserte Bedienung von **Hierarchical Outline** im Begleitdokument. Benötigt **Obsidian Desktop ab 1.15.0**.

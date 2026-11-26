@@ -23,6 +23,6 @@ export function sessionThoughts(document:CompanionDocument,previous?:CompanionDo
 }
 /** The stored originals are the actual bytes, independent of the working references. */
 export function needsCompanionCleanup(document:CompanionDocument):boolean{
- for(const text of [document.original,...Object.values(document.fileOriginals??{})])if(text){const stored=parseCompanion(text),yaml=parseDocument(stored.header);if(yaml.has('emergence-companion-version'))return true;if(yaml.get('emergence-companion-role')==='index')continue;if(stored.sections.some(section=>stripThoughtIds(section)!==section.raw))return true;}
+ for(const text of [document.original,...Object.values(document.fileOriginals??{})])if(text&&(text.includes('emergence-companion-version')||text.includes('em-note:'))){const stored=parseCompanion(text),yaml=parseDocument(stored.header);if(yaml.has('emergence-companion-version'))return true;if(yaml.get('emergence-companion-role')==='index')continue;if(stored.sections.some(section=>stripThoughtIds(section)!==section.raw))return true;}
  return false;
 }

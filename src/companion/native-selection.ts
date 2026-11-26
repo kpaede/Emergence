@@ -1,7 +1,12 @@
-import type {CompanionSection} from './model';
+import type {CompanionSection,Thought} from './model';
 import {thoughts} from './thoughts';
 import type {NativeKind,NativeView} from './native-types';
 import type {LineageDocument} from './lineage-adapter';
+
+/** The original EOME's line belongs to its current projection, never the main document. */
+export function eomeThoughtAtLine(view:NativeView,section:CompanionSection,line:number):Thought|undefined{
+ const nodes=thoughts(section),flat=view.getFlatNodes?.().filter(node=>!node.isHeading).sort((a,b)=>a.line-b.line);return flat?.length===nodes.length?nodes[flat.findIndex(node=>node.line===line)]:undefined;
+}
 
 function lineageIds(document:LineageDocument|undefined):string[]{
  if(!document?.columns)return [];const children=new Map<string,string[]>();

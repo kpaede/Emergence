@@ -19,3 +19,11 @@ describe('selection translation at original-view boundaries',()=>{
   const selectNode=vi.fn(),view={getFlatNodes:()=>[{line:0}],selectedNodeLines:new Set([0]),selectNode} as unknown as NativeView;expect(nativeSelection(view,'eome',section)).toBeUndefined();nativeSelection(view,'eome',section,thoughts(section)[0]!.id);expect(selectNode).not.toHaveBeenCalled();
  });
 });
+
+describe('EOME drag line mapping',()=>{
+ it('maps only a matching complete projection to RAM entry references',async()=>{
+  const {eomeThoughtAtLine}=await import('../src/companion/native-selection');const section={id:'s',title:'Section',level:1,state:'linked' as const,format:2 as const,raw:'- Parent <!-- em-note:a -->\n\t- Child <!-- em-note:b -->\n'};
+  const view={getFlatNodes:()=>[{line:12},{line:15}]} as unknown as import('../src/companion/native-types').NativeView;
+  expect(eomeThoughtAtLine(view,section,15)?.id).toBe('b');expect(eomeThoughtAtLine(view,section,15)?.parent).toBe('a');expect(eomeThoughtAtLine(view,section,99)).toBeUndefined();expect(eomeThoughtAtLine({...view,getFlatNodes:()=>[{line:12}]} as typeof view,section,12)).toBeUndefined();
+ });
+});

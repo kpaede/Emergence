@@ -33,7 +33,7 @@ export class SearchPanel {
   this.update();
  }
  update(): void {
-  if(!this.enabled)return;
+  if(!this.enabled||this.host.hidden)return;
   const state = this.state(), search = this.host.querySelector<HTMLInputElement>('input[type=search]');
   if(search && search.value !== state.query) search.value = state.query;
   const canExplore=featureEnabled(this.controller.settings(),'graph');for(const box of this.host.querySelectorAll<HTMLInputElement>('input[type=radio]')){box.disabled=box.value==='explore'&&!canExplore;box.checked=box.value===(canExplore?state.mode:'open');}

@@ -3,6 +3,7 @@ import {synopsisRelations} from './graph/synopsis-types';
 import {synopsisPositions} from './graph/synopsis-layout';
 import {features} from './features';
 import {validStorage,validCompanionView} from './companion/preferences';
+import {validOutlineSizeMode} from './companion/outline-size';
 import {validTetradFormat} from './tetrad/preferences';
 import type {OutputModule, Profile, RelationRule, Settings} from './types';
 import {assert, clone, safeProperty} from './util';
@@ -34,7 +35,7 @@ export const defaultProfile = (): Profile => ({
  }, outputs: [output('relations', 'relations')],
 });
 export const defaults = (): Settings => ({
- uiLanguage: 'auto', citekeyFormat: 'brackets',
+ uiLanguage: 'auto', citekeyFormat: 'brackets', hideCompanionBacklinks:true,
  schemaVersion: 1, endpoint: 'http://127.0.0.1:11434', model: 'qwen3.5:9b', numCtx: 8192,
  timeoutMs: 180000, think: false, releaseModel: false, maxConcurrent: 1, rules: {},
  profiles: [defaultProfile()], activeProfile: 'strict', maxGraphNodes: 1500, maxGraphEdges: 6000, conceptFolders: [], graphHeight: 560, layout: 'elk',
@@ -43,8 +44,11 @@ export const defaults = (): Settings => ({
 export function validateSettings(s: Settings): void {
  assert(s !== null && typeof s === 'object', tr("common.settings_must_be_a_json_object"));
  assert(s.uiLanguage === undefined || ['auto','de','en'].includes(s.uiLanguage), tr("common.invalid_interface_language"));
+ assert(s.hideCompanionBacklinks===undefined||typeof s.hideCompanionBacklinks==='boolean',tr('settings.invalidBacklinkFilter'));
  if(s.companion!==undefined)assert(validStorage(s.companion?.storage),tr('companion.invalidStorage'));
  if(s.companion?.defaultView!==undefined)assert(validCompanionView(s.companion.defaultView),tr('companion.invalidView'));
+ if(s.companion?.outlineSizes!==undefined)assert(validOutlineSizeMode(s.companion.outlineSizes),tr('companion.invalidOutlineSizes'));
+ for(const option of [s.companion?.countWhitespace,s.companion?.countFootnotes])if(option!==undefined)assert(typeof option==='boolean',tr('companion.invalidCountOption'));
  if(s.tetrad!==undefined)assert(s.tetrad!==null&&typeof s.tetrad==='object'&&!Array.isArray(s.tetrad)&&validTetradFormat(s.tetrad.format),tr('tetrad.invalidFormat'));
  if(s.features!==undefined)assert(s.features!==null&&typeof s.features==='object'&&!Array.isArray(s.features)&&Object.entries(s.features).every(([key,value])=>features.includes(key as typeof features[number])&&typeof value==='boolean'),tr('settings.invalidFeatures'));
  assert(s.citekeyFormat === undefined || ['brackets','at','plain'].includes(s.citekeyFormat), tr("common.invalid_citekey_format"));

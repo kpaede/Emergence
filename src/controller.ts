@@ -34,6 +34,8 @@ export class EmergenceController {
  applyingIdea = false;
  lastIdeaEntry = '';
  profilePromptSave?: Promise<void>;
+ knowledgeViewOpened:()=>void=()=>{};
+ refreshKnowledgeGraph:(force?:boolean)=>Promise<void>=async()=>{};
  private listeners = new Set<() => void>();
  private generation = 0;
  private fieldSelectionSave: Promise<void> = Promise.resolve();
@@ -193,6 +195,7 @@ export class EmergenceController {
   if(!request.enabled)return;const query=searchQuery(request.term?.trim()||targetTitle(source),request.goal);this.status=tr("labels.web_search")+query;this.notify();return this.webSearch.lookup(query,signal);
  }
  async analyze(online:WikipediaRequest={},search:WebSearchRequest={}): Promise<void> {
+  await this.refreshKnowledgeGraph();
   assert(!this.abort && !this.applyingIdea && !this.profilePromptSave, tr("common.a_request_or_profile_save_is_already_running"));
   this.captureActive();
   const file = this.app.vault.getFileByPath(this.activePath); assert(file?.extension === 'md', tr("common.open_a_markdown_note_first"));

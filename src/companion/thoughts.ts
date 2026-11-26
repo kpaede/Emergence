@@ -1,6 +1,7 @@
 import {indentColumns as width,subtreeEnd,reindentSubtree,childIndent} from './indentation';
 import {t} from '../i18n';
 import {newId,fingerprint,type CompanionDocument,type CompanionSection,type Thought} from './model';
+import {ExactTextCache} from './text-cache';
 import {multilineOutline,markMultiline,encodeOutlineText,stripMultilineIds} from './multiline';
 const NODE=/^(\s*)([-+*]|\d+[.)])[ \t]+(.*?)(?: <!-- em-note:([a-zA-Z0-9-]+) -->)?[ \t]*$/u;
 function outlineLines(raw:string,identities=true):{line:string;row:string;from:number;match:RegExpExecArray|null}[]{
@@ -15,7 +16,12 @@ function outlineLines(raw:string,identities=true):{line:string;row:string;from:n
   const result={line,row,from,match};from+=line.length;return result;
  });
 }
+const parsedThoughts=new ExactTextCache<readonly Thought[]>();
+export function clearThoughtCache():void{parsedThoughts.clear();}
 export function thoughts(section:CompanionSection):Thought[]{
+ const key=JSON.stringify([section.id,section.format,!!section.plain]),cached=parsedThoughts.get(key,section.raw);if(cached)return cached.map(node=>({...node}));const nodes=parseThoughts(section);parsedThoughts.set(key,section.raw,nodes);return nodes.map(node=>({...node}));
+}
+function parseThoughts(section:CompanionSection):Thought[]{
  const prefix='t-'+fingerprint(section.id)+'-'+fingerprint(section.raw)+'-',transient=(from:number)=>prefix+from;
  if(section.format===2)return multilineOutline(section.raw,!section.plain).map(node=>({id:node.id??transient(node.from),section:section.id,from:node.from,to:node.to,lineFrom:node.from,lineTo:node.lineTo,indent:node.indent,text:node.text,marker:'-',parent:node.parent?node.parent.id??transient(node.parent.from):undefined}));
  const list:Thought[]=[],stack:Thought[]=[];

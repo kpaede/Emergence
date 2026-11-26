@@ -11,7 +11,7 @@ import type {SynopsisDepth, SynopsisNote, SynopsisRelation} from '../graph/synop
 import {formatZotlitReference} from '../graph/zotlit-bibliography';
 import {NativeViews} from './native-views';
 import {renamedPath} from '../graph/rename';
-import {backlinkSources} from '../graph/backlinks';
+import {graphBacklinkSources} from '../graph/companion-backlinks';
 import {literatureActions} from '../graph/zotlit-actions';
 
 /** The synopse and original plugin views share one scrollable side panel. */
@@ -35,7 +35,7 @@ export class GraphPanel {
   this.semantic=new RelationsSynopsis(this.semanticHost,c.settings,(relation,depth)=>this.setDepth(relation,depth),{
    referenceActions:(reference,source)=>literatureActions(c.app,reference,source),
    run:action=>{void c.run(action);},
-   backlinks:path=>backlinkSources(c.app.metadataCache.resolvedLinks,path),
+   backlinks:path=>graphBacklinkSources(c.app,path,c.settings().hideCompanionBacklinks!==false),
    bibliography:(reference,source)=>formatZotlitReference(c.app,source,reference),
    activate:(note,event)=>this.activateSynopsisNote(note,event),inspect:note=>this.inspectSynopsisNote(note),
    literature:target=>{void c.run(()=>import('../graph/zotlit').then(m=>m.openZotlitLibrary(c.app,target)));},
@@ -50,9 +50,10 @@ export class GraphPanel {
   this.relabel=()=>{label.querySelector('span')?.setText(tr('graph.view'));this.viewSelect.setAttribute('aria-label',tr('graph.graph_view'));row.lastChild!.textContent=tr('graph.explore_in_graph');controls.querySelector('summary')?.setText(tr('graph.fields_and_sources'));this.canvas.querySelector('.em-sr-only')?.setText(tr('graph.context'));const locate=heading.querySelector('button');if(locate)locate.setAttribute('aria-label',tr('labels.go_to_current_note'));this.refreshSources?.refresh();this.version=-1;this.semantic.invalidate();this.update();};
  }
  refreshLanguage():void{this.relabel();}
+ refreshBacklinks():void{this.version=-1;this.semantic?.invalidate();this.update();}
  onNoteRename(oldPath:string,newPath:string):void{this.focusPath=renamedPath(this.focusPath,oldPath,newPath);this.lastActive=renamedPath(this.lastActive,oldPath,newPath);this.version=-1;this.semantic?.invalidate();}
  update():void{
-  if(!this.enabled)return;
+  if(!this.enabled||this.host.hidden)return;
   const c=this.controller,g=c.graph.snapshot;this.refreshSources?.refresh();
   const changed=this.lastActive!==c.activePath;this.lastActive=c.activePath;
   if(!this.focusPath||changed&&this.follow){this.focusPath=c.activePath;this.details.hidden=true;this.version=-1;}
@@ -82,7 +83,7 @@ export class GraphPanel {
   iconButton(line,'x',tr("graph.close_details"),()=>{this.details.hidden=true;});this.details.createDiv({text:note.path??note.linktext,cls:'em-path'});
   button(this.details,tr("graph.open_note"),()=>{void this.controller.run(()=>openSynopsisNote(this.controller,note));});
  }
- resize():void{this.semantic?.refresh();this.nativeViews?.resize();}
+ resize():void{if(this.host.hidden)return;this.semantic?.refresh();this.nativeViews?.resize();}
  refreshTheme():void{this.resize();}
  setEnabled(value:boolean):void{if(this.enabled===value)return;this.enabled=value;this.version=-1;if(value)this.update();else this.nativeViews.sync(this.controller.activePath,undefined);}
  async destroy():Promise<void>{this.addModal?.close();this.refreshSources?.destroy();this.observer?.disconnect();this.semantic?.destroy();await this.nativeViews?.destroy();}

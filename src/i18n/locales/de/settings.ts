@@ -1,5 +1,8 @@
 // German translations: settings. Preserve {{parameters}}.
 export const settings = {
+  "settings.hideCompanionBacklinks": "Automatische Begleitdokument-Verweise ausblenden",
+  "settings.hideCompanionBacklinksHelp": "Blendet automatisch erzeugte Zuordnungslinks bei den Rückverweisen im Emergence-Graph aus. Eigene inhaltliche Links bleiben sichtbar.",
+  "settings.invalidBacklinkFilter": "Ungültige Einstellung für Begleitdokument-Rückverweise.",
   "settings.discard_draft": "Entwurf verwerfen",
   "settings.draft_discarded": "Entwurf verworfen.",
   "settings.save_changes": "Änderungen speichern",

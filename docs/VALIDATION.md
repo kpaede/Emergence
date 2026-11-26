@@ -1,3 +1,302 @@
+# Prüfstand: Release 0.0.7 — Begleitdokument-Rückverweise
+
+Stand: 26. November 2026.
+
+- Standardmäßig werden nur automatisch erzeugte Begleitdokument-Zuordnungen aus den Rückverweisen des Emergence-Graph entfernt. Eigene Inhaltslinks bleiben erhalten, einschließlich zusätzlicher Links auf dieselbe Hauptdatei.
+- Der Schalter unter Graph speichert sofort, synchronisiert einen geöffneten Einstellungsentwurf und aktualisiert vorhandene Graph-Ansichten. Ein fehlgeschlagenes Speichern stellt den vorherigen Wert wieder her.
+- Der Filter verwendet ausschließlich `metadataCache.resolvedLinks` und vorhandene Frontmatter-Metadaten. Keine Vault-Lesevorgänge, neuen Dateimarkierungen oder Änderungen an Obsidians Rückverweisindex.
+- Neun Prüfungen direkt in Obsidian mit eigens erzeugten Testdateien: echter Linkindex, Hauptdatei- und Kapitelzuordnung, zusätzliche Inhaltslinks, gerenderte Rückverweisliste, Ausschalten und erneutes Einschalten sowie unveränderter nativer Index. Testdateien werden anschließend entfernt.
+- Build, Lint und **1.156 Tests erfolgreich**, sechs optionale Integrationstests übersprungen. Produktions-Audit: **keine bekannten Schwachstellen**. Typomagical beim Neuladen unverändert aktiv, 2.148.160 CSS-Zeichen.
+
+# Prüfstand: Entwicklung — Gliederung laden und externe Drops
+
+Stand: 26. November 2026.
+
+**Am echten Zotero-Vorgang bestätigt:** Nach der Dateivorbereitung dauerten sechs
+Drops auf sechs unterschiedliche Überschriften **70 / 48,6 / 44,5 / 40,9 / 40,6 /
+34,3 ms**, einschließlich der vom Nutzer geprüften Pause. Der erneute Dateizugriff
+vor dem Prüf-Callback benötigte 1,8–4,7 ms statt über einer Sekunde. Der Nutzer
+bestätigt, dass die Sekundenverzögerung verschwunden ist. Temporäre Profiler,
+Node-Async-Hooks und Diagnosebeobachter sind anschließend beendet worden.
+
+Vorheriger Befund und verworfene Ansätze:
+Zwei echte Drops benötigten 1.637 / 1.432 ms. Die Wartezeit vor dem Callback von
+`vault.process` betrug 1.573 / 1.401 ms, danach 7 / 3 ms. CPU-Samples zeigen
+überwiegend Leerlauf. Ein Vergleich mit deaktivierter Electron-Hintergrunddrosselung
+änderte nichts (drei weitere Drops: 1.519 / 1.401 / 1.230 ms); die ursprüngliche
+Einstellung wurde wiederhergestellt. Diese Hypothese ist damit verworfen.
+
+Ein MessageChannel-Wechsel nach dem Eingabeereignis half ebenfalls nicht und ist
+wieder entfernt. Aufzeichnung: langsame Drops 1.664 / 1.500 / 1.319 / 1.281 ms,
+kurze Wiederholungen 53 / 37 / 35 ms; praktisch die gesamte Differenz steckt vor
+dem Prüf-Callback. Die reine Transaktion ohne Änderung reproduziert den Effekt
+nach einer Pause: 1.486 ms, danach dieselbe Datei in 1,6 ms; Warteschlange <1 ms.
+
+**Ursache des Dateizugriffs nachgewiesen:** Drei noch nicht lokal materialisierte
+Kapiteldateien hatten `st_flags = 0x40000060`, inklusive `SF_DATALESS = 0x40000000`
+(nach Apples SDK `sys/stat.h`). Externes Python maß unabhängig von Obsidian/Zotero
+3.223 / 1.091 / 1.001 ms im tatsächlichen Lesen von 598 / 645 / 661 Bytes;
+Öffnen und Schließen lagen jeweils unter 0,2 ms. Node-Async-Hooks bestätigten
+1.052 beziehungsweise 1.212 ms im `readFileHandle`-Leseschritt, nicht beim Öffnen,
+Schließen oder in einer Graphberechnung. Obsidian’s RAM-Cache hatte die Inhalte
+bereits, der abschließende geschützte Schreibweg fordert die Datei jedoch erneut
+an. Deshalb war die Anzeige bereit, während dieser Zugriff erst beim Drop anfiel.
+
+Der neue Stand bereitet die Begleitdateien bei sichtbarer Ansicht mit zwei
+begrenzten, rein lesenden Hintergrundzugriffen vor. Für das aktuelle Hover-Ziel
+steht ein dritter Platz zur Verfügung. Die Lesezugriffe laufen auf dem Desktop
+über den öffentlichen Vault-Basispfad und Node-Dateilesen, damit sie Obsidian’s
+Schreibwarteschlange nicht mit vorbereitenden Downloads füllen. Keine Timerabfrage,
+keine eigene Cloud-API, keine zusätzlichen Dateien oder Markdown-Eigenschaften.
+Mobil bleibt der bestehende Vault-Zugriffsweg erhalten. Alle eigentlichen Änderungen
+prüfen weiter den aktuellen Inhalt in `vault.process`. Die native Nachprüfung hat alle 39 Dateien erfolgreich vorbereitet. Anschließend
+benötigte derselbe unverändernde `vault.process`-Zugriff über sämtliche Dateien
+0,2–10,1 ms (Mittel 0,96 ms), kein Zugriff mehr als 100 ms. 38 Gliederungspunkte
+sichtbar, keine Fehlermeldung. Die sechs echten Nutzer-Drops auf unterschiedliche Ziele bestätigen nun
+34,3–70 ms bis zur Speicherung; der Nutzer bestätigt die beseitigte Verzögerung. **1.143 Unit-Tests bestanden**, sechs optionale Modelltests übersprungen;
+Produktionsbuild und ESLint erfolgreich. Acht zusätzliche Tests prüfen Begrenzung,
+Priorisierung, Fehler, wiederhergestellte Dateien, Abbruch und schnelles Wiederöffnen.
+Regelmäßige Graph-/Breadcrumbs-Abgleiche behalten ihre Invalidierungen, während
+nur Begleitdokument oder Diagrammeditoren sichtbar sind. Graph, Suche und Feldideen
+holen sie beim Öffnen nach; eine Analyse wartet auf den aktuellen Stand. Der
+30-Sekunden-Takt rekonstruiert im verborgenen Zustand nicht mehr den Vault-Graph.
+
+- **1.143 automatisierte Prüfungen bestanden**, sechs optionale Modelltests
+  übersprungen. Produktionsbuild und ESLint erfolgreich.
+- Der frühere Anzeigeweg wartete mit der vollständigen Gliederung auf alle
+  Kapiteldateien und die Schreibwarteschlange. Nach einem Commit wurden sämtliche
+  Dateien nochmals gelesen; Panel und Reader starteten weitere volle Lesevorgänge.
+  Diese Wiederholungen sind entfernt. Die Gliederung erscheint aus dem Index vor
+  den Kapitelinhalten. Unbekannte Eintragszahlen stehen vorübergehend auf „—“.
+- Anzeigeaktualisierungen verwenden einen bestätigten RAM-Stand. Schreibaktionen
+  lesen weiterhin die aktuellen Dateien, und `vault.process` kontrolliert den
+  erwarteten Inhalt innerhalb der Schreiboperation. Erfolgreiche Schreibbytes
+  werden erneut durch denselben Parser normalisiert, ohne alle Dateien nochmals
+  zu lesen. Fehlgeschlagene Änderungen werden verworfen und frisch eingelesen.
+- Neue Regressionen prüfen parallele Anzeigeanforderungen, blockierte Kapitel-
+  und Schreibzugriffe, Dateiänderungen während des ersten Ladens und während
+  eines Commits, unveränderte Markdown-Bytes, verspätete eigene Metadatenereignisse
+  sowie bedienbare Drop-Ziele nach der vorgezogenen Gliederungsanzeige.
+- **Wird gespeichert…** und die zusätzliche Frame-Wartezeit vor Outline-Drops
+  sind entfernt. Keine zusätzlichen Entwurfsdateien und keine vorläufigen Karten.
+- Am vorhandenen Dokument mit 38 Gliederungspunkten dauerten drei vorbereitete
+  Aktualisierungen etwa **14,9 / 0,9 / 0,9 ms**, jeweils ohne Datei-Lesung.
+  Das sind JavaScript-/DOM-Zeiten: Obsidian meldete das Fenster als verborgen.
+  Ein `requestAnimationFrame`-Messversuch blieb deshalb ausstehend; er ist kein
+  Beleg für eine langsame Dateilesung oder eine sichtbare Renderzeit.
+- Ein erster nativer Drag-Prüflauf deckte fehlende Drop-Bindungen nach der
+  vorgezogenen Gliederung auf. Die Korrektur trennt unbekannte Zähler von fehlenden
+  Dateien; eine eigene Regression prüft die Bindung beim unveränderten Nachladen.
+  Der aktuelle native Nachweis folgt unten.
+
+# Frühere Messung: externer Zotero-Drag und Zielmarkierung
+
+Stand: 26. November 2026.
+
+- **1.114 automatisierte Tests bestanden**, sechs optionale Modelltests übersprungen.
+  Produktionsbuild und ESLint erfolgreich. Tests decken Markierung auf `dragenter`,
+  unverändertes Feedback bei wiederholtem Hover, externe Drag-Lebenszyklen,
+  zurückgestellte laufende Leseoperationen, verborgene Tabs und Speicherbestätigung ab.
+- **16 native externe Drag-Prüfungen bestanden**: Text und HTML werden mit echten
+  Browser-Ereignissen ohne lokalen Dragstart angeboten. Gliederung, Eintragskarte,
+  Zwischenlinie und Listenende sind bereits nach dem ersten `dragenter` markiert,
+  ausdrücklich bevor ein `dragover` ausgelöst wurde. Die lokalen gemessenen
+  Ereignisreaktionen lagen bei etwa 0,7–4,9 ms; dies sind keine garantierten Grenzwerte.
+- **48 native Drop-Prüfungen bestanden**, einschließlich zwischenzeitlicher
+  Speicherung während eines vom Haupteditor gestarteten Drags, stabiler Oberfläche,
+  unverändertem Hauptdokument, vollständigen Unterbäumen, EOME-Farbfeldern sowie
+  sichtbarer Speicheranzeige mit ein- und ausgeschalteten Abschnittsgrößen.
+- Externe Drags aus Zotero werden beim Betreten erkannt. Ziele behandeln sowohl
+  `dragenter` als auch `dragover`. Unveränderte Ziele werden nicht bei jedem Ereignis
+  aus- und eingeblendet; Geometrie wird vor Änderungen an den Markierungen gelesen.
+  Nach dem Verlassen bleiben keine Drag-Stile im Reader aktiv. Neue Einträge und
+  Zähler erscheinen erst nach dem normalen erfolgreichen Schreibvorgang.
+- Der Begleitbereich übernimmt während eines Drags keine zuvor gestarteten
+  Leseergebnisse in die Oberfläche. Neu angeforderte automatische Graph-Abgleiche
+  warten bis Drag-Ende. Bereits begonnene Modellarbeit kann weiterhin abschließen.
+  Verborgene Graph- und Suchansichten werden nicht neu gezeichnet und holen den
+  aktuellen Stand beim Öffnen nach.
+- Bei echten Zotero-Vorgängen wurden `text/plain` und `text/html` angeboten.
+  Die passiven Messungen erfassten weder Textinhalt noch bibliografische Daten.
+  Ein langsamer Drop benötigte etwa **1.314 ms** bis zur Speicherbestätigung;
+  davon entfielen etwa **1.280 ms** auf die Transaktions-/Obsidian-Schreibphase,
+  etwa 5 ms auf die erste Lesung und 14 ms auf die Schreibplanung. Die betroffene
+  Kapiteldatei und ihre Nachbarn waren jeweils kleiner als 5.000 Zeichen. Die genaue
+  Ursache der langen Schreibphase ist noch nicht abschließend isoliert. Sie darf
+  nicht als behobene Dateisystemverzögerung dargestellt werden. Die damals ergänzte
+  Speichermeldung ist im nachfolgenden Stand wieder entfernt (siehe oben). Es
+  entsteht weiterhin keine vorläufig als gespeichert ausgegebene Karte.
+- Eine zunächst genannte feste Hover-Verzögerung von 400 ms ist **kein belastbarer
+  Einzelmesswert**: Die erste passive Messung fasste gleichartige Ereignisse in
+  diesem Zeitabstand zusammen. Maßgeblicher Nachweis für die Korrektur ist daher
+  die direkte Prüfung des markierten Zustands vor dem ersten `dragover`.
+- Der vollständige Reader-Durchlauf ist derzeit **nicht vollständig grün**:
+  Ein Lauf endete bei der Prüfung des unveränderten Dummy-Hauptdokuments; ein
+  weiterer bestand 140 Teilprüfungen und wurde beim Aktivieren des nativen Editors
+  für Linkvervollständigung wegen fehlenden Fensterfokus unterbrochen. Ein erneuter
+  Fokusversuch änderte daran nichts. Deshalb werden für diesen Stand ausdrücklich
+  keine 284 vollständig bestandenen Reader-Prüfungen behauptet. Die gezielten
+  Drop-Prüfungen bestätigen separat ein unverändertes Hauptdokument.
+- Vorübergehende Mess-Listener und Browser-Debugger werden wieder entfernt;
+  Rohmessungen liegen ausschließlich lokal unter `/tmp`. Typomagical bleibt im
+  Original erhalten. Der Entwicklungs-Reload sichert dessen geladenes Stylesheet
+  und stellt einen unerwartet geleerten Loadercache wieder her. Diese Absicherung
+  ist Prüfcode und verändert keine Theme-Datei oder ausgelieferten Theme-Regeln.
+
+---
+
+# Prüfstand: Entwicklung — Drop-Latenz, Untereintrags-Pfeil und Zeichenziel
+
+Stand: 25. November 2026.
+
+- **1.095 automatisierte Tests bestanden**, sechs optionale Modelltests übersprungen.
+  Produktionsbuild und ESLint erfolgreich. Neue Tests prüfen Cache-Grenzen,
+  unabhängige Arbeitskopien, externe Änderungen bei warmem Cache, fehlende und
+  falsch zugeordnete Kapiteldateien, höchstens acht parallele Dateilesungen,
+  ausstehende Drops samt sofortigem Undo und Zielwerte in beiden Ablagemodi.
+- **37 native Drag-Prüfungen bestanden**. Das Ziel ist auch auf einer bereits
+  ausgewählten Überschrift durch eine vollständige Umrandung erkennbar. Nach dem
+  Drop bleibt es bis zum Abschluss des Schreibvorgangs markiert; Einträge und
+  Zahlen werden nicht vorzeitig als gespeichert angezeigt. Die Gliederungszeilen
+  bleiben bestehen. EOMEs vier originale farbige Felder bleiben in beiden Themes
+  erhalten; vollständige Unterbäume und gewöhnliche Obsidian-Links werden übernommen.
+- **284 native Reader-Prüfungen bestanden**. Der sichtbare 16-Pixel-Rechtspfeil
+  steht vor den rechts ausgerichteten Kartenwerkzeugen. Karten ohne Untereinträge
+  reservieren keinen Leerplatz. Die tatsächlichen Positionen von Drag-Griff,
+  Checkbox und Menü stimmen auf Karten mit und ohne Pfeil überein. Klickbarkeit,
+  Maus-Cursorpositionen, Tastatur, Mehrfachauswahl, Gruppenaktionen und Undo geprüft.
+- **144 native Größenprüfungen bestanden**. Ein Ziel lässt sich im Dokumentmenü
+  oder über die Gesamtzahl setzen und durch Leeren entfernen. Nur das gemeinsame
+  Begleitdokument beziehungsweise dessen Index erhält `emergence-character-target`;
+  Hauptdokument und Kapiteldateien bleiben unverändert. Die Zielanzeige funktioniert
+  auch mit ausgeschalteten Abschnittsgrößen. Zielwertwechsel, Überschreitung,
+  Zähloptionen und Light/Dark-Layouts bei 280, 400 und 650 Pixeln sind geprüft.
+- Aktuelle Dateiinhalte werden weiterhin gelesen. Begrenzte, ausschließlich im
+  RAM gehaltene Caches sparen erneutes YAML-/Listenparsen identischer Textstände;
+  Kapiteldateien werden mit höchstens acht parallelen Lesungen geladen. Alle
+  Rollen-, Eltern-, ID-, Verfügbarkeits- und finalen Schreibprüfungen bleiben bestehen.
+  Erfolgreiche Panelaktionen erzwingen keinen zweiten vollständigen Reload mehr,
+  wenn bereits eine Speicherbenachrichtigung aktualisiert.
+- Lokale Leistung mit **38 Kapiteldateien**, 84 Einträgen und über 500.000 Zeichen:
+  Wiederholte Gliederungsdrops benötigen in zwei Messreihen im Median etwa
+  **34 beziehungsweise 48 ms** (insgesamt etwa **24–77 ms**). Ein einzelner zuvor
+  gemessener Gliederungsdrop benötigte etwa 81 ms; aktuelle erste Messungen etwa
+  60–70 ms. Diese Werte sind Momentaufnahmen derselben lokalen Instanz, keine
+  garantierten Grenzwerte. Reader-Drops benötigen zuletzt etwa **49–162 ms**.
+- **Restbefund:** In EOME treten weiterhin einzelne Ausreißer von etwa
+  **400–860 ms** auf, während wiederholte Drops teilweise etwa 58–75 ms benötigen.
+  Während dieser EOME-Vorgänge bleiben Größenberechnungen, Zeichenindex-Durchläufe
+  und Haupttextanalysen bei null. Die erfassten Lesezeiten enthalten auch Wartezeit
+  des gemeinsamen Renderer-Threads; sie beweisen keinen reinen Dateisystemengpass.
+  Ein zusätzlicher lokaler Chromium-Profilerlauf und die Prüfung des installierten
+  Codes zeigen konkurrierende Ansichts-/Grapharbeit. Die genaue Ursache sämtlicher
+  Ausreißer ist damit noch nicht abschließend isoliert. Der installierte EOME und
+  das Theme wurden für die Korrekturen nicht verändert.
+- Testdateien werden wieder entfernt, Ansicht, Auswahl und Einstellungen
+  wiederhergestellt. Typomagicals geladenes Original-Stylesheet bleibt erhalten
+  (**2.148.160 CSS-Zeichen**). Build-Dateien und lokale Screenshots bleiben außerhalb
+  des Git-Quellbestands.
+
+---
+
+# Prüfstand: Entwicklung — Zähloptionen, native Darstellung und Gliederungsdrops
+
+Stand: 25. November 2026.
+
+- **1.081 automatisierte Tests bestanden**, sechs optionale Modelltests übersprungen.
+  Produktionsbuild und ESLint ohne Fehler oder Warnungen.
+- **34 native Drag-Prüfungen bestanden**: Original-EOME-Zustände mit allen vier
+  farbigen Zielfeldern in beiden Themes, externe mehrzeilige Auszüge, Obsidian-Datei-
+  Verweise, vollständige Unterbäume aus der eingebetteten EOME-Ansicht, Rückgängig
+  über Strg/Cmd+Z auf der Gliederung und unveränderter Haupttext. Kapiteldatei-SVGs
+  und Eintragsplaketten liegen auf derselben vertikalen Mitte.
+- **278 native Reader-Prüfungen bestanden**, einschließlich echter Maus- und
+  Tastatureingaben, Mehrfachauswahl, gespeicherter Gruppenaktionen, Einfügelinien,
+  Tastaturfokus und Kapitelnavigation. Eintragsänderungen erhalten jetzt die
+  bestehenden Gliederungszeilen; nur Zähler und Auswahlzustände werden angepasst.
+- **125 native Größenprüfungen bestanden**. Beide neuen Zähloptionen gelten für
+  Gesamtzahl, Abschnitte und Balken und sind standardmäßig eingeschaltet.
+  Fußnotenfilterung deckt Definitionen, Folgeabsätze, Verweise und Inline-Fußnoten
+  ab. Code und unaufgelöste Verweise bleiben Text. Inkrementelle Zählungen stimmen
+  nach Text-, Definitions- und Verweisänderungen mit einer vollständigen Neuberechnung
+  überein. Die Optionen erzeugen keine zusätzlichen Markdown-Eigenschaften.
+- EOME und Lineage verwenden ihre Originaldarstellung und die aktiven Theme-Werte.
+  Eigene Regeln für Karten, Links, Auswahl- und Editorfarben sind entfernt. Die
+  verbleibende Einbettung begrenzt die Ansichtsfläche und passt Platzbedarf an.
+- **Typomagical wiederhergestellt**: Die lokale Theme-Datei war vollständig vorhanden,
+  Obsidians Ladecache enthielt einen leeren Wert. Der genaue Cache-Eintrag wurde
+  verworfen und das lokale Original neu geladen (**2.148.160 CSS-Zeichen**).
+  Die nativen Prüfungen sichern nun zusätzlich die geladene Theme-Stylesheet und
+  stellen einen unerwartet geleerten Cache wieder her. Dies ist Prüfcode; der
+  ausgelieferte Plugin-Code greift nicht auf Obsidians Theme-Verwaltung zu.
+- Leistungsprüfung mit **38 Kapiteldateien**, 84 Einträgen und einem Haupttext über
+  500.000 Zeichen: Die reine Reader-Zielprüfung benötigt lokal **0,2–0,4 ms**.
+  Beim ersten Drag werden nur die Felder der aktuellen Zielkarte dargestellt.
+  Während der geprüften Drops finden **keine Größenberechnungen, Zeichenindex-
+  Durchläufe oder Haupttextanalysen** statt, mit ein- und ausgeschalteter Anzeige.
+  Speichern und Editoraktualisierung benötigen in dieser Instanz weiterhin rund
+  **89–364 ms**; die Zahlenanzeige erklärt diese Verzögerung nicht. Eine doppelte
+  vollständige Kapitel-Lesung beim Aktualisieren wurde entfernt.
+- Ein Testdokument mit **571.173 Zeichen und 400 Überschriften** bestätigt den
+  unveränderten Standardpfad um 0,1 ms für Abschnittsgrößen. Fußnotenfilterung baut
+  einmalig einen Quelltextindex auf, teilt ihn zwischen Gesamtzahl und Abschnitten
+  und verwendet nach Eingaben Markdown-Fragmente weiter. Die lokale erste
+  Filterberechnung benötigte etwa 55 ms, die wiederverwendete Anzeige etwa 1,2 ms,
+  eine Berechnung nach einer Textänderung etwa 4 ms. Dies sind lokale Messwerte.
+
+---
+
+# Vorheriger Entwicklungsprüfstand — optionale Abschnittsgrößen und EOME 0.2.5
+
+Stand: 25. November 2026.
+
+- **1.055 automatisierte Tests bestanden**, sechs optionale Modelltests übersprungen.
+  Produktionsbuild und ESLint ohne Fehler oder Warnungen.
+- **114 Prüfungen direkt in Obsidian bestanden**. Die Größenanzeige ist standardmäßig
+  aus; beide Zählweisen, das Ausschalten, ein verborgener Tab und ungültige Optionen
+  sind geprüft. Die bestehenden Gliederungszeilen, Tastaturfokus und Schriftgrößen
+  bleiben erhalten. Light und Dark Mode bei 400, 650 und 1.000 Pixeln ohne Überlauf.
+- Kleine, gleich breite Balken direkt unter den rechtsbündigen Zeichenzahlen,
+  mit Füllung von rechts nach links. Die Notizanzahl steht in einer getrennten
+  neutralen Zahlenplakette mit einheitlich bemessener Breite. Sie enthält kein
+  zusätzliches Symbol; das Seitensymbol öffnet ausschließlich die Kapiteldatei.
+  Layoutprüfungen mit Zeichenzahlen von 10.000 bis 5.750.000 bestätigen feste
+  Balkenbreite, getrennte Kennzahlen und fehlenden Überlauf in beiden Themes.
+- Der Gliederungskopf zeigt bei aktivierten Abschnittsgrößen die Gesamtzeichenzahl
+  des Hauptdokuments. Der Wert stimmt mit Obsidians eingebauter Zeichenanzeige
+  überein und wird ohne zusätzlichen Textdurchlauf aus der aktuellen Quelltextlänge
+  gelesen. Frontmatter, Überschriften und Text vor der ersten Überschrift sind
+  enthalten; Unterabschnitte werden nicht doppelt addiert. Live-Änderungen,
+  externe Änderungen und das Ausblenden/Ausschalten sind abgedeckt. Die aktuelle
+  Gliederungszeile hat gerade Ecken und eine dezente Auswahlfläche mit gerader
+  Akzentlinie. **37 gezielte automatisierte Tests** für Größenanzeige, Lebenszyklus,
+  Navigation und Lokalisierung bestanden; Build und ESLint erfolgreich.
+- **277 Prüfungen von Hierarchical Outline direkt in Obsidian bestanden**.
+  Der Untereintrags-Pfeil nutzt den vorhandenen linken Karteninnenrand;
+  Textbreite, Drag-Griff, Checkbox und Menü bleiben bei Karten mit und ohne
+  Untereinträge gleich ausgerichtet. Die tatsächliche Klickbarkeit und das
+  Ausblenden während der Bearbeitung sind geprüft. Zusätzlich **88 gezielte
+  automatisierte Tests** für Reader und Gliederungsnavigation bestanden.
+  In der wiederhergestellten Mehrdatei-Ansicht bleiben alle 38 Kapiteldatei-Aktionen
+  erhalten; keine der 38 Zahlenplaketten enthält ein Symbol, kein Überlauf.
+- Testdokument mit **571.060 Zeichen und 400 Überschriften**: Größenberechnung
+  im Median **0,1 ms**, maximal **0,3 ms** bei 40 Messungen. 30 Live-Eingaben führen
+  zu zwei gebündelten Größenaktualisierungen, ohne zusätzliche Haupttextanalyse,
+  Begleitdatei-Schreibzugriffe oder Neuaufbau der Gliederungszeilen. Die größte
+  gemessene Verzögerung des 20-ms-UI-Prüftakts während des Eingabebursts beträgt
+  12 ms. Diese Zahlen beschreiben die lokale Testinstanz.
+- EOME **0.2.5**: `supportsStructuralHeadings` ist ausschließlich in der Einbettung
+  `false`; der Strukturüberschriften-Menüpunkt fehlt und der direkte Command ändert
+  die Datei nicht. Andere Menüaktionen bleiben vorhanden. Inhaltsüberschriften
+  wurden mit echter Tastatureingabe geändert und gespeichert; eine Änderung der
+  Größenoption beendet oder ersetzt den laufenden EOME-Editor nicht.
+- Eine parallel geöffnete eigenständige EOME-View behält `true` und ihren
+  Überschriften-Menüpunkt. Weder Größenwerte noch der Host-Schalter werden in
+  Begleitdateien gespeichert. Testdateien werden geschlossen und entfernt;
+  ursprüngliche Ansicht, Theme und Einstellungen werden wiederhergestellt.
+
+---
+
 # Prüfstand: stabiler Release 0.0.6
 
 Stand: 24. November 2026. Ergänzt werden die Mausbearbeitung und Mehrfachauswahl

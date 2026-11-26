@@ -1,10 +1,14 @@
 import type {Settings} from '../types';
+import type {CharacterCountOptions} from './character-count';
 import type {StorageOptions} from './model';
 import {validPath} from './repository';
 import {companionViews,type CompanionViewMode} from './native-types';
+import {validOutlineSizeMode,type OutlineSizeMode} from './outline-size';
 
 export function validCompanionView(value:unknown):value is CompanionViewMode{return companionViews.some(mode=>mode===value);}
 export function defaultCompanionView(settings:Settings):CompanionViewMode{return validCompanionView(settings.companion?.defaultView)?settings.companion.defaultView:'reader';}
+export function companionOutlineSizeMode(settings:Settings):OutlineSizeMode{return validOutlineSizeMode(settings.companion?.outlineSizes)?settings.companion.outlineSizes:'off';}
+export function companionCountOptions(settings:Settings):CharacterCountOptions{return {whitespace:settings.companion?.countWhitespace!==false,footnotes:settings.companion?.countFootnotes!==false};}
 
 export const defaultCompanionStorage=():StorageOptions=>({mode:'document',location:'subfolder',folder:'Companions',subfolder:'Companions'});
 export function validSubfolder(value:unknown):value is string{return typeof value==='string'&&!!value.trim()&&!value.includes('/')&&validPath(value+'/note.md');}

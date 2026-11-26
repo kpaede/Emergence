@@ -1,5 +1,8 @@
 // Canonical English messages: settings. Preserve {{parameters}}.
 export const settings = {
+  "settings.hideCompanionBacklinks": "Hide automatic companion document references",
+  "settings.hideCompanionBacklinksHelp": "Hide generated document associations from backlinks in the Emergence graph. Author-written content links remain visible.",
+  "settings.invalidBacklinkFilter": "Invalid companion backlink setting.",
   "settings.discard_draft": "Discard draft",
   "settings.draft_discarded": "Draft discarded.",
   "settings.save_changes": "Save changes",

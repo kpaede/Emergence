@@ -1,3 +1,4 @@
+import {GraphRefresh} from './graph/refresh';
 import {CompanionService} from './companion/service';
 import {registerCompanionLive} from './companion/live';
 import {registerCompanionCommands} from './companion/register';
@@ -66,31 +67,28 @@ export default class EmergencePlugin extends Plugin {
    void c.run(async () => {const panel = await this.open(); panel?.switchTab('analysis'); await c.analyze();});
   }});
   this.localizedCommand("common.cancel_running_model_request",{id: 'cancel-analysis', callback: () => c.cancel()});
-  this.localizedCommand("common.refresh_breadcrumbs_and_graph",{id: 'refresh-graph', callback: () => {void c.run(async () => {await c.graph.refreshBreadcrumbs(); c.notify();});}});
+  this.localizedCommand("common.refresh_breadcrumbs_and_graph",{id: 'refresh-graph', callback: () => {void c.run(async () => {await c.refreshKnowledgeGraph(true);});}});
   this.applyFeatures();
-  let breadcrumbDirty = false;
-  const schedule = this.debounce(() => {if(!knowledgeFeaturesEnabled(this.settings))return;if (breadcrumbDirty) {breadcrumbDirty = false; void c.run(async () => {await c.graph.refreshBreadcrumbs(); c.notify();});} else c.rebuild();}, 600);
-  this.registerEvent(this.app.metadataCache.on('changed', () => {breadcrumbDirty = true; schedule();}));
-  this.registerEvent(this.app.metadataCache.on('resolve', schedule));
-  this.registerEvent(this.app.metadataCache.on('resolved', () => {c.graph.resolved = true; schedule();}));
-  this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
-   c.activePath = renamedPath(c.activePath, oldPath, file.path);
-   for(const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE))if(leaf.view instanceof EmergenceView)leaf.view.onNoteRename(oldPath,file.path);
-   breadcrumbDirty=true;c.rebuild();schedule();
+  const views=()=>this.app.workspace.getLeavesOfType(VIEW_TYPE).map(leaf=>leaf.view).filter((view):view is EmergenceView=>view instanceof EmergenceView);
+  const refresh=new GraphRefresh({enabled:()=>knowledgeFeaturesEnabled(this.settings),visible:()=>views().some(view=>view.usesKnowledgeGraph),interacting:()=>views().some(view=>view.companionPanel?.draggingEntries),rebuild:()=>c.graph.rebuild(),refresh:()=>c.graph.refreshBreadcrumbs(),changed:()=>c.notify(),error:reason=>{void c.run(()=>{throw reason;});}});
+  this.register(()=>refresh.dispose());c.knowledgeViewOpened=()=>refresh.show();c.refreshKnowledgeGraph=force=>refresh.flush(force);
+  const schedule=()=>refresh.invalidate();
+  this.registerEvent(this.app.metadataCache.on('changed',()=>refresh.invalidate(true)));
+  this.registerEvent(this.app.metadataCache.on('resolve',schedule));
+  this.registerEvent(this.app.metadataCache.on('resolved',()=>{c.graph.resolved=true;schedule();}));
+  this.registerEvent(this.app.vault.on('rename',(file,oldPath)=>{
+   c.activePath=renamedPath(c.activePath,oldPath,file.path);
+   for(const view of views())view.onNoteRename(oldPath,file.path);
+   refresh.invalidate(true);
   }));
-  this.registerEvent(this.app.vault.on('delete', schedule));
-  this.registerEvent(this.app.vault.on('create', schedule));
+  this.registerEvent(this.app.vault.on('delete',schedule));
+  this.registerEvent(this.app.vault.on('create',schedule));
   this.registerEvent(this.app.workspace.on('file-open', file => {if (file?.extension === 'md') c.activePath = file.path; c.captureActive(); c.notify();}));
   this.registerEvent(this.app.workspace.on('css-change', () => {
    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) if (leaf.view instanceof EmergenceView) leaf.view.refreshTheme();
   }));
-  this.app.workspace.onLayoutReady(() => {this.companionService.start();c.captureActive();if(knowledgeFeaturesEnabled(this.settings)){c.rebuild();void c.run(async()=>{await c.graph.refreshBreadcrumbs();c.notify();});}void this.templateFolders.refresh('mermaid');void this.templateFolders.refresh('argdown');});
+  this.app.workspace.onLayoutReady(() => {this.companionService.start();c.captureActive();if(knowledgeFeaturesEnabled(this.settings)){c.rebuild();refresh.invalidate(true);}void this.templateFolders.refresh('mermaid');void this.templateFolders.refresh('argdown');});
   this.registerInterval(window.setInterval(schedule, 30000));
- }
- private debounce(callback: () => void, delay: number): () => void {
-  let timer: number | undefined;
-  this.register(() => {if (timer) window.clearTimeout(timer);});
-  return () => {if (timer) window.clearTimeout(timer); timer = window.setTimeout(callback, delay);};
  }
  private localizedCommand(key:TranslationKey,definition:Omit<Command,'name'>):void{
   const gated:Record<string,Feature>={'open-mermaid-editor':'mermaid','open-argdown-editor':'argdown','analyze-current-note':'fieldIdeas','refresh-graph':'graph'},feature=gated[definition.id];

@@ -1,6 +1,7 @@
 import {Component,parseYaml,stringifyYaml,type App,type WorkspaceLeaf} from 'obsidian';
 import {t} from '../i18n';
-import {nativeSelection} from './native-selection';
+import {nativeSelection,eomeThoughtAtLine} from './native-selection';
+import type {CompanionDrag} from './drag';
 import {projectionFromBody,splitProjection,nativeBodiesEqual,sectionOutline,validateNativeProjection} from './native-projection';
 import {watchEditorViewport} from './editor-viewport';
 import {applyNativeAppearance} from './native-appearance';
@@ -18,8 +19,15 @@ import {rejectedChangeMessage} from './write-error';
 import {assertNativeCompatible,assertNativePluginCompatible,NativeCompatibilityError} from './native-compatibility';
 
 export class NativeCompanionView extends Component{
+ private sectionData?:CompanionSection;private dragging?:{data:CompanionDrag;line:string;nativeId:string;session:number};
  private view?:NativeView;private key='';private generation=0;private session=0;private scopeText='';private base='';private path='';private section='';private kind?:NativeKind;private writes:Promise<void>=Promise.resolve();private writeCount=0;private closing?:Promise<void>;private shuttingDown?:Promise<void>;private error?:HTMLElement;private resize?:ResizeObserver;private appearance?:MutationObserver;private restoreScope?:()=>void;private editorText?:()=>string|undefined;private finishEditor?:()=>void;private cancelEditor?:()=>void;private failure?:Error;private rejecting?:Promise<void>;private writeEpoch=0;private mounting?:Promise<void>;
- constructor(private app:App,readonly host:HTMLElement,private service:CompanionService,private leaf:WorkspaceLeaf,private openMarkdown:()=>void,private refresh:()=>Promise<void>=async()=>{}){super();host.addClass('em-companion-native');this.registerEvent(app.workspace.on('css-change',()=>{if(this.view)applyNativeAppearance(this.view,this.host);}));this.register(()=>{void settleSteps([()=>this.shutdown(),()=>this.service.flush()]).then(errors=>{if(errors.length)this.showError(new AggregateError(errors,t('companion.closeFailed')));});});}
+ constructor(private app:App,readonly host:HTMLElement,private service:CompanionService,private leaf:WorkspaceLeaf,private openMarkdown:()=>void,private refresh:()=>Promise<void>=async()=>{}){super();host.addClass('em-companion-native');this.watchDrag();this.registerEvent(app.workspace.on('css-change',()=>{if(this.view)applyNativeAppearance(this.view);}));this.register(()=>{void settleSteps([()=>this.shutdown(),()=>this.service.flush()]).then(errors=>{if(errors.length)this.showError(new AggregateError(errors,t('companion.closeFailed')));});});}
+ private watchDrag():void{
+  this.registerDomEvent(this.host.ownerDocument,'dragstart',()=>{this.dragging=undefined;},{capture:true});this.registerDomEvent(this.host.ownerDocument,'dragend',()=>{this.dragging=undefined;});
+  this.registerDomEvent(this.host,'dragstart',event=>{if(this.kind!=='eome'||!this.view||!this.sectionData||this.pending||this.closing)return;const line=event.dataTransfer?.getData('text/mindmap-line'),nativeId=event.dataTransfer?.getData('text/mindmap-node-id');if(!line||!nativeId)return;const node=eomeThoughtAtLine(this.view,{...this.sectionData,raw:this.base},Number(line));if(node)this.dragging={data:{path:this.path,id:node.id,section:node.section,parent:node.parent},line,nativeId,session:this.session};});
+ }
+ /** Consume only a drag observed from this embedded instance, never a foreign EOME view. */
+ takeDrag(event:DragEvent):CompanionDrag|undefined{const drag=this.dragging;this.dragging=undefined;return drag&&drag.session===this.session&&drag.line===event.dataTransfer?.getData('text/mindmap-line')&&drag.nativeId===event.dataTransfer?.getData('text/mindmap-node-id')?drag.data:undefined;}
  get editing():boolean{return !!this.view?.inlineEditor?.nodeId||!!this.host.querySelector('.node-editor-host,.editing .cm-editor');}
  get pending():boolean{return this.editing||this.writeCount>0||!!this.rejecting||!!this.mounting;}
  focus():void{const target=this.host.querySelector<HTMLElement>(this.kind==='lineage'?'.lineage-view':'.mindmap-wrapper')??this.host.querySelector<HTMLElement>('button,.em-companion-native-error');if(target){if(!target.hasAttribute('tabindex')&&target.tabIndex<0)target.tabIndex=-1;target.focus({preventScroll:true});}}
@@ -28,7 +36,7 @@ export class NativeCompanionView extends Component{
  async render(path:string,document:CompanionDocument,section:CompanionSection,kind:NativeKind):Promise<void>{
   if(this.shuttingDown){await this.shuttingDown.catch(()=>{});return;}
   const key=JSON.stringify([path,section.id,kind]);
-  if(this.key===key&&this.view&&!this.closing&&!this.shuttingDown){
+  if(this.key===key&&this.view&&!this.closing&&!this.shuttingDown){this.sectionData=section;
    const generation=this.generation;if(this.mounting)await this.mounting;if(generation!==this.generation||this.key!==key||!this.view)return;
    if(this.view.file)this.view.file.basename=section.title;if(!this.writeCount&&!this.editing&&this.base!==section.raw){this.base=section.raw;this.scopeText=projectionFromBody(sectionOutline(section),splitProjection(this.scopeText).header);if(kind==='eome'){this.view.commandHistory?.clear?.();this.view.forceToolbarUpdate?.();}this.view.setViewData(this.scopeText,false);}return;
   }
@@ -38,7 +46,7 @@ export class NativeCompanionView extends Component{
   try{await mounting;}finally{if(this.mounting===mounting)this.mounting=undefined;}
  }
  private async mount(path:string,document:CompanionDocument,section:CompanionSection,kind:NativeKind,key:string,generation:number):Promise<void>{
-  if(generation!==this.generation)return;this.key=key;this.path=path;this.section=section.id;this.kind=kind;this.failure=undefined;this.host.empty();this.error=this.host.createDiv({cls:'em-companion-native-error em-error',attr:{role:'status'}});
+  if(generation!==this.generation)return;this.sectionData=section;this.key=key;this.path=path;this.section=section.id;this.kind=kind;this.failure=undefined;this.host.empty();this.error=this.host.createDiv({cls:'em-companion-native-error em-error',attr:{role:'status'}});
   if(!this.available(kind)){const plugin=nativePlugins[kind];this.error.setText(t(this.installed(kind)?'companion.pluginDisabled':'companion.pluginMissing',{name:plugin.name}));if(this.installed(kind)){const enable=this.host.createEl('button',{text:t('companion.enablePlugin',{name:plugin.name})});enable.onclick=()=>{enable.disabled=true;void (this.app as NativeRuntimeApp).plugins.enablePluginAndSave(plugin.id).then(()=>{this.key='';return this.render(path,document,section,kind);}).catch((error:unknown)=>{this.error?.setText(String(error));enable.disabled=false;});};}return;}
   if(kind==='eome'){const manifest=(this.app as NativeRuntimeApp).plugins.manifests[nativePlugins.eome.id] as {version?:string},version=manifest.version?.split('.').map(Number)??[];if(!(version[0]!>0||version[1]!>2||version[1]===2&&version[2]!>=3)){this.error.setText(t('companion.eomeUpdate'));return;}}
   const original=this.app.vault.getFileByPath(document.files?.[section.id]??path);if(!original)throw new Error(t('companion.sectionFileMissing'));this.base=section.raw;const style=getComputedStyle(this.host),header=presentationHeader(this.service.nativeHeader(path,section.id,kind),kind,this.host.clientWidth,Number.parseFloat(style.fontSize)||14,Number.parseFloat(style.getPropertyValue('--font-text-size'))||16);this.service.saveNativeHeader(path,section.id,kind,header);this.scopeText=projectionFromBody(sectionOutline(section),header);
@@ -52,12 +60,12 @@ export class NativeCompanionView extends Component{
    const owns=()=>generation===this.generation&&this.view===view&&session===this.session;
    if(kind==='lineage')stage.inert=true;view.load();view.file=null;view.data=this.scopeText;await view.onOpen();if(!owns())return;view.file=scope.file;
    if(kind==='eome'){
-    this.appearance=new MutationObserver(()=>{if(owns()&&view.cy&&stage.querySelector('.mindmap-overlay[data-overlay]')){this.appearance?.disconnect();applyNativeAppearance(view,this.host);sizeNativeViewport(view,stage,true);}});this.appearance.observe(stage,{childList:true,subtree:true});await view.onLoadFile?.(scope.file);if(!owns())return;watchEditorViewport(view,stage);
+    this.appearance=new MutationObserver(()=>{if(owns()&&view.cy&&stage.querySelector('.mindmap-overlay[data-overlay]')){this.appearance?.disconnect();applyNativeAppearance(view);sizeNativeViewport(view,stage,true);}});this.appearance.observe(stage,{childList:true,subtree:true});await view.onLoadFile?.(scope.file);if(!owns())return;watchEditorViewport(view,stage);
    }
    if(kind==='lineage'){
     view.data=this.scopeText;view.setViewData(this.scopeText,false);for(let n=0;n<180&&!view.component&&owns();n++)await new Promise<void>(resolve=>window.setTimeout(resolve,16));if(!owns())return;if(!view.component)throw new Error(t('companion.nativeUnavailable'));await new Promise<void>(resolve=>window.setTimeout(resolve,32));if(!owns())return;stage.inert=false;sizeNativeViewport(view,stage,true);view.alignBranch?.align({type:'view/life-cycle/mount'});
    }
-   applyNativeAppearance(view,this.host);if(kind==='eome')sizeNativeViewport(view,stage,true);
+   applyNativeAppearance(view);if(kind==='eome')sizeNativeViewport(view,stage,true);
    if(!stage.contains(view.containerEl))stage.append(view.containerEl);view.containerEl.dataset.type=nativePlugins[kind].type;
    const selectedId=this.service.selectedThought(path,section.id);if(selectedId)nativeSelection(view,kind,section,selectedId);
    this.resize=new ResizeObserver(()=>{sizeNativeViewport(view,stage);});this.resize.observe(stage);
@@ -67,7 +75,7 @@ export class NativeCompanionView extends Component{
  private write(text:string):Promise<void>{
   this.writeCount++;const epoch=this.writeEpoch,run=this.writes.then(async()=>{
    if(epoch!==this.writeEpoch)throw this.failure??new Error(t('companion.closed'));const kind=this.kind;if(!kind)throw new Error(t('companion.closed'));const expected=this.base;this.scopeText=text;
-   if(!this.available(kind))throw new Error(t('companion.nativeUnavailable'));validateNativeProjection(text);const raw=nativeBodiesEqual(expected,text)?expected:await this.service.replaceNativeSection(this.path,this.section,expected,text);this.base=raw;this.service.saveNativeHeader(this.path,this.section,kind,splitProjection(text).header);this.failure=undefined;this.error?.empty();
+   if(!this.available(kind))throw new Error(t('companion.nativeUnavailable'));validateNativeProjection(text);const raw=nativeBodiesEqual(expected,text)?expected:await this.service.replaceNativeSection(this.path,this.section,expected,text);this.base=raw;if(this.sectionData&&raw!==expected)this.sectionData={...this.sectionData,raw,format:2};this.service.saveNativeHeader(this.path,this.section,kind,splitProjection(text).header);this.failure=undefined;this.error?.empty();
   });
   this.writes=run.catch(async error=>{if(epoch===this.writeEpoch)await this.rejectEdit(error);}).finally(()=>{this.writeCount--;});return run;
  }
@@ -88,7 +96,7 @@ export class NativeCompanionView extends Component{
       // EOME may already have released its focused owner while retaining an editor host.
       // Its public lifecycle closes every transient editor, including a failed save session.
       await view.onClose();if(this.session!==session||this.view!==view||this.path!==path)return;await view.onOpen();if(this.session!==session||this.view!==view||this.path!==path)return;
-      view.commandHistory?.clear?.();view.forceToolbarUpdate?.();if(stage){applyNativeAppearance(view,this.host);sizeNativeViewport(view,stage,true);}
+      view.commandHistory?.clear?.();view.forceToolbarUpdate?.();if(stage){applyNativeAppearance(view);sizeNativeViewport(view,stage,true);}
      }
      view?.setViewData(this.scopeText,true);await this.waitForContent(view);
     }
@@ -103,7 +111,7 @@ export class NativeCompanionView extends Component{
   for(let n=0;n<120;n++){if(lineageOutline(view.documentStore.getValue().document as LineageDocument)===expected)return;await new Promise<void>(resolve=>window.setTimeout(resolve,25));}
   throw new Error(t('companion.nativeUnavailable'));
  }
- async rememberSelection():Promise<void>{const view=this.view,kind=this.kind,path=this.path,session=this.session;if(!view||!kind||!path)return;const document=await this.service.readForView(path);if(this.view!==view||this.kind!==kind||this.path!==path||this.session!==session)return;const section=document.sections.find(section=>section.id===this.section);if(section){const id=nativeSelection(view,kind,section);if(id)this.service.selectThought(path,section.id,id);}}
+ async rememberSelection():Promise<void>{const view=this.view,kind=this.kind,path=this.path,session=this.session;if(!view||!kind||!path)return;const document=await this.service.viewDocument(path);if(this.view!==view||this.kind!==kind||this.path!==path||this.session!==session)return;const section=document.sections.find(section=>section.id===this.section);if(section){const id=nativeSelection(view,kind,section);if(id)this.service.selectThought(path,section.id,id);}}
  async history(redo=false):Promise<void>{await this.flush();if(this.kind==='eome')await (redo?this.view?.executeRedo?.():this.view?.executeUndo?.());else this.view?.documentStore?.dispatch({type:redo?'document/history/select-next-snapshot':'document/history/select-previous-snapshot'});await this.writes;}
  async flush():Promise<void>{
   if(this.mounting)await this.mounting;
@@ -137,7 +145,7 @@ export class NativeCompanionView extends Component{
   })();const shuttingDown=task.finally(()=>{if(this.closing===shuttingDown)this.closing=undefined;if(this.shuttingDown===shuttingDown)this.shuttingDown=undefined;});this.shuttingDown=shuttingDown;this.closing=shuttingDown;return shuttingDown;
  }
  private async disposeView():Promise<void>{
-  const view=this.view,resize=this.resize,appearance=this.appearance,restore=this.restoreScope;
+  this.dragging=undefined;const view=this.view,resize=this.resize,appearance=this.appearance,restore=this.restoreScope;
   this.view=undefined;this.resize=undefined;this.appearance=undefined;this.restoreScope=undefined;this.editorText=undefined;this.finishEditor=undefined;this.cancelEditor=undefined;
   const errors=await settleSteps([
    ()=>resize?.disconnect(),()=>appearance?.disconnect(),

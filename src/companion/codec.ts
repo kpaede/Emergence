@@ -1,11 +1,14 @@
 import {parseDocument} from 'yaml';
 import {t} from '../i18n';
 import {newId,type CompanionDocument,type CompanionSection,type SectionBase,type SectionState} from './model';
+import {CHARACTER_TARGET,validCharacterTarget} from './character-target';
 import {stripThoughtIds} from './thoughts';
 const SECTION=/^(#{1,6})[ \t]+(.*?)\s*<!-- em-section:([a-zA-Z0-9-]+) -->[ \t]*\r?$/gmu;
 function record(value:unknown):Record<string,unknown>{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};}
 export function sourceLink(value:string):string{return value.replace(/^\[\[/u,'').replace(/\]\]$/u,'').replace(/\.md$/u,'')+'.md';}
-export function parseCompanion(text:string):CompanionDocument{
+export interface CompanionSnapshot{document:CompanionDocument;metadata:Readonly<Record<string,unknown>>}
+export function parseCompanion(text:string):CompanionDocument{return parseCompanionSnapshot(text).document;}
+export function parseCompanionSnapshot(text:string):CompanionSnapshot{
  const match=/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(text);if(!match)throw new Error(t('companion.invalid'));
  const yaml=parseDocument(match[1]!);if(yaml.errors.length)throw new Error(t('companion.invalid'));const data=record(yaml.toJSON());
  if(typeof data['emergence-companion-id']!=='string'||typeof data['emergence-main-document']!=='string')throw new Error(t('companion.invalid'));
@@ -20,11 +23,12 @@ export function parseCompanion(text:string):CompanionDocument{
   sections.push({id,plain:data['emergence-companion-version']!==1,title:m[2]!,level:m[1]!.length,state,base,...(entry.format===2||outlineFormat===2||outlineFormat==='2'?{format:2 as const}:{}),raw:body.slice(m.index+m[0].length, matches[i+1]?.index??body.length).replace(/^\r?\n/u,'')});
  }
  if(Object.keys(metadata).some(id=>!ids.has(id))||body.split(/\r?\n/u).some(line=>/^#{1,6}(?:[ \t]|$)/u.test(line)&&!/^#{1,6}[ \t]+.*<!-- em-section:[a-zA-Z0-9-]+ -->[ \t]*$/u.test(line)))throw new Error(t('companion.invalid'));
- const document:CompanionDocument={id:data['emergence-companion-id'],source:sourceLink(data['emergence-main-document']),sections,preamble:body.slice(0,matches[0]?.index??body.length),newline:text.includes('\r\n')?'\r\n':'\n',original:text,header:match[1]!};
- return document;
+ const document:CompanionDocument={id:data['emergence-companion-id'],source:sourceLink(data['emergence-main-document']),sections,preamble:body.slice(0,matches[0]?.index??body.length),newline:text.includes('\r\n')?'\r\n':'\n',original:text,header:match[1]!,...(validCharacterTarget(data[CHARACTER_TARGET])?{targetCharacters:data[CHARACTER_TARGET]}:{})};
+ return {document,metadata:data};
 }
 export function serializeCompanion(document:CompanionDocument):string{
  const yaml=parseDocument(document.header||'');if(yaml.errors.length)throw new Error(t('companion.invalid'));
+ if(document.targetCharacters!==undefined){if(!validCharacterTarget(document.targetCharacters))throw new Error(t('companion.invalidCharacterTarget'));yaml.set(CHARACTER_TARGET,document.targetCharacters);}
  yaml.set('emergence-companion-id',document.id);yaml.delete('emergence-companion-version');yaml.set('emergence-main-document',`[[${document.source.replace(/\.md$/u,'')}]]`);
  const globalFormat=document.sections.length>0&&document.sections.every(s=>s.format===2);
  const metadata:Record<string,unknown>={};for(const s of document.sections)metadata[s.id]={state:s.state,...(s.format===2&&!globalFormat?{format:2}:{}),...s.base?{base:{title:s.base.title,level:s.base.level,index:s.base.index,from:s.base.from,line:s.base.line,parent:s.base.parent,body:s.base.body}}:{}};yaml.set('emergence-sections',metadata);

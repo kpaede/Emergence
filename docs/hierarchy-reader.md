@@ -55,6 +55,118 @@ beidseitig eindeutige unveränderte Texte weiter zugeordnet. Mehrdeutige Duplika
 werden nicht anhand ihrer Position geraten. Eine veraltete Bearbeitung wird in
 solchen Fällen abgewiesen. Nach einem Neustart werden die Referenzen neu aufgebaut.
 
+## Ablegen auf der Gliederung
+
+Text, mehrzeilige Auszüge, URLs und Obsidian-Dateiverweise können auf einer
+Überschrift abgelegt werden. Sie werden als neuer Eintrag auf der obersten Ebene
+an den zugehörigen Begleitabschnitt angehängt. Obsidian-Datei-URLs aus diesem Vault
+werden mit Obsidians Linkgenerator in normale Markdown-Verweise umgewandelt.
+
+Vorhandene Einträge aus Hierarchical Outline und der eingebetteten EOME-Ansicht
+werden mit ihrem vollständigen Unterbaum verschoben. Die Zuordnung zur EOME-Zeile
+bleibt im Arbeitsspeicher und akzeptiert ausschließlich einen zuvor in dieser
+Einbettung beobachteten Ziehvorgang. Nach dem Ablegen liegt der Tastaturfokus auf
+der Zielüberschrift. Dort machen Strg/Cmd+Z und Strg/Cmd+Shift+Z die gemeinsame
+Dokumentänderung rückgängig beziehungsweise stellen sie wieder her. Die aktuelle
+Kapitelansicht und die Position im Hauptdokument bleiben beim Ablegen erhalten.
+
+Eintragsänderungen aktualisieren die Zähler der bestehenden Gliederungszeilen.
+Die Zeilen werden erst bei Änderungen der Überschriften, Dateizuordnung oder
+Verfügbarkeit neu aufgebaut; Tastaturfokus und aufgeklappte Zweige bleiben erhalten.
+
+Gliederungszeilen, Eintragskarten und Einfügegrenzen reagieren auf `dragenter`
+und `dragover`. Auch ein von Zotero oder einer anderen Anwendung begonnener Drag
+bekommt beim Betreten des Ziels eine Markierung. Es ist kein vorheriger Klick in
+Emergence nötig. Auch eine bereits ausgewählte Überschrift bekommt eine vollständige Drop-Umrandung.
+Während des Speicherns bleibt das Ziel gekennzeichnet; Einträge und Zähler zeigen
+erst nach erfolgreichem Schreiben den neuen Stand. Sofortiges Rückgängigmachen
+wartet auf diesen Schreibvorgang. Es gibt keine zusätzliche Speichermeldung.
+Die Gliederung wird aus dem Index angezeigt, bevor die Kapitelinhalte fertig geladen
+sind. Solange die Inhalte noch fehlen, stehen unbekannte Zähler auf „—“. Ansichten
+verwenden den bestätigten Dateistand im Arbeitsspeicher. Datei- und Editorereignisse
+machen ihn ungültig. Änderungen prüfen weiterhin die aktuellen Dateien und beim
+Schreiben erneut deren erwarteten Inhalt. Nach erfolgreichem Schreiben werden die
+bestätigten Bytes übernommen; das gesamte Dateibündel wird nicht nochmals gelesen.
+
+Auf dem Desktop werden die zugehörigen Begleitdateien beim Öffnen zusätzlich
+rein lesend vorbereitet: zwei Hintergrundzugriffe, ein reservierter dritter Platz
+für die Überschrift unter dem Mauszeiger. Damit werden vom Dateisystem verwaltete
+Platzhalter vor der ersten Änderung lokal verfügbar. Die Gliederung wartet nicht
+darauf. Es gibt keine periodischen Dateiabfragen und keine zusätzlichen Dateien
+oder Frontmatter-Felder. Beim Verlassen der Ansicht werden ausstehende Lesezugriffe
+abgebrochen. Gespeichert wird weiterhin über dieselbe geprüfte Vault-Transaktion.
+
+Während eines extern gestarteten Drags werden auch bereits laufende Leseergebnisse
+nicht in die Oberfläche übernommen. Nach Drag-Ende folgt die aktuelle Fassung.
+Graph und Suche werden im verborgenen Zustand nicht neu gezeichnet; beim Öffnen
+wird der aktuelle Modellstand angezeigt.
+
+Kapiteldateien werden mit höchstens acht parallelen Lesezugriffen geladen. Begrenzte
+RAM-Caches erkennen ausschließlich identische Textstände und sparen deren erneutes
+Parsen. Dateilesungen, Identitätsprüfungen und Schreibvorbedingungen bleiben erhalten.
+Neue Dateiinhalte, fehlende Dateien und falsche Zuordnungen umgehen den Cache nicht.
+
+Die eingebetteten Originaleditoren verwenden ihre eigene Darstellung und das
+aktive Obsidian-Theme. Emergence passt ihre Ansichtsfläche, Größenbegrenzung und
+Bedienelementgrößen an den verfügbaren Panelplatz an.
+
+## Optionale Abschnittsgrößen
+
+**Einstellungen → Emergence → Begleitdokument → Abschnittsgrößen in der Gliederung**
+bietet **Aus** (Standard), **Nur Abschnittstext** und **Mit Unterabschnitten**.
+Die Anzeige bezieht sich auf das Hauptdokument. Standardmäßig umfasst die Zahl
+Leerzeichen, Zeilenumbrüche, Fußnoten und Markdown; die eigene Überschriftszeile beziehungsweise beide
+Zeilen einer Setext-Überschrift zählen nicht mit. Im Unterabschnittsmodus gehören
+untergeordnete Überschriften zum enthaltenen Quelltext. Die Berechnung verwendet
+Obsidians/CodeMirrors Quelltextpositionen (UTF-16). Der längste Abschnitt hat einen
+vollen Balken; die anderen Balken werden daran gemessen. Ein gleich breiter kleiner
+Balken direkt unter der rechtsbündigen Zeichenzahl füllt sich von rechts nach links.
+Die Zahl der Begleiteinträge steht daneben in einer getrennten neutralen Plakette
+ohne zusätzliches Symbol; deren Breite richtet sich einheitlich nach der größten
+Eintragszahl. Das Seitensymbol bleibt ausschließlich der Dateiöffnung vorbehalten.
+Rechts neben **Gliederung** steht bei aktivierter Größenanzeige die Gesamtzeichenzahl
+des Hauptdokuments. Mit den Standard-Zähloptionen zählt sie wie Obsidians Zeichenanzeige den vollständigen
+Markdown-Quelltext einschließlich Frontmatter, Überschriften, Leerzeichen und
+Zeilenumbrüchen. Sie addiert keine verschachtelten Abschnittszahlen und bleibt
+unabhängig von einer Textauswahl. Die Länge stammt ohne weiteren Textdurchlauf aus
+dem aktuellen Editor- oder Dateistand und verwendet dieselben gebündelten Updates.
+Die Auswahlmarkierung hat eine gerade Akzentlinie und eine dezente Hintergrundfläche
+ohne abgerundete Ecken.
+
+Über einen Klick auf die Gesamtzahl oder **Dokumentaktionen → Zielzeichenzahl**
+lässt sich pro Begleitdokument ein Ziel setzen. Der kleine Fortschrittsbalken unter
+der Gesamtzahl richtet sich dann nach diesem festen Ziel. Bei Überschreitung bleibt
+der echte Zahlenwert sichtbar, der Balken ist bei 100 Prozent gefüllt. Ein leeres
+Eingabefeld entfernt das Ziel. Nur ein gesetztes Ziel erzeugt den numerischen Wert
+`emergence-character-target` im Frontmatter der Begleitdatei beziehungsweise des
+Indexdokuments. Kapiteldateien und Hauptdokument erhalten dafür keine Eigenschaft.
+Mit Ziel bleibt die Gesamtanzeige auch bei ausgeschalteten Abschnittsgrößen aktiv.
+
+Die Optionen **Leerzeichen mitzählen** und **Fußnoten mitzählen** gelten für die
+Gesamtzahl, Abschnittszahlen und Balken. Beide sind standardmäßig eingeschaltet.
+Ohne Leerzeichen werden auch Tabs und Zeilenumbrüche ausgeschlossen. Ohne Fußnoten
+entfallen Definitionen einschließlich Folgeabsätzen, zugehörige Verweise und
+Inline-Fußnoten `^[…]`. Code, HTML, Mathematik, Frontmatter-Beispiele und unaufgelöste
+Fußnotenverweise bleiben Quelltext.
+
+Mit den Standardoptionen verwendet die Berechnung bereits bekannte
+Überschriftenpositionen und untersucht nur die Überschriftszeilen. Sie läuft in
+O(Anzahl der Überschriften). Gefilterte Zählungen verwenden einen kompakten
+Zeichenindex pro Dokumentstand; die Fußnotenstruktur wird nach Eingaben inkrementell
+weiterverwendet. Beide Anzeigen teilen sich diesen Index. Änderungen an
+Begleiteinträgen und Drag-and-drop lösen keinen erneuten Durchlauf des Haupttextes aus. Live-Eingaben werden für 160 ms gebündelt; bei
+fortlaufender Eingabe erfolgt spätestens nach 600 ms eine Aktualisierung. Nur
+geänderte Zahlen und Balkenbreiten werden angepasst. Die Gliederungszeilen, ihr
+Tastaturfokus und die laufende Eintragsbearbeitung werden nicht neu aufgebaut.
+Bei einer noch nicht abgeglichenen Strukturänderung erscheint vorübergehend ein
+Gedankenstrich anstelle einer geratenen Zahl. Ein fehlendes Begleit-Kapiteldokument
+beeinflusst die Größenberechnung des vorhandenen Hauptabschnitts nicht.
+
+Bei **Aus** ohne Ziel, verborgenem Tab oder deaktivierter Funktion wird das Abonnement
+beendet und eine ausstehende Aktualisierung abgebrochen. Die berechneten Zeichenzahlen bleiben im
+Arbeitsspeicher; nur ein ausdrücklich gesetztes Ziel wird im Frontmatter gespeichert.
+Für die Größenanzeige entstehen keine zusätzlichen Dateien.
+
 ## Bedienung
 
 Oben steht eine anklickbare Vorschau des direkt übergeordneten Eintrags mit
@@ -82,8 +194,10 @@ seinem Inhalt bis höchstens 145 Pixeln und scrollt danach unabhängig.
 Ein Klick wählt eine Karte aus; ein Doppelklick öffnet den Editor mit dem Cursor
 an der angeklickten Textstelle. Shift+Klick wählt einen Bereich mit festem
 Ausgangspunkt; Strg/Cmd+Klick schaltet einzelne Karten um. Die Anzahl der Auswahl
-steht neben der Suche. Ein kleiner Pfeil bei den Kartenwerkzeugen öffnet vorhandene
-Untereinträge und berücksichtigt den Abgehakt-Filter.
+steht neben der Suche. Ein sichtbarer Rechtspfeil vor Drag-Griff, Checkbox und Menü
+öffnet vorhandene Untereinträge und berücksichtigt den Abgehakt-Filter. Karten ohne
+Untereinträge reservieren dafür keinen Platz; die rechts davon stehenden Werkzeuge
+bleiben gleich ausgerichtet. Der Pfeil wird beim Bearbeiten ausgeblendet.
 
 Kopieren, Ausschneiden, Löschen und Verschieben verarbeiten alle ausgewählten
 Unterbäume gemeinsam. Das Kontextmenü benennt Sammelaktionen mit ihrer Anzahl.
@@ -133,7 +247,7 @@ Ausschneiden, Einfügen, Verschieben und Löschen. Aufgaben werden im vorhandene
 Speicherweg wie eine Textänderung. Weitere Metadaten bleiben Teil des bestehenden
 Dateiformats.
 
-Jeder Eintrag kann direkt abgehakt werden. Wie im lokalen EOME 0.2.4 betrifft das
+Jeder Eintrag kann direkt abgehakt werden. Wie im lokalen EOME 0.2.5 betrifft das
 nur diesen Eintrag; Untereinträge werden nicht automatisch mit abgehakt. Die Ansicht
 bietet zusätzlich einen zentralen Filter **Abgehakte ausblenden/einblenden**.
 Vollständig abgehakte Zweige verschwinden aus der Ansicht. Abgehakte Vorfahren

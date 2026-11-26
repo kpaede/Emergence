@@ -1,10 +1,11 @@
 import {parseDocument} from 'yaml';
 import type {App} from 'obsidian';
 import {t} from '../i18n';
-import {parseCompanion,serializeCompanion,emptyCompanion} from './codec';
+import {serializeCompanion,emptyCompanion} from './codec';
 import {defaultStorage,type StorageOptions,type CompanionDocument} from './model';
 import {readNote,validPath} from './repository';
 import {validSubfolder} from './preferences';
+import {parsedStored} from './stored-parse';
 import {MissingSectionFileError} from './problems';
 import {stripThoughtIds} from './thoughts';
 export interface FileWrite {path:string;before:string|null;after:string;kind?:'adopt-chapter'}
@@ -13,8 +14,8 @@ export function validFolder(folder:string):boolean{return !folder||validPath(fol
 export function storageOptions(value:unknown):StorageOptions{
  const item=record(value);return {mode:item.mode==='sections'?'sections':'document',location:item.location==='folder'?'folder':item.location==='subfolder'?'subfolder':'beside',folder:typeof item.folder==='string'&&validFolder(item.folder)?item.folder:'',...(item.location==='subfolder'||typeof item.subfolder==='string'?{subfolder:validSubfolder(item.subfolder)?item.subfolder:'Companions'}:{}),...(item.origin==='defaults'||item.origin==='custom'?{origin:item.origin}:{})};
 }
-export function readStorage(doc:CompanionDocument):void{
- const yaml=parseDocument(doc.header),data=record(yaml.toJSON()),stored=record(data['emergence-storage']),role=data['emergence-companion-role'],files=record(data['emergence-section-files']);
+export function readStorage(doc:CompanionDocument,metadata?:Readonly<Record<string,unknown>>):void{
+ const data=metadata??record(parseDocument(doc.header).toJSON()),stored=record(data['emergence-storage']),role=data['emergence-companion-role'],files=record(data['emergence-section-files']);
  const invalidMode=stored.mode!==undefined&&stored.mode!=='document'&&stored.mode!=='sections',invalidRole=role!==undefined&&role!=='document'&&role!=='index'&&role!=='section';
  const conflictingRole=role==='document'&&stored.mode!=='document'||role==='index'&&stored.mode!=='sections',conflictingFiles=stored.mode!=='sections'&&Object.keys(files).length>0;
  if(invalidMode||invalidRole||conflictingRole||conflictingFiles)throw new Error(t('companion.layoutMismatch'));
@@ -22,22 +23,33 @@ export function readStorage(doc:CompanionDocument):void{
 }
 export function storageHeader(doc:CompanionDocument):void{const yaml=parseDocument(doc.header||'');yaml.set('emergence-storage',doc.storage??defaultStorage());yaml.set('emergence-companion-role',doc.storage?.mode==='sections'?'index':'document');if(doc.storage?.mode==='sections')yaml.set('emergence-section-files',doc.files??{});doc.header=yaml.toString({lineWidth:0});}
 export function resolveSource(app:App,source:string,context:string):string{const direct=app.vault.getFileByPath(source);if(direct)return direct.path;return typeof app.metadataCache.getFirstLinkpathDest==='function'?app.metadataCache.getFirstLinkpathDest(source.replace(/\.md$/u,''),context)?.path??source:source;}
-export async function readStored(app:App,path:string):Promise<CompanionDocument>{return readStoredDocument(app,path,false);}
+export async function readStored(app:App,path:string,onIndex?:(doc:CompanionDocument)=>void):Promise<CompanionDocument>{return readStoredDocument(app,path,false,undefined,onIndex);}
 /** Available chapters remain readable; unavailable files are explicit and never become empty drafts. */
-export async function readStoredForView(app:App,path:string):Promise<CompanionDocument>{return readStoredDocument(app,path,true);}
-async function readStoredDocument(app:App,path:string,partial:boolean):Promise<CompanionDocument>{
+export async function readStoredForView(app:App,path:string,texts?:ReadonlyMap<string,string>,onIndex?:(doc:CompanionDocument)=>void):Promise<CompanionDocument>{return readStoredDocument(app,path,true,texts,onIndex);}
+/** The heading tree does not depend on reading every chapter body. */
+export async function readStoredOutline(app:App,path:string):Promise<CompanionDocument>{
+ const parsed=parsedStored(app,path,await readNote(app,path,true)),doc=parsed.document;readStorage(doc,parsed.metadata);doc.source=resolveSource(app,doc.source,path);
+ if(doc.storage?.mode==='sections')for(const section of doc.sections){const member=doc.files?.[section.id];if(!member||!app.vault.getFileByPath(member)){doc.unavailableFiles??={};doc.unavailableFiles[section.id]={path:member??'',reason:'missing',reference:section.raw,message:t('companion.sectionFileMissing')};}}
+ return doc;
+}
+async function readStoredDocument(app:App,path:string,partial:boolean,texts?:ReadonlyMap<string,string>,onIndex?:(doc:CompanionDocument)=>void):Promise<CompanionDocument>{
  if(!app.vault.getFileByPath(path))throw new Error(t('companion.fileMissing'));
- const doc=parseCompanion(await readNote(app,path));readStorage(doc);doc.source=resolveSource(app,doc.source,path);doc.fileOriginals={};
- if(doc.storage?.mode==='sections')for(const section of doc.sections){
+ const read=(file:string)=>texts?.get(file)??readNote(app,file,true);
+ const parsed=parsedStored(app,path,await read(path)),doc=parsed.document;readStorage(doc,parsed.metadata);doc.source=resolveSource(app,doc.source,path);const originals:Record<string,string>=doc.fileOriginals={};
+ onIndex?.(doc);
+ if(doc.storage?.mode==='sections'){
+  // Chapter reads are independent. Bound concurrency so large bundles do not flood IO.
+  const sections=doc.sections[Symbol.iterator]();await Promise.all(Array.from({length:Math.min(8,doc.sections.length)},async()=>{for(const section of sections){
   const member=doc.files?.[section.id];
   try{
    if(!member||!app.vault.getFileByPath(member))throw new MissingSectionFileError(member??section.title);
-   const text=await readNote(app,member,true),part=parseCompanion(text),metadata=record(parseDocument(part.header).toJSON());part.source=resolveSource(app,part.source,member);
+   const text=await read(member),parsed=parsedStored(app,member,text),part=parsed.document,metadata=parsed.metadata;part.source=resolveSource(app,part.source,member);
    if(metadata['emergence-companion-role']!=='section'||metadata['emergence-parent-companion-id']!==doc.id||part.sections.length!==1||part.sections[0]?.id!==section.id)throw new Error(t('companion.invalid'));
-   doc.fileOriginals[member]=text;if(part.sections[0].title!==section.title||part.sections[0].level!==section.level||part.sections[0].state!==section.state||part.source!==doc.source||part.sections[0].format!==section.format)doc.storageDrift=true;section.raw=part.sections[0].raw;section.format=part.sections[0].format;section.plain=part.sections[0].plain;
+   originals[member]=text;if(part.sections[0].title!==section.title||part.sections[0].level!==section.level||part.sections[0].state!==section.state||part.source!==doc.source||part.sections[0].format!==section.format)doc.storageDrift=true;section.raw=part.sections[0].raw;section.format=part.sections[0].format;section.plain=part.sections[0].plain;
   }catch(error){
    if(!partial)throw error;doc.unavailableFiles??={};doc.unavailableFiles[section.id]={path:member??'',reason:error instanceof MissingSectionFileError?'missing':'invalid',reference:section.raw,message:error instanceof Error?error.message:String(error)};section.raw='';
   }
+  }}));
  }
  return doc;
 }
@@ -54,8 +66,8 @@ export function planStorage(app:App,path:string,document:CompanionDocument):File
   // Unknown contents must never be interpreted as an empty chapter or recreated.
   if(doc.unavailableFiles?.[section.id])continue;
   const member=doc.files[section.id]??freePath(app,folder,doc.source.split('/').at(-1)!.replace(/\.md$/u,'')+' – '+section.title,reserved);doc.files[section.id]=member;
-  const before=doc.fileOriginals?.[member]??null,part=before?parseCompanion(before):emptyCompanion(doc.source);part.source=doc.source;
-  if(before){const old=part.sections[0]!;if(!parseDocument(part.header).has('emergence-companion-version')&&old.title===section.title&&old.level===section.level&&old.state===section.state&&old.format===section.format&&old.raw===stripThoughtIds(section)&&part.source===parseCompanion(before).source)continue;}
+  const before=doc.fileOriginals?.[member]??null,stored=before?parsedStored(app,member,before):undefined,part=stored?.document??emptyCompanion(doc.source),storedSource=part.source;part.source=doc.source;
+  if(before){const old=part.sections[0]!;if(!('emergence-companion-version' in stored!.metadata)&&old.title===section.title&&old.level===section.level&&old.state===section.state&&old.format===section.format&&old.raw===stripThoughtIds(section)&&part.source===storedSource)continue;}
   part.sections=[structuredClone(section)];const yaml=parseDocument(part.header||'');yaml.set('emergence-companion-role','section');yaml.set('emergence-parent-companion-id',doc.id);part.header=yaml.toString({lineWidth:0});plan.push({path:member,before,after:serializeCompanion(part)});
  }
  // Write the manifest last. Removed empty section files are retained, never silently deleted.

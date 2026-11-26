@@ -1,6 +1,6 @@
 import {companionLayout,type CompanionLayout} from './layout';
 import {CompanionTransactions} from './transactions';
-import {storageOptions,readStored,readStoredForView,ensureFolder,targetFolder,freePath,planStorage,storageHeader,readStorage,resolveSource,type FileWrite} from './storage';
+import {storageOptions,readStored,readStoredForView,readStoredOutline,ensureFolder,targetFolder,freePath,planStorage,storageHeader,readStorage,resolveSource,type FileWrite} from './storage';
 import {Component,parseYaml,type App,type CachedMetadata,type TFile} from 'obsidian';
 import type {ChangeDesc,Text} from '@codemirror/state';
 import {t} from '../i18n';
@@ -11,10 +11,14 @@ import {emptyCompanion,parseCompanion,serializeCompanion} from './codec';
 import {newId,type CompanionDocument,type PairState,type StorageOptions} from './model';
 import {sourceHeadings} from './headings';
 import {reconcile} from './reconcile';
-import {markThoughts,validateThoughts,applyThought,restoreThought,type ThoughtOperation,type OperationResult} from './thoughts';
+import {markThoughts,validateThoughts,clearThoughtCache,applyThought,restoreThought,type ThoughtOperation,type OperationResult} from './thoughts';
 import {readNote,validPath,sourceEditor} from './repository';
 import {mapAnchors} from './live';
-import {companionStorageDefaults,validStorage,defaultCompanionView} from './preferences';
+import {companionStorageDefaults,validStorage,defaultCompanionView,companionOutlineSizeMode,companionCountOptions} from './preferences';
+import {clearStoredParse} from './stored-parse';
+import {withCharacterTarget} from './character-target';
+import {CharacterCountCache,type CharacterCount,type CharacterCountOptions} from './character-count';
+import {outlineSizes,type OutlineSizes,type OutlineSizeMode} from './outline-size';
 import {cachedOutline,liveOutline} from './native-outline';
 import type {SourceHeading} from './model';
 import {mergeNativeOutline} from './native-projection';
@@ -22,39 +26,62 @@ import type {CompanionViewMode,NativeOption,NativeKind} from './native-types';
 import {sessionThoughts,needsCompanionCleanup} from './thought-session';
 import {prepareChapterFile as prepareChapter,type ChapterFilePlan} from './chapter-recovery';
 
-interface Runtime extends PairState {queue:Promise<void>;timer?:number;anchors:Map<string,number>;liveDoc?:Text;anchorDoc?:Text;anchorSource?:string;undo:HistoryAction[];redo:HistoryAction[];document?:CompanionDocument;working:boolean;outlineSource?:'editor'|'cache'|'fallback';relocation?:Promise<void>}
+interface Runtime extends PairState {queue:Promise<void>;timer?:number;anchors:Map<string,number>;liveDoc?:Text;anchorDoc?:Text;anchorSource?:string;countCache?:CharacterCountCache;undo:HistoryAction[];redo:HistoryAction[];document?:CompanionDocument;documentRevision?:number;members?:Set<string>;viewRead?:{revision:number;promise:Promise<CompanionDocument>};working:boolean;outlineDirty?:boolean;outlineSource?:'editor'|'cache'|'fallback';relocation?:Promise<void>}
 type HistoryAction={operation:ThoughtOperation}|{restore:NonNullable<OperationResult['restore']>}|{batch:HistoryAction[]};
 export class CompanionService extends Component {
  private layout:CompanionLayout=companionLayout(undefined);
  private thoughtSelection=new Map<string,string>();
  private moved=new Map<string,string>();private creating=new Map<string,Promise<unknown>>();
  private pairs=new Map<string,Runtime>();private listeners=new Set<()=>void>();private writing=new Set<string>();private saveTimer?:number;private started=false;private disposed=false;
- private transactions:CompanionTransactions;
+ private writeObservers=new Set<(path:string)=>void>();
+ private transactions:CompanionTransactions;private writeEvents=new Map<string,number>();
  private outlineCache=new Map<string,{source:string;headings:SourceHeading[]}>();private positions=new Map<string,number>();private positionListeners=new Set<(source:string,line:number)=>void>();
  private nativeOptions=new Map<string,NativeOption>();private viewModes=new Map<string,CompanionViewMode>();
- readonly metrics={sourceAnalyses:0,writes:0,liveEvents:0};
+ private sizeListeners=new Set<(source:string)=>void>();
+ readonly metrics={sourceAnalyses:0,writes:0,liveEvents:0,sizeCalculations:0,characterScans:0,readCalls:0,readMs:0,mutationMs:0,planMs:0,transactionMs:0,commitReadMs:0,verificationMs:0,beforeCallbackMs:0,afterCallbackMs:0,queueWaitMs:0};
  constructor(readonly app:App,data:unknown,private settings:()=>Settings,private persist:()=>Promise<void>){
   super();const saved=data&&typeof data==='object'?data as {pairs?:PairState[];pending?:unknown;layout?:unknown;nativeOptions?:NativeOption[];viewModes?:[string,CompanionViewMode][]}:{};
   this.layout=companionLayout(saved.layout);
-  this.transactions=new CompanionTransactions(app,persist,saved.pending,path=>[...this.pairs.values()].some(pair=>pair.source===path));
+  this.transactions=new CompanionTransactions(app,persist,saved.pending,path=>[...this.pairs.values()].some(pair=>pair.source===path),this.metrics,path=>{for(const observe of this.writeObservers)try{observe(path);}catch{/* Observers cannot reject a file operation. */}});
   for(const p of Array.isArray(saved.pairs)?saved.pairs:[])if(p&&validPath(p.path)&&validPath(p.source))this.registerPair(p.path,p.source);
   for(const item of Array.isArray(saved.nativeOptions)?saved.nativeOptions:[])if(item&&validPath(item.path)&&typeof item.section==='string'&&['eome','lineage'].includes(item.kind)&&typeof item.header==='string')this.nativeOptions.set(this.nativeKey(item.path,item.section,item.kind),item);
   for(const item of Array.isArray(saved.viewModes)?saved.viewModes:[])if(Array.isArray(item)&&validPath(item[0])&&['eome','lineage','reader'].includes(item[1]))this.viewModes.set(item[0],item[1]);
  }
+ observeFileProcess(observe:(path:string)=>void):()=>void{this.writeObservers.add(observe);return()=>this.writeObservers.delete(observe);}
  enabled():boolean{return featureEnabled(this.settings(),'companion');}
  onload():void{
   this.registerEvent(this.app.metadataCache.on('changed',(file,data,cache)=>this.metadata(file,data,cache)));
+  // Invalidate at the filesystem event, not only after Obsidian reparses metadata.
+  const invalidate=(file:{path:string})=>{if(this.writing.has(file.path)){const count=this.writeEvents.get(file.path);if(count!==undefined)this.writeEvents.set(file.path,count+1);return;}for(const p of this.pairs.values())if(p.path===file.path||p.members?.has(file.path)||Object.values(p.document?.files??{}).includes(file.path)){p.revision++;this.notify();}};
+  this.registerEvent(this.app.vault.on('modify',invalidate));this.registerEvent(this.app.vault.on('create',invalidate));
   let editorTimer:number|undefined;this.register(()=>{if(editorTimer)window.clearTimeout(editorTimer);});
   this.registerEvent(this.app.workspace.on('editor-change',(editor,view)=>{const path=view.file?.path;if(!path||sourceEditor(this.app,path)?.editor!==editor)return;const p=([...this.pairs.values()].find(pair=>pair.path===path||Object.values(pair.document?.files??{}).includes(path)));if(!p||this.writing.has(path)||!this.enabled())return;if(editorTimer)window.clearTimeout(editorTimer);editorTimer=window.setTimeout(()=>{p.revision++;this.notify();this.schedule(p.path,100);},250);}));
   this.registerEvent(this.app.vault.on('rename',(file,oldPath)=>{void this.rename(oldPath,file.path);}));
-  this.registerEvent(this.app.vault.on('delete',file=>{for(const p of [...this.pairs.values()])if(p.path===file.path||p.path.startsWith(file.path+'/'))this.forget(p.path);for(const pair of this.pairs.values()){if(pair.source===file.path||pair.source.startsWith(file.path+'/')){pair.missing=true;pair.error=t('companion.sourceMissing');pair.revision++;}if(Object.values(pair.document?.files??{}).some(path=>path===file.path||path.startsWith(file.path+'/')))pair.revision++;}this.notify();}));
-  this.register(()=>{this.disposed=true;for(const p of this.pairs.values())if(p.timer)window.clearTimeout(p.timer);if(this.saveTimer)window.clearTimeout(this.saveTimer);});
+  this.registerEvent(this.app.vault.on('delete',file=>{for(const p of [...this.pairs.values()])if(p.path===file.path||p.path.startsWith(file.path+'/'))this.forget(p.path);for(const pair of this.pairs.values()){if(pair.source===file.path||pair.source.startsWith(file.path+'/')){pair.missing=true;pair.error=t('companion.sourceMissing');pair.revision++;}if([...pair.members??[],...Object.values(pair.document?.files??{})].some(path=>path===file.path||path.startsWith(file.path+'/')))pair.revision++;}this.notify();}));
+  this.register(()=>{this.disposed=true;this.writeObservers.clear();clearStoredParse(this.app);clearThoughtCache();this.sizeListeners.clear();for(const p of this.pairs.values())if(p.timer)window.clearTimeout(p.timer);if(this.saveTimer)window.clearTimeout(this.saveTimer);});
  }
  start():void{if(this.started)return;this.started=true;for(const [key,item]of this.nativeOptions)if(!this.app.vault.getFileByPath(item.path))this.nativeOptions.delete(key);for(const pair of this.pairs.values())if(!this.app.vault.getFileByPath(pair.path))this.forget(pair.path);for(const file of this.app.vault.getMarkdownFiles()){const cache=this.app.metadataCache.getFileCache(file);if(cache?.frontmatter?.['emergence-companion-id'])this.discover(file,cache);}if(this.enabled())for(const p of this.pairs.values())this.schedule(p.path,20);}
  resume():void{if(!this.enabled())return;if(!this.started){this.start();return;}for(const p of this.pairs.values())this.schedule(p.path,20);}
  snapshot():unknown{return {layout:{...this.layout},pairs:[...this.pairs.values()].map(({path,source})=>({path,source,revision:0})),pending:[...this.transactions.pending.values()],nativeOptions:[...this.nativeOptions.values()],viewModes:[...this.viewModes]};}
  layoutPreferences():CompanionLayout{return {...this.layout};}
  setLayoutPreferences(value:CompanionLayout):void{this.layout=companionLayout(value);this.saveSoon();}
+ characterTarget(path:string):number|undefined{return this.pairs.get(this.canonicalPath(path))?.document?.targetCharacters;}
+ setCharacterTarget(path:string,target:number|undefined):Promise<void>{return this.enqueue(path,async p=>{const doc=await this.readForView(path),next=withCharacterTarget(doc,target);await this.commit(p,doc.original,next);});}
+ outlineSizeMode():OutlineSizeMode{return companionOutlineSizeMode(this.settings());}
+ outlineCountOptions():CharacterCountOptions{return companionCountOptions(this.settings());}
+ subscribeSourceSizes(callback:(source:string)=>void):()=>void{this.sizeListeners.add(callback);return()=>this.sizeListeners.delete(callback);}
+ /** Obsidian counts the complete Markdown source, not a sum of nested sections. */
+ sourceCharacters(path:string):number|undefined{
+  const p=this.pairs.get(this.canonicalPath(path));if(!this.enabled()||!p?.document||p.missing)return;
+  const source=p.anchorDoc??p.anchorSource;return source===undefined?undefined:this.sourceCount(p,source).count(0,source.length);
+ }
+ private sourceCount(p:Runtime,source:string|Text):CharacterCount{const cache=p.countCache??=new CharacterCountCache(),before=cache.scans,result=cache.get(source,this.outlineCountOptions());this.metrics.characterScans+=cache.scans-before;return result;}
+ sectionSizes(path:string,mode:Exclude<OutlineSizeMode,'off'>):OutlineSizes|undefined{
+  const p=this.pairs.get(this.canonicalPath(path));if(!this.enabled()||!p?.document||p.missing||p.outlineDirty)return;
+  const source=p.anchorDoc??p.anchorSource;if(source===undefined)return;
+  this.metrics.sizeCalculations++;return outlineSizes(p.document.sections,p.anchors,source,mode,this.sourceCount(p,source));
+ }
+ private sourceSizeChanged(source:string):void{for(const callback of this.sizeListeners)callback(source);}
  viewMode(path:string):CompanionViewMode{return this.viewModes.get(this.canonicalPath(path))??defaultCompanionView(this.settings());}
  setViewMode(path:string,mode:CompanionViewMode):void{this.viewModes.set(this.canonicalPath(path),mode);this.saveSoon();}
  selectedThought(path:string,section:string):string{return this.thoughtSelection.get(JSON.stringify([this.canonicalPath(path),section]))??'';}
@@ -64,7 +91,7 @@ export class CompanionService extends Component {
  saveNativeHeader(path:string,section:string,kind:NativeKind,header:string):void{if(this.nativeHeader(path,section,kind)===header)return;this.nativeOptions.set(this.nativeKey(path,section,kind),{path:this.canonicalPath(path),section,kind,header});this.saveSoon();}
  replaceNativeSection(path:string,id:string,expected:string,text:string):Promise<string>{path=this.canonicalPath(path);return this.enqueue(path,async p=>{const doc=markThoughts(await this.readForView(path)),section=doc.sections.find(section=>section.id===id);if(!section||doc.unavailableFiles?.[id]||section.raw!==expected)throw new Error(t('companion.nativeConflict'));const next=mergeNativeOutline(section,text);if(section.raw!==next){section.raw=next;section.format=2;validateThoughts(doc);await this.commit(p,doc.original,doc);p.undo=[];p.redo=[];}return p.document?.sections.find(section=>section.id===id)?.raw??section.raw;});}
  list():PairState[]{return [...this.pairs.values()].map(({path,source,error,revision,missing})=>({path,source,error,revision,missing}));}
- pair(path:string):PairState|undefined{return this.list().find(p=>p.path===path);}
+ pair(path:string):PairState|undefined{const p=this.pairs.get(path);return p?{path:p.path,source:p.source,error:p.error,revision:p.revision,missing:p.missing}:undefined;}
  forSource(path:string):PairState[]{return this.list().filter(p=>p.source===path);}
  mainFor(path:string):string|undefined{
   const pair=this.pairs.get(this.canonicalPath(path))??[...this.pairs.values()].find(p=>Object.values(p.document?.files??{}).includes(path));if(pair)return pair.source;
@@ -97,31 +124,35 @@ export class CompanionService extends Component {
   if(this.tracks(file.path)&&cache.headings)this.outlineCache.set(file.path,{source:data,headings:cachedOutline(data,cache.headings)});
   if(cache.frontmatter?.['emergence-companion-id'])this.discover(file,cache);
   if(!this.started||!this.enabled()||this.writing.has(file.path))return;
-  for(const p of this.pairs.values())if(p.document?.files&&Object.values(p.document.files).includes(file.path)){p.revision++;this.schedule(p.path,350);this.notify();}
-  const companion=this.pairs.get(file.path);if(companion){companion.revision++;this.notify();this.schedule(file.path,350);}
+  for(const p of this.pairs.values())if(p.document?.files&&Object.values(p.document.files).includes(file.path)&&p.document.fileOriginals?.[file.path]!==data){p.revision++;this.schedule(p.path,350);this.notify();}
+  const companion=this.pairs.get(file.path);if(companion&&companion.document?.original!==data){companion.revision++;this.notify();this.schedule(file.path,350);}
   for(const p of this.pairs.values())if(p.source===file.path){if(p.liveDoc?.toString()===data)continue;this.schedule(p.path,350);}
  }
  tracks(path:string):boolean{return this.enabled()&&[...this.pairs.values()].some(p=>p.source===path);}
  live(path:string,before:Text,after:Text,changes:ChangeDesc,structural:boolean):void{
   if(!this.enabled())return;this.metrics.liveEvents++;
   for(const p of this.pairs.values())if(p.source===path){
+   p.countCache?.update(before,after,changes);if(structural)p.outlineDirty=true;
    if(p.anchorDoc?.eq(after)){p.liveDoc=after;if(structural)this.schedule(p.path,280);continue;}
    if(p.anchorDoc&&p.anchorDoc!==before&&!p.anchorDoc.eq(before))p.anchors.clear();
    if(!p.anchorDoc&&p.anchorSource!==undefined){const old=before.toString();if(p.anchorSource!==old){if(p.anchorSource.replace(/\r\n/gu,'\n')===old){const headings=sourceHeadings(old);p.anchors=new Map((p.document?.sections??[]).filter(s=>s.base&&headings[s.base.index]?.title===s.base.title).map(s=>[s.id,headings[s.base!.index]!.from]));}else p.anchors.clear();}}
    p.anchorDoc=after;mapAnchors(p.anchors,changes);p.liveDoc=after;if(structural)this.schedule(p.path,280);}
+  this.sourceSizeChanged(path);
  }
  private schedule(path:string,delay:number):void{const p=this.pairs.get(path);if(!p||this.disposed||!this.enabled())return;if(p.timer)window.clearTimeout(p.timer);p.timer=window.setTimeout(()=>{p.timer=undefined;void this.sync(path).catch(()=>{});},delay);}
  private enqueue<T>(path:string,action:(p:Runtime)=>Promise<T>):Promise<T>{
   const p=this.pairs.get(path);if(!p)return Promise.reject(new Error(t('companion.fileMissing')));
-  const run=p.queue.then(async()=>{if(this.disposed)throw new Error(t('companion.closed'));if(this.pairs.get(path)!==p||!this.app.vault.getFileByPath(path))throw new Error(t('companion.fileMissing'));p.working=true;const revision=p.revision,previousError=p.error;try{const result=await action(p);p.error=undefined;return result;}catch(error){p.error=error instanceof Error?error.message:String(error);throw error;}finally{p.working=false;if(p.revision!==revision||p.error!==previousError)this.notify();}});p.queue=run.then(()=>{},()=>{});return run;
+  const queuedAt=performance.now(),run=p.queue.then(async()=>{this.metrics.queueWaitMs+=performance.now()-queuedAt;if(this.disposed)throw new Error(t('companion.closed'));if(this.pairs.get(path)!==p||!this.app.vault.getFileByPath(path))throw new Error(t('companion.fileMissing'));p.working=true;const revision=p.revision,previousError=p.error;try{const result=await action(p);p.error=undefined;return result;}catch(error){p.documentRevision=undefined;p.error=error instanceof Error?error.message:String(error);throw error;}finally{p.working=false;if(p.revision!==revision||p.error!==previousError)this.notify();}});p.queue=run.then(()=>{},()=>{});return run;
  }
  async read(path:string):Promise<CompanionDocument>{return this.readWorking(path,false);}
  async readForView(path:string):Promise<CompanionDocument>{return this.readWorking(path,true);}
  private async readWorking(path:string,partial:boolean):Promise<CompanionDocument>{
-  const runtime=this.pairs.get(path),revision=runtime?.revision;
-  const stored=await (partial?readStoredForView(this.app,path):readStored(this.app,path)),doc=sessionThoughts(stored,runtime?.document);
-  if(runtime&&runtime.revision===revision)runtime.document=doc;return doc;
+  const runtime=this.pairs.get(path),revision=runtime?.revision,started=performance.now();
+  const members=(doc:CompanionDocument)=>{if(runtime)runtime.members=new Set(Object.values(doc.files??{}));};
+  const stored=await (partial?readStoredForView(this.app,path,undefined,members):readStored(this.app,path,members)),doc=sessionThoughts(stored,runtime?.document);
+  this.metrics.readCalls++;this.metrics.readMs+=performance.now()-started;if(runtime&&runtime.revision===revision){runtime.document=doc;runtime.documentRevision=revision;}return doc;
  }
+ async readOutline(path:string):Promise<CompanionDocument>{const p=this.pairs.get(path);return p?.document&&p.documentRevision===p.revision?structuredClone(p.document):readStoredOutline(this.app,path);}
  async missingFiles(path:string):Promise<{title:string;path:string}[]>{
   const doc=parseCompanion(await readNote(this.app,path));readStorage(doc);if(doc.storage?.mode!=='sections')return [];
   return doc.sections.filter(section=>!doc.files?.[section.id]||!this.app.vault.getFileByPath(doc.files[section.id]!)).map(section=>({title:section.title,path:doc.files?.[section.id]??t('companion.noFileLink')}));
@@ -155,9 +186,14 @@ export class CompanionService extends Component {
   await this.commit(p,doc.original,doc);p.undo=[];p.redo=[];
  });}
  private async commit(p:Runtime,_before:string,doc:CompanionDocument,first:FileWrite[]=[]):Promise<void>{
+  const revision=p.revision,current=p.documentRevision===revision;
   if(doc.storage?.location==='folder')await ensureFolder(this.app,doc.storage.folder);
-  const plan=[...first,...planStorage(this.app,p.path,doc)];for(const item of plan)this.writing.add(item.path);
-  try{await this.transactions.apply(p.path,plan);if(plan.length){this.metrics.writes+=plan.length;p.revision++;}p.document=sessionThoughts(await readStoredForView(this.app,p.path),doc);p.source=doc.source;}finally{for(const item of plan)this.writing.delete(item.path);}
+  const planned=performance.now(),plan=[...first,...planStorage(this.app,p.path,doc)];this.metrics.planMs+=performance.now()-planned;for(const item of plan){this.writing.add(item.path);this.writeEvents.set(item.path,0);}
+  try{const writing=performance.now();await this.transactions.apply(p.path,plan);this.metrics.transactionMs+=performance.now()-writing;const unchanged=p.revision===revision&&!plan.some(item=>(this.writeEvents.get(item.path)??0)>(sourceEditor(this.app,item.path)?0:1));if(plan.length){this.metrics.writes+=plan.length;p.revision++;}
+   // Successful writes already provide the exact stored bytes. Reparse those bytes
+   // to retain serializer normalization, without another disk read of every chapter.
+   const reading=performance.now(),texts=new Map([[p.path,doc.original],...Object.entries(doc.fileOriginals??{}),...plan.map(w=>[w.path,w.after] as [string,string])]);p.document=sessionThoughts(await readStoredForView(this.app,p.path,texts),doc);p.members=new Set(Object.values(p.document.files??{}));p.documentRevision=current&&unchanged?p.revision:undefined;this.metrics.commitReadMs+=performance.now()-reading;p.source=doc.source;
+  }finally{for(const item of plan){this.writing.delete(item.path);this.writeEvents.delete(item.path);}}
  }
  recoveryPlan(path:string):unknown{return structuredClone(this.transactions.pending.get(path));}
  acceptRecovery(path:string):Promise<void>{return this.enqueue(path,async p=>{await this.transactions.accept(path,async()=>{await this.read(path);});p.revision++;});}
@@ -171,6 +207,7 @@ export class CompanionService extends Component {
   const result=reconcile(doc,source,p.liveDoc?.toString()===source&&p.anchors.size?p.anchors:undefined,headings);p.anchorSource=source;p.anchorDoc=p.liveDoc?.toString()===source?p.liveDoc:undefined;p.anchors=new Map(result.document.sections.filter(s=>s.state==='linked'&&s.base).map(s=>[s.id,s.base!.from]));
   const marked=markThoughts(result.document),newMarkers=marked.sections.some((s,i)=>s.raw!==result.document.sections[i]?.raw);
   if(result.changed||newMarkers||needsCompanionCleanup(doc)||doc.storageDrift)await this.commit(p,doc.original,marked);else p.document=result.document;
+  p.outlineDirty=false;this.sourceSizeChanged(p.source);
  }).then(async()=>{
   const p=runtime;if(!p||!p.document?.storage||p.document.storage.location==='folder'||p.path.split('/').slice(0,-1).join('/')===targetFolder(p.source,p.document.storage))return;
   if(p.relocation)return p.relocation;
@@ -191,13 +228,25 @@ export class CompanionService extends Component {
   // Creation is complete. A later reconciliation error belongs to the newly selected file.
   await this.sync(path).catch(error=>{if(!this.app.vault.getFileByPath(path))throw error;});return path;
  }
- normalize(path:string):Promise<void>{return this.enqueue(path,async p=>{const doc=await this.readForView(path),marked=markThoughts(doc);if(needsCompanionCleanup(doc))await this.commit(p,doc.original,marked);});}
+ /** Display reads never wait behind the write queue or reread a confirmed revision. */
+ async viewDocument(path:string):Promise<CompanionDocument>{
+  if(this.disposed)throw new Error(t('companion.closed'));
+  const p=this.pairs.get(path);if(!p||!this.app.vault.getFileByPath(path))throw new Error(t('companion.fileMissing'));
+  if(p.document&&p.documentRevision===p.revision&&!needsCompanionCleanup(p.document))return structuredClone(p.document);
+  if(!p.viewRead||p.viewRead.revision!==p.revision){const load={revision:p.revision,promise:this.readForView(path)};p.viewRead=load;void load.promise.then(()=>{if(p.viewRead===load)p.viewRead=undefined;},()=>{if(p.viewRead===load)p.viewRead=undefined;});}
+  const load=p.viewRead,doc=await load.promise;
+  if(this.pairs.get(path)!==p||!this.app.vault.getFileByPath(path))throw new Error(t('companion.fileMissing'));
+  if(p.revision!==load.revision)return this.viewDocument(path);
+  if(needsCompanionCleanup(doc))return this.normalize(path);
+  return structuredClone(doc);
+ }
+ normalize(path:string):Promise<CompanionDocument>{return this.enqueue(path,async p=>{const doc=await this.readForView(path);if(needsCompanionCleanup(doc)){await this.commit(p,doc.original,markThoughts(doc));return structuredClone(p.document!);}return doc;});}
  execute(path:string,operation:ThoughtOperation,history=true):Promise<void>{return this.enqueue(path,async p=>{
   const doc=markThoughts(await this.readForView(path)),result=applyThought(doc,operation);await this.commit(p,doc.original,result.document);
   if(history){const inverse=this.inverse(result);if(inverse)p.undo.push(inverse);p.redo=[];if(p.undo.length>100)p.undo.shift();}
  });}
  executeMany(path:string,operations:ThoughtOperation[]):Promise<void>{return this.enqueue(path,async p=>{
-  let doc=markThoughts(await this.readForView(path));const inverse:HistoryAction[]=[];for(const operation of operations){const result=applyThought(doc,operation);doc=result.document;const action=this.inverse(result);if(action)inverse.unshift(action);}await this.commit(p,doc.original,doc);if(inverse.length)p.undo.push({batch:inverse});p.redo=[];if(p.undo.length>100)p.undo.shift();
+  const current=await this.readForView(path),started=performance.now();let doc=markThoughts(current);const inverse:HistoryAction[]=[];for(const operation of operations){const result=applyThought(doc,operation);doc=result.document;const action=this.inverse(result);if(action)inverse.unshift(action);}this.metrics.mutationMs+=performance.now()-started;await this.commit(p,doc.original,doc);if(inverse.length)p.undo.push({batch:inverse});p.redo=[];if(p.undo.length>100)p.undo.shift();
  });}
  private applyHistory(doc:CompanionDocument,action:HistoryAction):{document:CompanionDocument;inverse?:HistoryAction}{
   if('batch'in action){const inverses:HistoryAction[]=[];for(const step of action.batch){const result=this.applyHistory(doc,step);doc=result.document;if(result.inverse)inverses.unshift(result.inverse);}return {document:doc,inverse:{batch:inverses}};}

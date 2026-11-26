@@ -1,6 +1,6 @@
 {
   "name": "emergence",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Lokaler Multiplex-Wissensgraph und kontrollierte KI-Vorschläge für Obsidian",
   "main": "main.js",
   "type": "module",
@@ -92,6 +92,7 @@
   "dependencies": {
     "@argdown/core": "^2.0.1",
     "@hpcc-js/wasm-graphviz": "^1.30.0",
+    "@lezer/common": "^1.5.5",
     "@lezer/markdown": "^1.8.1",
     "ajv": "^8.20.0",
     "cytoscape": "^3.34.4",
