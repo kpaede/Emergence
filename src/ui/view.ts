@@ -59,12 +59,10 @@ export class EmergenceView extends ItemView {
  async onOpen(): Promise<void> {
   this.contentEl.empty(); this.contentEl.addClass('em-workspace');
   const header = this.contentEl.createDiv({cls: 'em-header'});
-  const line = header.createDiv({cls: 'em-heading-line'}); line.createSpan({text: tr("common.emergence"), cls: 'em-brand'});
+  const nav = header.createDiv({cls: 'em-tabs', attr: {role: 'tablist'}});nameWithoutTooltip(nav,tr('common.emergence_views'),header);
   const statusBox = header.createEl('details', {cls: 'em-status-disclosure'});
   this.status = statusBox.createEl('summary', {text: tr("common.ready"), attr: {'aria-label': tr("common.show_operational_status")}});
   this.statusDetails = statusBox.createDiv({cls: 'em-status-details'});
-  line.append(statusBox);
-  const nav = header.createDiv({cls: 'em-tabs', attr: {role: 'tablist'}});nameWithoutTooltip(nav,tr('common.emergence_views'),header);
   const body = this.contentEl.createDiv({cls: 'em-body'});
   for (const {id, label, icon} of tabs) {
    const button = nav.createEl('button', {text: label, attr: {role: 'tab', id: `${this.tabId}-${id}`, 'aria-controls': `${this.tabId}-panel-${id}`, type: 'button'}});

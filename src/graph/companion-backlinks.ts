@@ -1,7 +1,7 @@
 import type {App,CachedMetadata} from 'obsidian';
 import {backlinkSources} from './backlinks';
 
-const structuralKey=(key:string)=>key==='emergence-main-document'||key.startsWith('emergence-sections.')||key.startsWith('emergence-section-files.');
+const structuralKey=(key:string)=>key==='emergence-main-document'||key.startsWith('emergence-sections.')||key.startsWith('emergence-section-files.')||key.startsWith('emergence-outline.');
 function record(value:unknown):Record<string,unknown>{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};}
 function resolved(app:App,link:unknown,source:string):string|undefined{
  if(typeof link!=='string')return;

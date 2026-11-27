@@ -4,6 +4,7 @@ import {synopsisPositions} from './graph/synopsis-layout';
 import {features} from './features';
 import {validStorage,validCompanionView} from './companion/preferences';
 import {validOutlineSizeMode} from './companion/outline-size';
+import {validateOutlinePreferences} from './companion/outline-preferences';
 import {validTetradFormat} from './tetrad/preferences';
 import type {OutputModule, Profile, RelationRule, Settings} from './types';
 import {assert, clone, safeProperty} from './util';
@@ -46,6 +47,7 @@ export function validateSettings(s: Settings): void {
  assert(s.uiLanguage === undefined || ['auto','de','en'].includes(s.uiLanguage), tr("common.invalid_interface_language"));
  assert(s.hideCompanionBacklinks===undefined||typeof s.hideCompanionBacklinks==='boolean',tr('settings.invalidBacklinkFilter'));
  if(s.companion!==undefined)assert(validStorage(s.companion?.storage),tr('companion.invalidStorage'));
+ validateOutlinePreferences(s);
  if(s.companion?.defaultView!==undefined)assert(validCompanionView(s.companion.defaultView),tr('companion.invalidView'));
  if(s.companion?.outlineSizes!==undefined)assert(validOutlineSizeMode(s.companion.outlineSizes),tr('companion.invalidOutlineSizes'));
  for(const option of [s.companion?.countWhitespace,s.companion?.countFootnotes])if(option!==undefined)assert(typeof option==='boolean',tr('companion.invalidCountOption'));

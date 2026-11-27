@@ -10,19 +10,19 @@ Deaktivierte Register, ihre spezifischen Befehle und Diagramm-Bearbeitungsaktion
 
 Bei ausgeschaltetem Graphen bietet die Suche weiterhin **Öffnen**; **Erkunden** wird erst mit dem Graphen wieder verfügbar. Hintergrundaktualisierungen des Wissensgraphen pausieren, wenn Graph, Feldideen und Suche sämtlich deaktiviert sind. Vorlagenordner deaktivierter Editoren werden nicht gelesen. Das Anzeigen bereits gespeicherter Diagramme in Notizen bleibt vom Zugriff auf ihre Editoren getrennt.
 
-## Graph-Vorschau
+## Graph konfigurieren
 
-Die anklickbare Vorschau verwendet den tatsächlichen Graph-Renderer mit synthetischen Beispieldaten. Es werden keine Notizinhalte dafür gelesen. Eine Überschrift wählt den darunterliegenden Einstellungsbereich aus. Dort lassen sich festlegen:
+Die Vorschau und das zugehörige Formular bilden einen gemeinsamen Abschnitt auf der normalen Graph-Einstellungsseite. Bei genügend Platz stehen sie nebeneinander, bei schmaler Breite untereinander. Es öffnet sich kein zusätzliches Fenster und keine weitere Unterseite. Die Vorschau verwendet denselben Renderer wie der Graph, mit synthetischen Beispieldaten; es werden keine Notizinhalte dafür gelesen.
 
-- eine eigene Überschrift; leer verwendet die bisherige, übersetzbare Vorgabe;
-- Position **Oben**, **Links**, **Rechts**, **Unten**, **Liste unter dem Graphen** oder **Ausgeblendet**;
-- Reihenfolge innerhalb einer Position, per Ziehen oder über die Pfeilschaltflächen;
-- Tiefe 1, 2, 3 oder alle erreichbaren Ebenen;
-- zugeordnete Breadcrumbs-Felder. Literatur kann außerdem aus ZotLit stammen; freie Verweise kommen aus dem Notiztext.
+Ein Klick auf einen Bereichsnamen in der Grafik und die Auswahl **Bereich** steuern dasselbe, dauerhaft sichtbare Formular. Ausgeblendete Bereiche bleiben dort auswählbar. Die Vorschau zeigt die Anzahl der Hierarchieebenen als Text; eingestellt wird sie einmalig im Formular.
 
-Überschriften lassen sich auf andere Überschriften oder auf die beschrifteten Zielbereiche unter der Vorschau ziehen. Die Positionsauswahl und Reihenfolgeschaltflächen bieten dieselben Änderungen ohne Ziehen. Ausgeblendete Zweige bleiben im Auswahlmenü verfügbar.
+- **Breadcrumbs-Felder**: zugeordnete Felder und Wiederherstellung der Standardzuordnung. Literatur behält zusätzlich ZotLit als Quelle; freie Verweise stammen aus dem Notiztext.
+- **Anordnung**: Position **Oben**, **Links**, **Rechts**, **Unten**, **Liste unter dem Graphen** oder **Ausgeblendet**. Nur wenn mehrere sichtbare Bereiche dieselbe Position haben, erscheint **Reihenfolge an dieser Position** mit **An erster Stelle** und **Nach „…“**. Das ordnet ganze Bereiche innerhalb ihrer Position an und hat mit der Schreibweise ihrer Überschrift nichts zu tun.
+- **Anzeige**: eigene Überschrift und **Hierarchieebenen** (1, 2, 3 oder alle erreichbaren Beziehungsschritte ab der aktuellen Notiz). Eine leere Überschrift verwendet die übersetzbare Vorgabe.
 
-Die Anordnung verändert die Darstellung und nicht die fachliche Beziehung. Eine nach rechts verschobene Überordnung bleibt eine Überordnung; Breadcrumbs-Feldnamen und Properties werden nicht umbenannt. Die bisherige Zuordnung und Anordnung gelten weiter, solange sie nicht verändert werden. **Graph-Darstellung zurücksetzen** setzt Überschriften, Positionen, Reihenfolge und Tiefen zurück und erhält Feldzuordnungen. Änderungen gehören zum gemeinsamen Einstellungsentwurf und werden erst mit **Änderungen speichern** übernommen.
+Überschriften lassen sich weiterhin auf andere Überschriften oder die beschrifteten Zielbereiche unter der Vorschau ziehen. Die Formularauswahl bietet dieselben Änderungen ohne Ziehen. Die Anordnung verändert die Darstellung; eine nach rechts verschobene Überordnung bleibt fachlich eine Überordnung. Feldnamen und Properties werden nicht umbenannt.
+
+**Graph-Darstellung zurücksetzen** setzt Überschriften, Positionen, Reihenfolge und Tiefen zurück und erhält Feldzuordnungen. Änderungen gehören zum gemeinsamen Einstellungsentwurf und werden erst mit **Änderungen speichern** übernommen.
 
 ## Mermaid- und Argdown-Vorlagenordner
 

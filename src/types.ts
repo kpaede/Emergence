@@ -57,7 +57,7 @@ export interface Profile {
 }
 export interface Settings {
  tetrad?:{format:import('./tetrad/preferences').TetradFormat};
- companion?:{storage:import('./companion/model').StorageOptions;defaultView?:import('./companion/native-types').CompanionViewMode;outlineSizes?:import('./companion/outline-size').OutlineSizeMode;countWhitespace?:boolean;countFootnotes?:boolean};
+ companion?:{storage:import('./companion/model').StorageOptions;defaultView?:import('./companion/native-types').CompanionViewMode;outlineSizes?:import('./companion/outline-size').OutlineSizeMode;countWhitespace?:boolean;countFootnotes?:boolean;outlineDefaults?:import('./companion/model').OutlineRules;markerHeadingLevel?:number;markerRefreshSeconds?:number;defaultCharacterTarget?:number};
  features?:Partial<Record<import('./features').Feature,boolean>>;
  uiLanguage?: import('./i18n').InterfaceLanguage;
  hideCompanionBacklinks?:boolean;

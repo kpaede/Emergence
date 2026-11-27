@@ -1,9 +1,11 @@
 export interface SourceHeading {title:string;level:number;from:number;line:number;parent:number;body:string}
-export type SectionState='linked'|'review'|'detached'|'general';
+export type SectionState='linked'|'review'|'detached'|'general'|'excluded';
+export interface OutlineRules {ignore:string[];markers:string[]}
+export interface NavigationHeading extends SourceHeading {key:string;kind:'section'|'excluded'|'marker';section?:string}
 export interface SectionBase extends SourceHeading {index:number}
 export interface CompanionSection {id:string;title:string;level:number;state:SectionState;base?:SectionBase;raw:string;format?:2;plain?:boolean}
 export interface ChapterFileIssue {path:string;reason:'missing'|'invalid';reference:string;message?:string}
-export interface CompanionDocument {id:string;source:string;sections:CompanionSection[];preamble:string;newline:string;original:string;header:string;storage?:StorageOptions;files?:Record<string,string>;fileOriginals?:Record<string,string>;storageDrift?:boolean;targetCharacters?:number;unavailableFiles?:Record<string,ChapterFileIssue>}
+export interface CompanionDocument {id:string;source:string;sections:CompanionSection[];preamble:string;newline:string;original:string;header:string;storage?:StorageOptions;files?:Record<string,string>;fileOriginals?:Record<string,string>;storageDrift?:boolean;targetCharacters?:number;outlineRules?:OutlineRules;outline?:NavigationHeading[];unavailableFiles?:Record<string,ChapterFileIssue>}
 export interface Thought {id:string;section:string;from:number;to:number;lineFrom:number;lineTo:number;indent:string;text:string;marker:string;parent?:string}
 export interface PairState {path:string;source:string;error?:string;revision:number;missing?:boolean}
 export const newId=():string=>crypto.randomUUID();

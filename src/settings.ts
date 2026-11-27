@@ -15,6 +15,8 @@ import {settingsDefinitions, type SettingsSection} from './ui/settings/definitio
 import {validTemplateFolder,type TemplateKind} from './diagrams/template-notes';
 import {features,featureEnabled,type Feature} from './features';
 import {companionStorageDefaults,validStorage,defaultCompanionView,validCompanionView,companionOutlineSizeMode,companionCountOptions} from './companion/preferences';
+import {outlineSettingDefinitions} from './companion/outline-settings';
+import {isOutlineControl,outlineControlValue,outlineControlChange,type OutlineControlKey} from './companion/outline-preferences';
 import {validOutlineSizeMode} from './companion/outline-size';
 import {companionViews} from './companion/native-types';
 import {defaultTetradFormat,validTetradFormat} from './tetrad/preferences';
@@ -23,6 +25,7 @@ interface EditorMount {section:SettingsSection;body:HTMLElement;message:HTMLElem
 export class EmergenceSettingsTab extends PluginSettingTab {
  private draft?: Settings; private field = '';
  private profileEditor = defaultProfileEditor();
+ private outlineSaves:Promise<void>=Promise.resolve();
  private dirty = false; private saving = false; private revision = 0; private mounts = new Set<EditorMount>();
  constructor(app: App, private plugin: EmergencePlugin) {super(app, plugin);}
  getSettingDefinitions(): SettingDefinitionItem[] {
@@ -47,6 +50,7 @@ export class EmergenceSettingsTab extends PluginSettingTab {
   {name:tr('companion.outlineSizes'),desc:tr('companion.outlineSizesHelp'),aliases:['Zeichen','Balken','Abschnittslänge','Character count','Section size'],control:{type:'dropdown',key:'companion_outlineSizes',defaultValue:'off',options:{off:tr('companion.outlineSizesOff'),section:tr('companion.outlineSizesSection'),subtree:tr('companion.outlineSizesSubtree')},disabled:()=>this.saving}},
   {name:tr('companion.countWhitespace'),desc:tr('companion.countWhitespaceHelp'),control:{type:'toggle',key:'companion_countWhitespace',defaultValue:true,disabled:()=>this.saving}},
   {name:tr('companion.countFootnotes'),desc:tr('companion.countFootnotesHelp'),control:{type:'toggle',key:'companion_countFootnotes',defaultValue:true,disabled:()=>this.saving}},
+  ...outlineSettingDefinitions(this.plugin.settings,()=>this.saving),
   {name:tr('companion.storageDefaults'),desc:tr('companion.defaultsHelp')},
   {name:tr('companion.storageMode'),control:{type:'dropdown',key:'companion_mode',defaultValue:'document',options:{document:tr('companion.oneDocument'),sections:tr('companion.perHeading')},disabled:()=>this.saving}},
   {name:tr('companion.storageLocation'),control:{type:'dropdown',key:'companion_location',defaultValue:'subfolder',options:{beside:tr('companion.beside'),subfolder:tr('companion.subfolder'),folder:tr('companion.separateFolder')},disabled:()=>this.saving}},
@@ -59,7 +63,7 @@ export class EmergenceSettingsTab extends PluginSettingTab {
    {name:tr('settings.templateFolder'),desc:tr('settings.templateFolderHelp'),control:{type:'folder',key:kind+'TemplateFolder',defaultValue:'',includeRoot:false,filter:folder=>validTemplateFolder(folder.path,this.app.vault.configDir),disabled:()=>this.saving}},
    {name:tr('settings.templateFolderRefresh'),desc:library.folderStatus||tr('settings.templateFolderCount',{count:library.list().filter(item=>item.path).length}),render:setting=>{setting.addButton(button=>button.setButtonText(tr('settings.templateFolderRefresh')).onClick(()=>{void this.plugin.controller.run(async()=>{await library.refresh();this.update();});}));}}];
  }
- override getControlValue(key:string):unknown{if(key==='hideCompanionBacklinks')return this.plugin.settings.hideCompanionBacklinks!==false;const display=displayField(key);if(display)return this.plugin.tetradStore.display[display];const feature=features.find(feature=>key==='feature_'+feature);if(feature)return featureEnabled(this.plugin.settings,feature);if(key==='tetrad_format')return defaultTetradFormat(this.plugin.settings);if(key==='companion_defaultView')return defaultCompanionView(this.plugin.settings);if(key==='companion_outlineSizes')return companionOutlineSizeMode(this.plugin.settings);if(key==='companion_countWhitespace')return companionCountOptions(this.plugin.settings).whitespace;if(key==='companion_countFootnotes')return companionCountOptions(this.plugin.settings).footnotes;if(key.startsWith('companion_'))return companionStorageDefaults(this.plugin.settings)[key.slice(10) as keyof import('./companion/model').StorageOptions];if(key==='mermaidTemplateFolder'||key==='argdownTemplateFolder')return this.plugin.settings.templateFolders?.[key==='mermaidTemplateFolder'?'mermaid':'argdown']??'';return super.getControlValue(key);}
+ override getControlValue(key:string):unknown{if(isOutlineControl(key))return outlineControlValue(this.plugin.settings,key);if(key==='hideCompanionBacklinks')return this.plugin.settings.hideCompanionBacklinks!==false;const display=displayField(key);if(display)return this.plugin.tetradStore.display[display];const feature=features.find(feature=>key==='feature_'+feature);if(feature)return featureEnabled(this.plugin.settings,feature);if(key==='tetrad_format')return defaultTetradFormat(this.plugin.settings);if(key==='companion_defaultView')return defaultCompanionView(this.plugin.settings);if(key==='companion_outlineSizes')return companionOutlineSizeMode(this.plugin.settings);if(key==='companion_countWhitespace')return companionCountOptions(this.plugin.settings).whitespace;if(key==='companion_countFootnotes')return companionCountOptions(this.plugin.settings).footnotes;if(key.startsWith('companion_'))return companionStorageDefaults(this.plugin.settings)[key.slice(10) as keyof import('./companion/model').StorageOptions];if(key==='mermaidTemplateFolder'||key==='argdownTemplateFolder')return this.plugin.settings.templateFolders?.[key==='mermaidTemplateFolder'?'mermaid':'argdown']??'';return super.getControlValue(key);}
  private async setTemplateFolder(kind:TemplateKind,path:string):Promise<void>{
   path=path.trim().replace(/\/+$/u,'');if(!validTemplateFolder(path,this.app.vault.configDir))throw new Error(tr('settings.invalidTemplateFolder'));
   const previous=this.plugin.settings.templateFolders;this.saving=true;this.updateSave();this.refreshDomState();
@@ -68,7 +72,18 @@ export class EmergenceSettingsTab extends PluginSettingTab {
   finally{this.saving=false;this.updateSave();this.refreshDomState();}
   await this.plugin.templateFolders.refresh(kind);
  }
+ async flushPreferences():Promise<void>{await this.outlineSaves;}
+ private saveOutlinePreference(key:OutlineControlKey,value:string):Promise<void>{
+  const save=this.outlineSaves.then(async()=>{
+   const previous=this.plugin.settings.companion,change=outlineControlChange(this.plugin.settings,key,value);this.plugin.settings.companion=change.companion;
+   try{await this.plugin.saveSettings();if(this.draft)this.draft.companion=clone(this.plugin.settings.companion);}
+   catch(error){if(this.plugin.settings.companion===change.companion)this.plugin.settings.companion=previous;else if(this.plugin.settings.companion?.[change.field]===change.value)this.plugin.settings.companion={...this.plugin.settings.companion,[change.field]:change.previous};throw error;}
+   if(key==='companion_markerRefreshSeconds')for(const leaf of this.app.workspace.getLeavesOfType('emergence-workspace'))(leaf.view as import('./ui/view').EmergenceView).companionPanel?.refreshOutlineSizes();
+  });this.outlineSaves=save.catch(()=>{});return save;
+ }
  override async setControlValue(key:string,value:unknown):Promise<void> {
+  if(isOutlineControl(key)){if(typeof value!=='string')throw new Error(tr('companion.invalidOutlineRules'));return this.saveOutlinePreference(key,value);}
+  await this.flushPreferences();
   if(key==='hideCompanionBacklinks'&&!this.saving){
    if(typeof value!=='boolean')throw new Error(tr('settings.invalidBacklinkFilter'));const previous=this.plugin.settings.hideCompanionBacklinks;this.saving=true;this.updateSave();this.refreshDomState();
    try{this.plugin.settings.hideCompanionBacklinks=value;await this.plugin.saveSettings();if(this.draft)this.draft.hideCompanionBacklinks=value;}catch(error){this.plugin.settings.hideCompanionBacklinks=previous;throw error;}finally{this.saving=false;this.updateSave();this.refreshDomState();}
@@ -155,6 +170,7 @@ export class EmergenceSettingsTab extends PluginSettingTab {
  private updateSave():void {for(const mount of this.mounts){mount.saveButton.disabled=this.saving||!this.dirty;mount.discardButton.disabled=this.saving;}}
  private async save(): Promise<void> {
   if (!this.draft||this.saving) return;
+  await this.flushPreferences();
   try {
    const currentDraft=this.draft,revision=this.revision;
    validateSettings(this.draft);

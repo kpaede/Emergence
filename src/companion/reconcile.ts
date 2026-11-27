@@ -1,5 +1,6 @@
 import {newId,type CompanionDocument,type CompanionSection,type SourceHeading} from './model';
 import {sourceHeadings} from './headings';
+import {headingKinds,navigationOutline} from './outline-rules';
 export interface ReconcileResult {document:CompanionDocument;changed:boolean;review:number}
 /** Titles and positions are evidence, never permanent identities. Ambiguous old sections retain all their raw notes. */
 export function reconcile(document:CompanionDocument,source:string,tracked?:ReadonlyMap<string,number>,nativeHeadings?:SourceHeading[]):ReconcileResult{
@@ -26,11 +27,13 @@ export function reconcile(document:CompanionDocument,source:string,tracked?:Read
    if((!before||matches.get(before.id)===index-1)&&(!after||matches.get(after.id)===index+1))assign(section,index);
   }
  }
- const next:CompanionSection[]=[],byIndex=new Map<number,CompanionSection>();
+ const classify=headingKinds(document.outlineRules),next:CompanionSection[]=[],byIndex=new Map<number,CompanionSection>();
  for(const section of old){const index=matches.get(section.id);if(index!==undefined)byIndex.set(index,section);}
  for(let index=0;index<headings.length;index++){
-  const heading=headings[index]!,previous=byIndex.get(index),section:CompanionSection=previous?{...previous}:{id:newId(),title:heading.title,level:heading.level,state:'linked',raw:document.newline};
-  next.push({...section,title:heading.title,level:heading.level,state:'linked',base:{...heading,index}});
+  const heading=headings[index]!,previous=byIndex.get(index),excluded=classify(heading)!=='section';
+  if(excluded&&(!previous||!previous.raw.trim()&&!document.files?.[previous.id]&&!document.unavailableFiles?.[previous.id]))continue;
+  const section:CompanionSection=previous?{...previous}:{id:newId(),title:heading.title,level:heading.level,state:'linked',raw:document.newline};
+  next.push({...section,title:heading.title,level:heading.level,state:excluded?'excluded':'linked',base:{...heading,index}});
  }
  for(const section of document.sections){
   if(section.state==='general'||section.state==='detached')next.push(section);
@@ -39,5 +42,6 @@ export function reconcile(document:CompanionDocument,source:string,tracked?:Read
  // Positions alone changing must not write the companion on every ordinary paragraph edit.
  const semantic=(sections:CompanionSection[])=>JSON.stringify(sections.map(s=>[s.id,s.title,s.level,s.state,s.raw,s.base?.index,s.base?.parent]));
  const changed=semantic(document.sections)!==semantic(next);
- return {document:{...document,sections:next},changed,review:next.filter(s=>s.state==='review').length};
+ const result={...document,sections:next};result.outline=navigationOutline(result,headings);
+ return {document:result,changed,review:next.filter(s=>s.state==='review').length};
 }

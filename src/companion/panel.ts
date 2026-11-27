@@ -13,6 +13,9 @@ import {companionDropText} from './drop-text';
 import {OutlineSizeDisplay} from './outline-size-display';
 import {OutlineTotal} from './outline-total';
 import {CharacterTargetModal} from './target-dialog';
+import {OutlineRulesModal} from './outline-rules-dialog';
+import {insertPositionMarker,markerEditor} from './outline-marker-insert';
+import type {NavigationHeading} from './model';
 import {NativeCompanionView} from './native-view';
 import {HierarchyReader} from './hierarchy-reader';
 import {renderCompanionLanding,type LandingState} from './landing';
@@ -47,21 +50,22 @@ export class CompanionPanel extends Component {
   const actions=header.createDiv({cls:'em-companion-tools'});
   const more=iconButton(tools,'ellipsis',t('companion.documentActions'),()=>{
    const menu=new Menu();if(this.app.vault.getFileByPath(this.path))menu.addItem(item=>item.setTitle(t('companion.openSource')).setIcon('file-text').onClick(()=>this.openMarkdown()));
-   menu.addItem(item=>item.setTitle(t('companion.characterTarget')).setIcon('goal').onClick(()=>this.editCharacterTarget()));menu.addSeparator();menu.addItem(item=>item.setTitle(t('companion.createAnother')).setIcon('file-plus').onClick(()=>this.newCompanion()));menu.addItem(item=>item.setTitle(t('companion.selectAnother')).setIcon('folder-open').onClick(()=>this.chooseExisting()));
+   menu.addItem(item=>item.setTitle(t('companion.outlineRules')).setIcon('list-filter').onClick(()=>this.editOutlineRules()));menu.addItem(item=>item.setTitle(t('companion.characterTarget')).setIcon('goal').onClick(()=>this.editCharacterTarget()));menu.addSeparator();menu.addItem(item=>item.setTitle(t('companion.createAnother')).setIcon('file-plus').onClick(()=>this.newCompanion()));menu.addItem(item=>item.setTitle(t('companion.selectAnother')).setIcon('folder-open').onClick(()=>this.chooseExisting()));
    menu.addSeparator();menu.addItem(item=>item.setTitle(t('companion.rebind')).setIcon('link').onClick(()=>this.rebind()));menu.showAtPosition({x:more.getBoundingClientRect().right,y:more.getBoundingClientRect().bottom});
   });
   const recover=actions.createEl('button',{text:t('companion.recoverWrites')});recover.onclick=()=>{const path=this.path;void this.run(async()=>{try{await this.service.recover(path);}catch{this.dialog(new RecoveryModal(this.app,this.service,path));}});};
 
   this.message=this.root.createDiv({cls:'em-companion-message em-error',attr:{role:'status'}});this.review=this.root.createDiv({cls:'em-companion-review'});
   this.empty=this.root.createDiv({cls:'em-companion-start'});
-  const split=this.splitHost=this.root.createDiv({cls:'em-companion-split'}),nav=split.createDiv({cls:'em-companion-nav-pane'}),navHeader=nav.createDiv({cls:'em-companion-nav-heading'});navHeader.createSpan({cls:'em-companion-nav-title',text:t('companion.outline')});
+  const split=this.splitHost=this.root.createDiv({cls:'em-companion-split'}),nav=split.createDiv({cls:'em-companion-nav-pane'}),navHeader=nav.createDiv({cls:'em-companion-nav-heading'});const title=navHeader.createSpan({cls:'em-companion-nav-title'}),titleText=title.createSpan({text:t('companion.outline')});
+  const insertMarker=iconButton(title,'bookmark-plus',t('companion.insertPositionMarker'),()=>this.insertMarker(insertMarker));insertMarker.hidden=true;
   const total=this.addChild(new OutlineTotal(navHeader,()=>this.editCharacterTarget()));
   const follow=iconButton(navHeader,'crosshair',t('companion.followCursor'),()=>{this.followCursor=!this.followCursor;follow.setAttribute('aria-pressed',String(this.followCursor));if(this.followCursor)this.followPosition();});follow.setAttribute('aria-pressed','true');
   const toggle=iconButton(navHeader,'panel-top-close',t('companion.showOutline'),()=>{nav.toggleClass('is-collapsed',!nav.hasClass('is-collapsed'));this.split.setCollapsed(nav.hasClass('is-collapsed'));toggle.setAttribute('aria-expanded',String(!nav.hasClass('is-collapsed')));});toggle.setAttribute('aria-expanded','true');
   this.sections=nav.createDiv({cls:'em-companion-sections'});this.editorHost=split.createDiv({cls:'em-companion-content'});const thoughtTools=this.thoughtTools=this.editorHost.createDiv({cls:'em-companion-thought-tools'});const viewLabel=thoughtTools.createEl('label',{cls:'em-companion-view-label'});viewLabel.createSpan({text:t('companion.viewMode')});this.viewPick=viewLabel.createEl('select');for(const mode of companionViews)this.viewPick.createEl('option',{value:mode,text:t(`companion.${mode}`)});this.viewPick.onchange=()=>{void this.chooseView(this.viewPick.value as CompanionViewMode);};this.nativeHost=this.editorHost.createDiv({cls:'em-companion-native-host'});this.readerHost=this.editorHost.createDiv({cls:'em-companion-native-host'});this.readerHost.hidden=true;this.reader=this.addChild(new HierarchyReader(app,this.readerHost,service,()=>this.message.empty()));
   this.sectionProblem=this.editorHost.createDiv({cls:'em-companion-section-problem'});this.editorHost.insertBefore(this.sectionProblem,this.nativeHost);this.sectionProblem.hidden=true;this.layoutLabel=thoughtTools.createSpan({cls:'em-companion-layout-label'});
   this.split=this.addChild(new CompanionSplit(split,this.editorHost,service.layoutPreferences(),value=>service.setLayoutPreferences(value)));
-  this.navigation=this.addChild(new CompanionNavigation(this.sections,{prepare:id=>this.prepareHoveredFile(id),choose:section=>{void this.run(()=>this.chooseSection(section));},apply:(operations,path)=>this.run(()=>this.service.executeMany(path,operations)),openFile:section=>this.openChapter(section),externalText:(event,destination)=>companionDropText(event,app,destination),nativeDrag:event=>this.native?.takeDrag(event),history:(redo,path)=>{void this.run(()=>this.service.history(path,redo));},error:reason=>this.showError(reason)}));
+  this.navigation=this.addChild(new CompanionNavigation(this.sections,{navigate:heading=>{void this.run(()=>this.chooseHeading(heading));},prepare:id=>this.prepareHoveredFile(id),choose:section=>{void this.run(()=>this.chooseSection(section));},apply:(operations,path)=>this.run(()=>this.service.executeMany(path,operations)),openFile:section=>this.openChapter(section),externalText:(event,destination)=>companionDropText(event,app,destination),nativeDrag:event=>this.native?.takeDrag(event),history:(redo,path)=>{void this.run(()=>this.service.history(path,redo));},error:reason=>this.showError(reason)}));
   this.outlineSizes=this.addChild(new OutlineSizeDisplay(service,this.navigation,(characters,target)=>total.render(characters,target,service.outlineCountOptions())));
   this.native=this.addChild(new NativeCompanionView(app,this.nativeHost,service,this.ownerLeaf,()=>{const file=this.app.vault.getFileByPath(this.document?.files?.[this.selected]??this.path);if(file)void this.app.workspace.getLeaf('tab').openFile(file);},()=>this.refresh(true)));
   this.register(service.subscribePosition((source)=>{if(source!==this.document?.source||!this.followCursor||!this.active||this.navigating)return;if(this.cursorTimer)window.clearTimeout(this.cursorTimer);this.cursorTimer=window.setTimeout(()=>{this.cursorTimer=undefined;const line=this.service.currentPosition(source),next=line===undefined?undefined:this.service.sectionAt(this.path,line);if(!next||next===this.selected)return;void this.flushThoughts().then(()=>this.followPosition()).catch((error:unknown)=>this.showError(error));},70);}));
@@ -71,8 +75,9 @@ export class CompanionPanel extends Component {
   this.registerDomEvent(this.root.ownerDocument,'pointerup',release);this.registerDomEvent(this.root.ownerDocument,'pointercancel',release);this.addChild(new CompanionDragActivity(this.root,()=>this.active&&this.enabled,active=>{this.dragging=active;if(active)this.filePreparation?.beginDrag();if(!active)release();}));
   for(const host of [this.readerHost,this.nativeHost])this.registerDomEvent(host,'dragenter',()=>this.prepareHoveredFile(this.selected));
   this.register(()=>{this.filePreparation?.close();this.active=false;this.enabled=false;this.pending=false;this.generation++;if(this.cursorTimer)window.clearTimeout(this.cursorTimer);if(this.refreshTimer!==undefined)window.clearTimeout(this.refreshTimer);this.fullscreen?.close();for(const modal of this.dialogs)modal.close();this.root.remove();});
-  this.updateControls=()=>{more.hidden=!this.document||this.readPath!==this.path;recover.hidden=!this.service.needsRecovery(this.path);sync.disabled=!this.service.pair(this.path)||!this.app.vault.getFileByPath(this.path);};
-  this.relabel=()=>{nameWithoutTooltip(this.pick,t('companion.chooseCompanion'),this.root);relabelIcon(pin,t('companion.pin'));relabelIcon(sync,t('companion.refresh'));relabelIcon(full,t('companion.fullscreen'));relabelIcon(follow,t('companion.followCursor'));relabelIcon(toggle,t('companion.showOutline'));relabelIcon(more,t('companion.documentActions'));recover.setText(t('companion.recoverWrites'));viewLabel.querySelector('span')?.setText(t('companion.viewMode'));for(const option of this.viewPick.options)option.text=t(`companion.${option.value as CompanionViewMode}`);nameWithoutTooltip(this.sections,t('companion.sections'),this.root);};nameWithoutTooltip(this.pick,t('companion.chooseCompanion'),this.root);this.context();
+  this.updateControls=()=>{const document=this.outlineDocument??this.document;insertMarker.hidden=!document?.outlineRules?.markers.length||this.readPath!==this.path;insertMarker.disabled=!document||!markerEditor(this.app,document.source);relabelIcon(insertMarker,t(insertMarker.disabled?'companion.markerEditorRequired':'companion.insertPositionMarker'));more.hidden=!this.document||this.readPath!==this.path;recover.hidden=!this.service.needsRecovery(this.path);sync.disabled=!this.service.pair(this.path)||!this.app.vault.getFileByPath(this.path);};
+  this.registerEvent(this.app.workspace.on('active-leaf-change',()=>this.updateControls()));this.registerEvent(this.app.workspace.on('file-open',()=>this.updateControls()));
+  this.relabel=()=>{titleText.setText(t('companion.outline'));nameWithoutTooltip(this.pick,t('companion.chooseCompanion'),this.root);relabelIcon(pin,t('companion.pin'));relabelIcon(sync,t('companion.refresh'));relabelIcon(full,t('companion.fullscreen'));relabelIcon(follow,t('companion.followCursor'));relabelIcon(toggle,t('companion.showOutline'));relabelIcon(more,t('companion.documentActions'));recover.setText(t('companion.recoverWrites'));viewLabel.querySelector('span')?.setText(t('companion.viewMode'));for(const option of this.viewPick.options)option.text=t(`companion.${option.value as CompanionViewMode}`);nameWithoutTooltip(this.sections,t('companion.sections'),this.root);};nameWithoutTooltip(this.pick,t('companion.chooseCompanion'),this.root);this.context();
  }
  setVisible(visible:boolean):void{this.active=visible;this.refreshOutlineSizes();if(!visible){this.filePreparation?.close();this.viewChange++;this.pendingViewFocus=undefined;this.navigationRequest++;this.navigating=false;void this.closeThoughts().catch((error:unknown)=>this.showError(error));}}
  setEnabled(enabled:boolean):void{this.enabled=enabled;this.refreshOutlineSizes();if(!enabled){this.filePreparation?.close();this.viewChange++;this.pendingViewFocus=undefined;void this.closeThoughts().catch((error:unknown)=>this.showError(error));this.fullscreen?.close();for(const modal of this.dialogs)modal.close();}}
@@ -106,7 +111,7 @@ export class CompanionPanel extends Component {
     if(!this.held&&!this.dragging)this.showOutline(outline,path);
    }
    if(!this.service.pair(path))await this.service.connect(path);const revision=this.service.pair(path)?.revision,document=await this.service.viewDocument(path);if(revision!==this.service.pair(path)?.revision){this.pending=true;return;}if(generation!==this.generation||path!==this.path)return;if(!this.active||!this.enabled||this.held||this.dragging){this.pending=true;return;}
-   const fingerprint=String(this.service.pair(path)?.revision)+this.selected;if(!force&&fingerprint===this.fingerprint)return;this.fingerprint=fingerprint;this.outlineDocument=undefined;this.document=document;this.sourcePath=document.source;this.readPath=path;this.readRevision=this.service.pair(path)?.revision??-1;this.empty.hidden=true;this.splitHost.hidden=false;this.thoughtTools.hidden=false;this.message.setText(this.service.pair(path)?.error??'');this.selectPosition(document);this.paint(document);this.updateControls();if(!this.app.vault.getFileByPath(document.source)){this.message.setText(t('companion.sourceMissing'));this.message.createEl('button',{text:t('companion.rebind')}).onclick=()=>this.rebind();}
+   const fingerprint=String(this.service.pair(path)?.revision)+this.selected;if(!force&&fingerprint===this.fingerprint)return;this.fingerprint=fingerprint;const suppressed=document.sections.find(s=>s.id===this.selected&&s.state==='excluded');if(suppressed&&this.document?.sections.find(s=>s.id===this.selected)?.state!=='excluded'){const target=document.outline?.find(h=>h.section===suppressed.id);this.selected=target?.kind==='excluded'?target.key:document.sections.find(s=>s.state==='linked')?.id??'';}this.outlineDocument=undefined;this.document=document;this.sourcePath=document.source;this.readPath=path;this.readRevision=this.service.pair(path)?.revision??-1;this.empty.hidden=true;this.splitHost.hidden=false;this.thoughtTools.hidden=false;this.message.setText(this.service.pair(path)?.error??'');this.selectPosition(document);this.paint(document);this.updateControls();if(!this.app.vault.getFileByPath(document.source)){this.message.setText(t('companion.sourceMissing'));this.message.createEl('button',{text:t('companion.rebind')}).onclick=()=>this.rebind();}
   }catch(error){if(generation===this.generation&&path===this.path)this.showLanding(!this.app.vault.getFileByPath(path)?'missing':error instanceof MissingSectionFileError?'missingSection':'unreadable',String(error));}
  }
  /** Show navigation before chapter bodies arrive; no placeholder entries are created. */
@@ -117,8 +122,14 @@ export class CompanionPanel extends Component {
   this.outlineDocument=document;
   this.empty.hidden=true;this.splitHost.hidden=false;this.thoughtTools.hidden=true;
   this.nativeHost.hidden=true;this.readerHost.hidden=true;this.sectionProblem.hidden=true;
-  if(!document.sections.some(s=>s.id===this.selected))this.selected=document.sections.find(s=>s.state==='linked')?.id??document.sections[0]?.id??'';
+  if(!document.sections.some(s=>s.id===this.selected)&&!document.outline?.some(h=>h.key===this.selected))this.selected=document.sections.find(s=>s.state==='linked')?.id??document.sections[0]?.id??'';
   this.navigation.render(document,this.selected,path,document.storage?.mode==='sections');
+ }
+ private insertMarker(button:HTMLButtonElement):void{
+  const document=this.document;if(!document||this.readPath!==this.path)return;const names=document.outlineRules?.markers??[];
+  const insert=(title:string)=>{void this.run(async()=>{insertPositionMarker(this.app,document.source,title,this.service.markerHeadingLevel());});};
+  if(names.length===1){insert(names[0]!);return;}if(!names.length)return;
+  const menu=new Menu();for(const title of names)menu.addItem(item=>item.setTitle(title).setIcon('bookmark-plus').onClick(()=>insert(title)));const rect=button.getBoundingClientRect();menu.showAtPosition({x:rect.left,y:rect.bottom});
  }
  private actionSource():string{return (this.pinned?this.service.pair(this.path)?.source??this.sourcePath:undefined)??this.service.mainFor(this.currentFile())??this.sourcePath;}
  private deferContext():void{
@@ -138,8 +149,9 @@ export class CompanionPanel extends Component {
  }
  private async selectCompanion(path:string):Promise<void>{this.viewChange++;this.pendingViewFocus=undefined;this.navigationRequest++;this.navigating=false;await this.closeThoughts();this.path=path;this.selected='';this.pinned=true;if(path)this.sourcePath=this.service.pair(path)?.source??this.service.mainFor(path)??this.sourcePath;this.context();}
  private editCharacterTarget():void{if(!this.document||this.readPath!==this.path)return;const path=this.path;this.dialog(new CharacterTargetModal(this.app,this.service.characterTarget(path),async target=>{await this.service.setCharacterTarget(path,target);if(path===this.path)await this.refresh(true);}));}
+ private editOutlineRules():void{if(!this.document||this.readPath!==this.path)return;const path=this.path;this.dialog(new OutlineRulesModal(this.app,this.document.outlineRules??{ignore:[],markers:[]},async rules=>{await this.flushThoughts();await this.service.setOutlineRules(path,rules);if(path===this.path)await this.refresh(true);}));}
  private newCompanion():void{
-  const open=(source:string)=>this.dialog(new StorageModal(this.app,async options=>{await this.closeThoughts();const path=await this.service.create(source,options);this.creationMode=options.mode;this.sourcePath=source;await this.selectCompanion(path);await this.refresh(true);},()=>{const defaults=this.service.storageDefaults();return {...defaults,mode:this.creationMode??defaults.mode};},source)),source=this.actionSource();
+  const open=(source:string)=>this.dialog(new StorageModal(this.app,async(options,rules)=>{await this.closeThoughts();const path=await this.service.create(source,options,rules);this.creationMode=options.mode;this.sourcePath=source;await this.selectCompanion(path);await this.refresh(true);},()=>{const defaults=this.service.storageDefaults();return {...defaults,mode:this.creationMode??defaults.mode};},source,()=>this.service.outlineDefaults())),source=this.actionSource();
   if(source&&this.app.vault.getFileByPath(source))open(source);else this.dialog(new FilePicker(this.app,()=>this.app.vault.getMarkdownFiles().filter(file=>this.service.mainFor(file.path)===file.path),file=>open(file.path)));
  }
  private chooseExisting():void{this.dialog(new FilePicker(this.app,()=>this.service.existingFiles(),file=>{void this.run(()=>this.selectCompanion(file.path));},t('companion.selectExisting')));}
@@ -170,12 +182,14 @@ export class CompanionPanel extends Component {
   this.prepareFiles(document,this.path);
   this.review.empty();
   const mode=document.storage?.mode??'document';this.layoutLabel.dataset.companionLayout=mode;this.layoutLabel.setText(t(mode==='sections'?'companion.layoutBadgeSections':'companion.layoutBadgeSingle'));this.layoutLabel.removeAttribute('title');
-  if(!document.sections.some(s=>s.id===this.selected))this.selected=document.sections.find(s=>s.state==='linked'||s.state==='general')?.id??document.sections[0]?.id??'';
+  if(!document.sections.some(s=>s.id===this.selected)&&!document.outline?.some(h=>h.key===this.selected))this.selected=document.sections.find(s=>s.state==='linked'||s.state==='general')?.id??document.sections[0]?.id??'';
   this.navigation.render(document,this.selected,this.path);this.refreshOutlineSizes();
   const selected=document.sections.find(s=>s.id===this.selected);this.mode=this.service.viewMode(this.path);this.viewPick.value=this.mode;
   const issue=selected?document.unavailableFiles?.[selected.id]:undefined;this.sectionProblem.hidden=!issue;this.nativeHost.hidden=!!issue||this.mode==='reader';this.readerHost.hidden=!!issue||this.mode!=='reader';this.sectionProblem.empty();
+  const navigation=document.outline?.find(h=>h.key===this.selected),excluded=navigation&&navigation.kind==='excluded';this.thoughtTools.hidden=!!excluded;
+  if(excluded){this.sectionProblem.hidden=false;this.nativeHost.hidden=true;this.readerHost.hidden=true;this.sectionProblem.createEl('p',{text:t('companion.excludedHeading')});void this.retireThoughts().catch((error:unknown)=>this.showError(error));return;}
   if(issue&&selected){renderChapterFileProblem(this.sectionProblem,issue,{retry:()=>{void this.refresh(true);},choose:()=>this.chooseChapterFile(selected.id),create:()=>this.createChapterFile(selected.id),open:()=>this.openChapter(selected)});void this.retireThoughts().then(()=>this.focusChosenView()).catch((error:unknown)=>this.showError(error));return;}
-  if(selected){void this.renderThoughts(document,selected).catch((error:unknown)=>this.showError(error));if(selected.state==='review')this.reviewSection(document,selected);}else void this.closeThoughts().catch((error:unknown)=>this.showError(error));
+  if(selected){void this.renderThoughts(document,selected).catch((error:unknown)=>this.showError(error));if(selected.state==='review')this.reviewSection(document,selected);}else{this.nativeHost.hidden=true;this.readerHost.hidden=true;this.thoughtTools.hidden=true;this.sectionProblem.hidden=false;this.sectionProblem.createEl('p',{text:t('companion.noCompanionSections')});void this.retireThoughts().catch((error:unknown)=>this.showError(error));}
  }
  private get editing():boolean{return this.native.editing||this.reader.editing;}
  private async flushThoughts():Promise<void>{if(this.mode==='reader')await this.reader.flush();else await this.native.flush();}
@@ -198,8 +212,14 @@ export class CompanionPanel extends Component {
   try{if(this.document?.unavailableFiles?.[this.selected])await this.retireThoughts();else await this.flushThoughts();if(request!==this.navigationRequest||path!==this.path||!this.active)return;this.selected=section.id;if(this.outlineDocument)this.navigation.render(this.outlineDocument,this.selected,path,this.outlineDocument.storage?.mode==='sections');else if(this.document)this.paint(this.document);await this.goToSource(section,request);}
   finally{if(request===this.navigationRequest)this.navigating=false;}
  }
+ private async chooseHeading(heading:NavigationHeading):Promise<void>{
+  const request=++this.navigationRequest,path=this.path;this.navigating=true;try{await this.flushThoughts();if(request!==this.navigationRequest||path!==this.path||!this.active)return;const selected=heading.kind==='marker'?this.service.sectionAt(path,this.service.sourceLine(path,heading.key)??heading.line):heading.key;if(selected){this.selected=selected;if(this.document)this.paint(this.document);}await this.goToHeading(heading.key,heading.line,request);}finally{if(request===this.navigationRequest)this.navigating=false;}
+ }
  private async goToSource(section:CompanionSection,request=this.navigationRequest):Promise<void>{
-  const document=this.outlineDocument??this.document;if(!document||section.state!=='linked'||!section.base)return;const path=this.path,source=document.source,line=this.service.sourceLine(path,section.id)??section.base.line;
+  if(section.state!=='linked'||!section.base)return;await this.goToHeading(section.id,section.base.line,request);
+ }
+ private async goToHeading(key:string,fallback:number,request=this.navigationRequest):Promise<void>{
+  const document=this.outlineDocument??this.document;if(!document)return;const path=this.path,source=document.source,line=this.service.sourceLine(path,key)??fallback;
   this.service.position(source,line);const file=this.app.vault.getFileByPath(source);if(!file)return;
   let opening=this.openingSources.get(source),leaf=opening?.leaf??this.app.workspace.getLeavesOfType('markdown').find(leaf=>(leaf.view as {file?:{path:string}}).file?.path===file.path);
   if(!leaf){leaf=this.app.workspace.getLeaf('tab');opening={leaf,ready:leaf.openFile(file,{active:false})};this.openingSources.set(source,opening);}

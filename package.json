@@ -1,6 +1,6 @@
 {
   "name": "emergence",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Lokaler Multiplex-Wissensgraph und kontrollierte KI-Vorschläge für Obsidian",
   "main": "main.js",
   "type": "module",

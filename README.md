@@ -61,6 +61,8 @@ Map your existing Breadcrumbs fields to these areas. In the settings preview, yo
 
 Select a note to open it, or use exploration mode to follow connections without leaving the note you are writing. Add relationships at a group heading or drag an existing relationship to another field. These edits update the corresponding note properties. When available, the view selector also offers Breadcrumbs’ own matrix and tree, ZotLit’s bibliography and Obsidian’s local graph.
 
+Under **Settings → Emergence → Graph → Configure graph**, the preview and a permanent form share one section. Select an area in the diagram or with **Area**, including hidden areas. Field assignment, **Placement** and **Display** are separate groups; **First** and **After “…”** order visible areas at the same position. Apply changes with **Save changes**.
+
 ### Develop new connections
 
 **Field ideas** is an association aid for the current note. Configure the meaning of your Breadcrumbs fields, choose the search scope for existing concepts and connect your local Ollama model. The default model setting is `qwen3.5:9b`; Emergence does not download models.
@@ -144,6 +146,18 @@ The chapter navigation uses Obsidian’s heading metadata and live editor syntax
 
 In **Hierarchical Outline**, hover between entries or at either end of the list to reveal a full-width insertion line. Clicking it adds an entry at the same level. Drag and drop uses the same boundary from either neighboring entry. Completed entries also have a strikethrough; necessary ancestors remain available when completed entries are hidden.
 
+**Configure outline** is available when creating a companion and in its document actions menu. Enter one exact heading title per line under **Excluded headings** or **Position markers**. Matching is case-sensitive and independent of heading level. Excluded headings remain visible for source navigation with their normal subheadings; they create no new companion sections or chapter files. Position markers appear only as clickable red lines, without visible text, extra counters, chapter files or a reserved row. The line’s vertical position within the preceding outline row follows its relative character position in that section’s Markdown text, so it can cross the heading. The marker label itself is excluded from this calculation. Ordinary heading positions and spacing remain unchanged. Text edits update the relative position at most every five seconds by default (configurable); opening the document or changing marker rules initializes it directly. There is no idle polling, extra source copy or full-text recount. They also support keyboard navigation. When a marker title is configured, the bookmark-plus button beside **Outline** inserts it at the cursor in the open main-document editor. Multiple configured titles open a choice. The default heading level is six; existing markers work at any level. Insertion is an ordinary, undoable Markdown edit. Code blocks and document properties are protected. Ordinary Obsidian Outline continues to show the original headings. Existing notes in subsequently excluded sections remain accessible under **Unassigned entries** and reconnect when the exclusion is removed. Existing files are retained.
+
+The rules belong to this companion, including all its chapter files. They are stored only in the central companion file’s frontmatter, for example:
+
+```yaml
+emergence-outline:
+  ignore:
+    - References
+  markers:
+    - Work here
+```
+
 Optional **Section sizes in the outline**, under **Settings → Emergence → Companion Document**, adds character counts and comparison bars to the main document’s headings. It defaults to **Off**. Choose **Section text only** or **Include subsections**. A fixed-width meter fills from right to left beneath each character count. Entry counts use a separate numeric badge; the page icon opens the chapter file. The header shows the whole document’s count.
 
 Click the total count or use **Document actions → Character target** to set an optional target for this companion. A compact progress bar uses that target as its fixed denominator; the actual count remains visible even when it exceeds the target. Leave the input blank to remove it. Only an enabled target adds `emergence-character-target` to the companion frontmatter (the index in chapter-file mode). It never changes the main document or chapter files. A configured target shows the total even with section sizes off.
@@ -190,6 +204,8 @@ Wikipedia and DuckDuckGo are optional external sources. Enabling them sends the 
 
 Accepted relationships and inserted diagrams live in your notes. Settings, template preferences and the relationship change journal are stored in the plugin’s `data.json`. Templates can also live as Markdown notes in your chosen vault folder. Search results, suggestions and uninserted diagram drafts are temporary.
 
+Under **Settings → Emergence → Companion Document**, you can set marker titles and excluded headings for newly created companions, the marker insertion level, the minimum position-update interval, and an optional character target. Existing companions keep their own rules and target; global defaults never overwrite them.
+
 ## More detail
 
 The detailed documentation below is currently in German:
@@ -207,7 +223,7 @@ See the [changelog](CHANGELOG.md) for release history. Integrations with other p
 Use Node.js 22.12+ in the supported 22.x or 24.x LTS lines and npm. To build the released version:
 
 ```sh
-git clone --branch 0.0.6 https://github.com/kpaede/Emergence.git
+git clone --branch 0.0.8 https://github.com/kpaede/Emergence.git
 cd Emergence
 npm ci
 npm run build

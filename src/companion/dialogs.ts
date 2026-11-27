@@ -3,12 +3,14 @@ import {defaultCompanionStorage} from './preferences';
 import {t} from '../i18n';
 import type {CompanionService} from './service';
 import {storageSummary} from './storage-summary';
+import {outlineRuleFields} from './outline-rules-dialog';
+import type {OutlineRules} from './model';
 export class FilePicker extends FuzzySuggestModal<TFile>{
  constructor(app:App,private files:()=>TFile[],private choose:(file:TFile)=>void,placeholder=t('companion.chooseFile')){super(app);this.setPlaceholder(placeholder);}
  getItems():TFile[]{return this.files();}getItemText(file:TFile):string{return file.path;}onChooseItem(file:TFile):void{this.choose(file);}
 }
 export class StorageModal extends Modal{
- constructor(app:App,private submit:(options:import('./model').StorageOptions)=>Promise<void>,private defaults:()=>import('./model').StorageOptions=defaultCompanionStorage,private source=''){super(app);this.modalEl.addClass('em-companion-dialog');this.setTitle(t('companion.create'));}
+ constructor(app:App,private submit:(options:import('./model').StorageOptions,rules?:OutlineRules)=>Promise<void>,private defaults:()=>import('./model').StorageOptions=defaultCompanionStorage,private source='',private outlineDefaults:()=>OutlineRules=()=>({ignore:[],markers:[]})){super(app);this.modalEl.addClass('em-companion-dialog');this.setTitle(t('companion.create'));}
  onOpen():void{
   const options={...this.defaults()},choices=this.contentEl.createDiv({cls:'em-companion-storage-choices'});let custom=false;
   new Setting(this.contentEl).setName(t('companion.storageMode')).setDesc(t('companion.layoutLocked')).addDropdown(select=>{select.selectEl.dataset.companionControl='mode';select.addOptions({document:t('companion.oneDocument'),sections:t('companion.perHeading')}).setValue(options.mode).onChange(value=>{options.mode=value==='sections'?'sections':'document';});});
@@ -18,8 +20,9 @@ export class StorageModal extends Modal{
   new Setting(choices).setName(t('companion.storageLocation')).addDropdown(select=>{select.selectEl.dataset.companionControl='location';select.addOptions({beside:t('companion.beside'),subfolder:t('companion.subfolder'),folder:t('companion.separateFolder')}).setValue(options.location).onChange(value=>{options.location=value==='folder'?'folder':value==='subfolder'?'subfolder':'beside';update();});});
   folderRow.setName(t('companion.folder')).setDesc(t('companion.folderHelp')).addText(input=>input.setValue(options.folder).onChange(value=>{options.folder=value.trim().replace(/\/+$/u,'');}));
   subfolderRow.setName(t('companion.subfolderName')).setDesc(t('companion.subfolderHelp')).addText(input=>input.setValue(options.subfolder??'Companions').onChange(value=>{options.subfolder=value.trim();}));choices.append(folderRow.settingEl,subfolderRow.settingEl);update();choices.addClass('is-default');for(const field of choices.querySelectorAll<HTMLInputElement|HTMLSelectElement>('input,select'))field.disabled=true;
+  const details=this.contentEl.createEl('details');details.createEl('summary',{text:t('companion.outlineRules')});const rules=outlineRuleFields(details,this.outlineDefaults());
   this.contentEl.createDiv({text:t('companion.storageHelp'),cls:'em-muted'});const error=this.contentEl.createDiv({cls:'em-error',attr:{role:'status'}}),button=this.contentEl.createEl('button',{text:t('companion.create'),cls:'mod-cta'});
-  button.onclick=()=>{button.disabled=true;void this.submit({...(custom?options:this.defaults()),mode:options.mode,origin:custom?'custom':'defaults'}).then(()=>this.close()).catch((reason:unknown)=>{error.setText(String(reason));button.disabled=false;});};
+  button.onclick=()=>{button.disabled=true;void this.submit({...(custom?options:this.defaults()),mode:options.mode,origin:custom?'custom':'defaults'},rules.read()).then(()=>this.close()).catch((reason:unknown)=>{error.setText(String(reason));button.disabled=false;});};
  }
  onClose():void{this.contentEl.empty();}
 }

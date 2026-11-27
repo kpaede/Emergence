@@ -1,11 +1,11 @@
 /* Layout only: Obsidian and the selected theme own colors, fonts and controls. */
 .em-workspace { container-type: inline-size; display: flex; flex-direction: column; min-width: 0; padding: 0; overflow: hidden; }
-.em-header { flex: 0 0 auto; padding: var(--size-4-3) var(--size-4-3) 0; border-bottom: 1px solid var(--background-modifier-border); }
-.em-heading-line { display: flex; align-items: baseline; justify-content: space-between; gap: var(--size-4-2); flex-wrap: wrap; margin-bottom: var(--size-4-2); }
-.em-brand { font-weight: var(--font-semibold); font-size: var(--font-ui-small); }
-.em-status-disclosure { font-size: var(--font-ui-smaller); color: var(--text-muted); }
+.em-header { flex: 0 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--size-4-2); padding-inline: var(--size-4-3); border-bottom: 1px solid var(--background-modifier-border); }
+.em-header > .em-tabs { grid-column: 1; grid-row: 1; min-width: 0; }
+.em-status-disclosure { grid-column: 2; grid-row: 1; min-width: 0; font-size: var(--font-ui-smaller); color: var(--text-muted); }
+.em-status-disclosure:not([open]) > summary { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; list-style-position: inside; }
 .em-status-disclosure > summary { cursor: pointer; min-height: 24px; }
-.em-status-disclosure[open] { width: 100%; }
+.em-status-disclosure[open] { grid-column: 1 / -1; grid-row: 2; width: 100%; }
 .em-status-details dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--size-4-1) var(--size-4-3); }
 .em-status-details dd { margin: 0; overflow-wrap: anywhere; color: var(--text-normal); }
 .em-tabs, .em-settings-nav { display: grid; gap: var(--size-2-1); }
@@ -608,16 +608,37 @@
 .em-ad-color-target { display: grid; gap: 6px; margin-bottom: 10px; }
 
 /* Graph settings use the same diagram renderer, with a bounded synthetic preview. */
-.em-graph-settings-preview { margin-block: var(--size-4-3); min-width: 0; }
+.em-graph-configuration { container-name: em-graph-config; container-type: inline-size; margin-block: var(--size-4-3); }
+.em-graph-settings-layout { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: var(--size-4-4); align-items: start; }
+.em-graph-preview-pane { position: sticky; top: var(--size-4-2); min-width: 0; }
+.em-graph-settings-preview { min-width: 0; }
+@container em-graph-config (max-width: 600px) {
+ .em-graph-settings-layout { grid-template-columns: minmax(0, 1fr); }
+ .em-graph-preview-pane { position: static; }
+ .em-graph-preview-pane .em-graph-settings-canvas.em-relations-synopsis { height: 230px; }
+}
 .em-graph-settings-canvas.em-relations-synopsis { position: relative; inset: auto; height: 340px; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); padding-top: var(--size-4-2); }
 .em-graph-settings-canvas .em-syn-title > button { display: none; }
 .em-graph-settings-canvas .em-syn-head { cursor: pointer; }
-.em-graph-settings-canvas .em-syn-head[aria-pressed="true"] { outline: 1px solid var(--interactive-accent); outline-offset: 2px; border-radius: var(--radius-s); }
-.em-graph-settings-canvas .em-syn-head:focus-visible { outline: 2px solid var(--interactive-accent); }
+.em-graph-settings-canvas .em-syn-title h3 > button { color: inherit; font: inherit; text-align: inherit; white-space: normal; height: auto; padding: 0; background: transparent; box-shadow: none; }
+.em-graph-settings-canvas [data-graph-edit][aria-pressed="true"] { color: var(--text-accent); }
+.em-graph-settings-canvas .em-syn-controls { flex-wrap: wrap; max-width: 100%; }
+.em-graph-settings-canvas .em-syn-depth { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; max-width: 100%; }
+.em-graph-depth-caption { font-size: var(--font-ui-smaller); color: var(--text-muted); }
 .em-graph-drop-targets { display: flex; flex-wrap: wrap; gap: var(--size-4-1); padding-top: var(--size-4-2); }
 .em-graph-drop-target { border: 1px dashed var(--background-modifier-border); border-radius: var(--radius-s); padding: var(--size-4-1) var(--size-4-2); font-size: var(--font-ui-smaller); }
+.em-graph-settings-inspector { container-type: inline-size; min-width: 0; }
+.em-graph-settings-inspector .setting-item { margin: 0; padding: var(--size-4-2) 0; }
 .em-graph-settings-inspector .setting-item-info { min-width: 0; }
-.em-graph-settings-inspector .setting-item-control input { max-width: 100%; }
+.em-graph-settings-inspector .setting-item-control { min-width: 0; max-width: 100%; }
+.em-graph-settings-inspector .setting-item-control input { width: 100%; max-width: 100%; }
+.em-graph-inspector-fields { max-height: 220px; overflow: auto; }
+.em-graph-inspector-fields .setting-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--size-4-2); }
+.em-graph-inspector-fields .setting-item-info { margin: 0; }
+.em-graph-inspector-fields .setting-item-control { width: auto; }
+.em-graph-mapping-reset { margin-block: var(--size-4-2); max-width: 100%; white-space: normal; height: auto; }
+.em-graph-settings-inspector .em-graph-inspector-label { flex-direction: column; align-items: stretch; }
+.em-graph-settings-inspector .em-graph-inspector-label .setting-item-control { width: 100%; }
 .em-relations-synopsis [data-syn-position="left"] .em-syn-lateral-items > li { padding-left: 15px; padding-right: 0; text-align: left; }
 .em-relations-synopsis [data-syn-position="right"] .em-syn-lateral-items > li { padding-right: 15px; padding-left: 0; text-align: right; }
 .em-relations-synopsis [data-syn-position="left"] .em-syn-head { padding-left: 10px; padding-right: 0; }
@@ -1110,8 +1131,10 @@
 .em-companion-split { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(40px, min(var(--em-outline-height, 38%), calc(100% - 148px))) 8px minmax(0, 1fr); min-height: 0; overflow: hidden; }
 .em-companion-nav-pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
 .em-companion-nav-heading { flex: none; display: flex; align-items: center; gap: 3px; min-height: 30px; padding: 2px 8px; font-size: var(--font-ui-small); }
-.em-companion-nav-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.em-companion-nav-title { display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .em-companion-outline-total { flex: 0 1 auto; min-inline-size: 0; max-inline-size: 65%; margin-inline: 6px; color: var(--text-muted); font-size: var(--font-ui-smaller); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.em-companion-nav-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.em-companion-nav-title > button { flex: none; }
 .em-companion-nav-heading .em-companion-total-button { display: block; min-inline-size: 0; max-inline-size: 100%; height: auto; min-height: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; background: transparent; box-shadow: none; color: inherit; font: inherit; }
 .em-companion-total-button:hover { color: var(--text-normal); }
 .em-companion-total-track { display: block; height: 3px; margin-top: 3px; border-radius: 2px; background: var(--background-modifier-border); overflow: hidden; }
@@ -1138,6 +1161,12 @@
 .em-companion-outline .collapse-icon.is-collapsed { transform: rotate(0); }
 .em-companion-outline .em-outline-leaf { visibility: hidden; width: 12px; }
 .em-companion-outline-count { flex: none; display: inline-flex; align-items: center; gap: 3px; inline-size: calc(var(--em-outline-note-digits, 1) * 1ch + .9em); min-inline-size: calc(2ch + .9em); padding: 1px 4px; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-s); color: var(--text-muted); background: var(--background-secondary); font-size: var(--font-ui-smaller); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.em-companion-outline .em-companion-marker-item { position: relative; block-size: 0; min-block-size: 0; margin: 0; padding: 0; border: 0; overflow: visible; }
+.em-companion-outline button.em-companion-marker { position: absolute; inset-block-start: var(--em-marker-offset, 0px); z-index: 1; display: flex; align-items: center; inline-size: calc(100% + var(--em-marker-inset, 0px)); block-size: 0; min-block-size: 0; min-height: 0; margin: 0; margin-inline-start: calc(-1 * var(--em-marker-inset, 0px)); padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: visible; pointer-events: none; }
+.em-companion-marker-line { flex: 1; block-size: 1px; background: var(--text-error); }
+.em-companion-marker:focus-visible { outline: 2px solid var(--background-modifier-border-focus); outline-offset: 3px; }
+.em-companion-outline-rule { display: flex; flex-direction: column; gap: var(--size-4-1); margin-block: var(--size-4-3); }
+.em-companion-outline-rule textarea { inline-size: 100%; min-block-size: 4.5em; resize: vertical; }
 .em-companion-count-value { flex: 1; text-align: center; }
 .em-companion-size { flex: none; position: relative; display: inline-flex; justify-content: flex-end; min-inline-size: 5.2em; margin-inline-end: 6px; padding-block-end: 5px; color: var(--text-muted); font-size: var(--font-ui-smaller); font-variant-numeric: tabular-nums; line-height: 1.2; }
 .em-companion-size-count { white-space: nowrap; }
@@ -1311,6 +1340,5 @@
 .em-tabs > button { flex: 1 0 auto; flex-direction: row !important; min-height: 26px; height: 28px; padding: 3px 7px !important; font-size: var(--font-ui-smaller, 12px) !important; white-space: nowrap !important; overflow-wrap: normal !important; }
 .em-tabs .em-tab-icon { display: none; }
 .em-tabs[hidden], .em-tabs > button[hidden] { display: none !important; }
-.em-heading-line { min-height: 20px; }
 
 .em-hierarchy-reader.is-editing .em-reader-node-tools { pointer-events: none; opacity: .45; }

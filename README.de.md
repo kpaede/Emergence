@@ -59,6 +59,8 @@ Ordne diesen Bereichen deine vorhandenen Breadcrumbs-Felder zu. In der Einstellu
 
 Ein Klick öffnet eine Notiz. Im Erkundungsmodus folgst du ihren Verbindungen, während deine Schreibnotiz geöffnet bleibt. Über die Gruppenüberschrift ergänzt du Beziehungen; durch Ziehen verschiebst du eine bestehende Zuordnung in ein anderes Feld. Dabei werden die entsprechenden Notiz-Properties geändert. Bei verfügbaren Integrationen bietet die Ansichtsauswahl außerdem Breadcrumbs’ eigene Matrix und Baumansicht, ZotLits Literaturverzeichnis und Obsidians lokalen Graphen an.
 
+Unter **Einstellungen → Emergence → Graph → Graph konfigurieren** gehören Vorschau und festes Formular zusammen. Die Grafik und die Auswahl **Bereich** steuern dasselbe Formular, auch für ausgeblendete Bereiche. Feldzuordnung, **Anordnung** und **Anzeige** sind getrennt; die Reihenfolge mit **An erster Stelle** bzw. **Nach „…“** betrifft mehrere sichtbare Bereiche an derselben Position. Änderungen werden mit **Änderungen speichern** übernommen.
+
 ### Neue Zusammenhänge entwickeln
 
 **Feldideen** ist eine Assoziationshilfe für die aktuelle Notiz. Beschreibe die Bedeutung deiner Breadcrumbs-Felder, wähle den Suchbereich für vorhandene Begriffe und verbinde dein lokales Ollama-Modell. Als Modell ist `qwen3.5:9b` voreingestellt; Emergence lädt keine Modelle herunter.
@@ -140,6 +142,20 @@ Die **Dateiaufteilung für ein neues Begleitdokument** wählst du direkt in der 
 
 Unter **Einstellungen → Emergence → Begleitdokument** legst du Vorgaben fest: eine gemeinsame Begleitdatei oder eine Datei je Überschrift, jeweils neben der Originaldatei, in einem festen Vault-Ordner oder in einem benannten Unterordner bei der Originaldatei (Vorgabe: `Companions`). Beim Anlegen wählst du **Allgemeine Vorgaben verwenden** oder **Für dieses Dokument festlegen**. Die Ablage wird je Dokumentpaar gespeichert; spätere Änderungen an den Vorgaben gelten für neue Paare. Fehlende Ordner werden angelegt. Bei Abschnittsdateien enthält eine zusätzliche Markdown-Indexdatei die Gliederung, Dateiverbindungen und Zuordnungsinformationen; Einträge stehen ausschließlich in den Abschnittsdateien. Dateinamen bleiben bei Überschriftenänderungen stabil. Relative Ablagen folgen Ordnerwechseln des Hauptdokuments; ein fester Zielordner bleibt bestehen.
 
+**Gliederung konfigurieren** steht beim Anlegen und im Dokumentmenü zur Verfügung. Trage vollständige Überschriftentitel ohne `#` ein; der Abgleich beachtet Groß-/Kleinschreibung, aber nicht die Überschriftenebene. Ausgeschlossene Überschriften bleiben mit ihrer normalen Hierarchie zur Navigation sichtbar und erhalten keine neuen Begleitabschnitte oder Kapiteldateien. Vorhandene Notizen bleiben unter **Ohne Kapitel** erreichbar und werden beim Entfernen eines Ausschlusses wieder zugeordnet; bestehende Dateien bleiben erhalten.
+
+**Positionsmarken** sind gewöhnliche Überschriften, etwa `###### Bin hier`. Emergence zeigt dafür eine anklickbare rote Linie ohne eigene Zeilenhöhe, Anzahlen oder Kapiteldatei. Ihre Höhe zwischen benachbarten Überschriften entspricht der relativen Zeichenposition im Abschnitt; sie kann Überschriftentext durchkreuzen. Die native Obsidian-Gliederung zeigt die Überschrift weiterhin normal. Änderungen aktualisieren die Position standardmäßig höchstens alle fünf Sekunden, ohne Abfragen im Leerlauf. Neben **Gliederung** fügt eine Aktion den konfigurierten Markennamen am Cursor des geöffneten Hauptdokuments ein; mehrere Namen öffnen eine Auswahl. Diese bewusste Markdown-Einfügung ist mit einem Undo rückgängig zu machen; Codeblöcke und Eigenschaften werden geschützt.
+
+Unter **Einstellungen → Emergence → Begleitdokument** gibt es außerdem Vorgaben für Markennamen, ausgeschlossene Titel und eine optionale Zielzeichenzahl für neue Begleitdokumente sowie Einfügeebene und Aktualisierungsintervall der Marken. Bestehende Begleitdokumente behalten ihre eigenen Regeln und Ziele. Die beiden Titellisten stehen einmal im Frontmatter der gemeinsamen Begleitdatei beziehungsweise der Kapitelübersicht:
+
+```yaml
+emergence-outline:
+  ignore:
+    - Literatur
+  markers:
+    - Bin hier
+```
+
 Die Kapitelnavigation verwendet Obsidian-Überschriftenmetadaten und den Syntaxbaum des offenen Editors sowie die Theme-Klassen der Outline. Sie folgt der Schreibposition; das Fadenkreuz schaltet diese Funktion um. Einträge bleiben von der Kapitelgliederung getrennt. Die Auswahl **Ansicht** liegt direkt unter der Gliederung beim Bearbeitungsbereich und bietet die installierten Originalansichten von **Excerpt Outline Mindmap Editor** und **Lineage** an derselben Stelle. **Hierarchical Outline** benötigt kein zusätzliches Plugin. Die Ansicht zeigt die vollständigen Texte einer Ebene zwischen kurzen Vorschauen des übergeordneten Eintrags und seiner Untereinträge, mit Pfeiltastennavigation, Enter zum Bearbeiten, Markdown-Editor, Aufgabencheckboxen und Unterbaum-Verschiebungen. Die Anlegekürzel folgen EOME: Strg/Cmd+←/→ fügt Einträge davor oder danach hinzu, Strg/Cmd+↓ einen Untereintrag. ↑/↓ wechselt zwischen Einträgen derselben Ebene, ← zum übergeordneten Eintrag, → zu den Untereinträgen. Neue Einträge werden direkt an ihrer Einfügeposition bearbeitet. Die freie Fläche unter der Liste nimmt per Drag-and-drop Einträge samt Unterbaum als letzte Einträge auf derselben Ebene auf; eine Markierung zeigt das Ablageziel. Rückgängig stellt die vorherige Struktur wieder her. Das Eingabefeld beginnt einzeilig und wächst mit dem Text; Bestätigen und Abbrechen stehen als Symbolschalter rechts in der Zeile. Escape verwirft auch bei Fokus auf diesen Schaltern; offene Linkvorschläge werden zuerst geschlossen. **Abgehakte ausblenden** blendet erledigte Zweige aus; nötige Verbindungen zu offenen Nachkommen bleiben sichtbar. Im Editor übernimmt Enter außerhalb von Listen; Shift+Enter fügt einen Zeilenumbruch ein. Linkvorschläge kommen direkt aus Obsidian. Escape verwirft. Einträge werden als Markdown mit Einrückungen gespeichert; Kennungen stehen nur an den Kapitelüberschriften. Fehlgeschlagene Reader-Änderungen werden abgelehnt und der aktuelle Dateistand angezeigt; es entsteht kein Sicherungsdokument. Alle drei Ansichten verwenden dieselben Begleitdateien. **Hierarchical Outline** ist die Standardansicht und steht zuerst in der Auswahl. Unter **Einstellungen → Emergence → Begleitdokument → Standardansicht** lässt sich die Vorgabe ändern. Eine ausdrücklich je Begleitdokument gewählte Ansicht bleibt erhalten. Deaktivierte Plugins können ausdrücklich aktiviert werden. Die Haupt-Tabs bleiben einzeilig und horizontal scrollbar; Suche und Bearbeitungsfunktionen liegen im jeweiligen Originaleditor unterhalb der Kapitelnavigation.
 
 In **Hierarchical Outline** erscheint beim Überfahren zwischen Einträgen sowie am Listenanfang und -ende eine über die ganze Breite anklickbare Einfügelinie. Sie ergänzt einen Eintrag auf derselben Ebene. Drag-and-drop verwendet dort dieselbe Position, unabhängig davon, welcher angrenzende Eintrag zuvor überfahren wurde. Abgehakte Einträge sind zusätzlich durchgestrichen; notwendige Verbindungseinträge bleiben beim Ausblenden erledigter Einträge erhalten.
@@ -195,7 +211,7 @@ Die [Versionsgeschichte](CHANGELOG.md) beschreibt die Änderungen je Release. In
 Verwende Node.js ab 22.12 innerhalb der unterstützten 22er- oder 24er-LTS-Reihen und npm. So baust du die veröffentlichte Version:
 
 ```sh
-git clone --branch 0.0.5 https://github.com/kpaede/Emergence.git
+git clone --branch 0.0.8 https://github.com/kpaede/Emergence.git
 cd Emergence
 npm ci
 npm run build

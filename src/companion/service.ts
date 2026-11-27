@@ -17,6 +17,10 @@ import {mapAnchors} from './live';
 import {companionStorageDefaults,validStorage,defaultCompanionView,companionOutlineSizeMode,companionCountOptions} from './preferences';
 import {clearStoredParse} from './stored-parse';
 import {withCharacterTarget} from './character-target';
+import {defaultOutlineRules,defaultCharacterTarget,markerHeadingLevel,markerRefreshSeconds} from './outline-preferences';
+import {withOutlineRules,navigationOutline,documentOutline} from './outline-rules';
+import {outlineMarkerPositions,type OutlineMarkerPositions} from './outline-marker-position';
+import type {OutlineRules} from './model';
 import {CharacterCountCache,type CharacterCount,type CharacterCountOptions} from './character-count';
 import {outlineSizes,type OutlineSizes,type OutlineSizeMode} from './outline-size';
 import {cachedOutline,liveOutline} from './native-outline';
@@ -26,7 +30,7 @@ import type {CompanionViewMode,NativeOption,NativeKind} from './native-types';
 import {sessionThoughts,needsCompanionCleanup} from './thought-session';
 import {prepareChapterFile as prepareChapter,type ChapterFilePlan} from './chapter-recovery';
 
-interface Runtime extends PairState {queue:Promise<void>;timer?:number;anchors:Map<string,number>;liveDoc?:Text;anchorDoc?:Text;anchorSource?:string;countCache?:CharacterCountCache;undo:HistoryAction[];redo:HistoryAction[];document?:CompanionDocument;documentRevision?:number;members?:Set<string>;viewRead?:{revision:number;promise:Promise<CompanionDocument>};working:boolean;outlineDirty?:boolean;outlineSource?:'editor'|'cache'|'fallback';relocation?:Promise<void>}
+interface Runtime extends PairState {headings?:SourceHeading[];queue:Promise<void>;timer?:number;anchors:Map<string,number>;liveDoc?:Text;anchorDoc?:Text;anchorSource?:string;countCache?:CharacterCountCache;undo:HistoryAction[];redo:HistoryAction[];document?:CompanionDocument;documentRevision?:number;members?:Set<string>;viewRead?:{revision:number;promise:Promise<CompanionDocument>};working:boolean;outlineDirty?:boolean;outlineSource?:'editor'|'cache'|'fallback';relocation?:Promise<void>}
 type HistoryAction={operation:ThoughtOperation}|{restore:NonNullable<OperationResult['restore']>}|{batch:HistoryAction[]};
 export class CompanionService extends Component {
  private layout:CompanionLayout=companionLayout(undefined);
@@ -67,6 +71,10 @@ export class CompanionService extends Component {
  setLayoutPreferences(value:CompanionLayout):void{this.layout=companionLayout(value);this.saveSoon();}
  characterTarget(path:string):number|undefined{return this.pairs.get(this.canonicalPath(path))?.document?.targetCharacters;}
  setCharacterTarget(path:string,target:number|undefined):Promise<void>{return this.enqueue(path,async p=>{const doc=await this.readForView(path),next=withCharacterTarget(doc,target);await this.commit(p,doc.original,next);});}
+ outlineDefaults():OutlineRules{return defaultOutlineRules(this.settings());}
+ markerHeadingLevel():number{return markerHeadingLevel(this.settings());}
+ markerRefreshMs():number{return markerRefreshSeconds(this.settings())*1000;}
+ setOutlineRules(path:string,rules:OutlineRules):Promise<void>{return this.enqueue(path,async p=>{const doc=withOutlineRules(await this.readForView(path),rules);await this.synchronize(p,doc,true);});}
  outlineSizeMode():OutlineSizeMode{return companionOutlineSizeMode(this.settings());}
  outlineCountOptions():CharacterCountOptions{return companionCountOptions(this.settings());}
  subscribeSourceSizes(callback:(source:string)=>void):()=>void{this.sizeListeners.add(callback);return()=>this.sizeListeners.delete(callback);}
@@ -79,7 +87,12 @@ export class CompanionService extends Component {
  sectionSizes(path:string,mode:Exclude<OutlineSizeMode,'off'>):OutlineSizes|undefined{
   const p=this.pairs.get(this.canonicalPath(path));if(!this.enabled()||!p?.document||p.missing||p.outlineDirty)return;
   const source=p.anchorDoc??p.anchorSource;if(source===undefined)return;
-  this.metrics.sizeCalculations++;return outlineSizes(p.document.sections,p.anchors,source,mode,this.sourceCount(p,source));
+  this.metrics.sizeCalculations++;return outlineSizes(p.document.sections,p.anchors,source,mode,this.sourceCount(p,source),p.document.outline);
+ }
+ markerPositions(path:string):OutlineMarkerPositions|undefined{
+  const p=this.pairs.get(this.canonicalPath(path));if(!this.enabled()||!p?.document||p.missing||p.outlineDirty)return;
+  const source=p.anchorDoc??p.anchorSource;if(source===undefined)return;
+  return outlineMarkerPositions(documentOutline(p.document),p.anchors,source);
  }
  private sourceSizeChanged(source:string):void{for(const callback of this.sizeListeners)callback(source);}
  viewMode(path:string):CompanionViewMode{return this.viewModes.get(this.canonicalPath(path))??defaultCompanionView(this.settings());}
@@ -108,8 +121,8 @@ export class CompanionService extends Component {
  subscribePosition(callback:(source:string,line:number)=>void):()=>void{this.positionListeners.add(callback);return()=>this.positionListeners.delete(callback);}
  position(source:string,line:number):void{if(this.positions.get(source)===line)return;this.positions.set(source,line);for(const callback of this.positionListeners)callback(source,line);}
  currentPosition(source:string):number|undefined{return this.positions.get(source)??sourceEditor(this.app,source)?.editor.getCursor().line;}
- sourceLine(path:string,id:string):number|undefined{const p=this.pairs.get(path),anchor=p?.anchors.get(id);return anchor!==undefined&&p?.liveDoc?p.liveDoc.lineAt(Math.min(anchor,p.liveDoc.length)).number-1:p?.document?.sections.find(s=>s.id===id)?.base?.line;}
- sectionAt(path:string,line:number):string|undefined{const p=this.pairs.get(path);let selected:string|undefined;for(const section of p?.document?.sections??[])if(section.state==='linked'&&section.base){const anchor=p?.anchors.get(section.id),start=anchor!==undefined&&p?.liveDoc?p.liveDoc.lineAt(Math.min(anchor,p.liveDoc.length)).number-1:section.base.line;if(start<=line)selected=section.id;else break;}return selected;}
+ sourceLine(path:string,id:string):number|undefined{const p=this.pairs.get(path),anchor=p?.anchors.get(id);return anchor!==undefined&&p?.liveDoc?p.liveDoc.lineAt(Math.min(anchor,p.liveDoc.length)).number-1:p?.document?.outline?.find(h=>h.key===id)?.line??p?.document?.sections.find(s=>s.id===id)?.base?.line;}
+ sectionAt(path:string,line:number):string|undefined{const p=this.pairs.get(path);if(!p?.document)return;let selected:string|undefined;for(const heading of documentOutline(p.document)){const anchor=p.anchors.get(heading.key),start=anchor!==undefined&&p.liveDoc?p.liveDoc.lineAt(Math.min(anchor,p.liveDoc.length)).number-1:heading.line;if(start>line)break;if(heading.kind!=='marker')selected=heading.key;}return selected;}
  subscribe(callback:()=>void):()=>void{this.listeners.add(callback);return()=>this.listeners.delete(callback);}
  private notify():void{if(!this.disposed)for(const callback of this.listeners)callback();}
  private saveSoon():void{if(this.saveTimer)window.clearTimeout(this.saveTimer);this.saveTimer=window.setTimeout(()=>{this.saveTimer=undefined;void this.persist().catch(()=>{});},400);}
@@ -149,10 +162,15 @@ export class CompanionService extends Component {
  private async readWorking(path:string,partial:boolean):Promise<CompanionDocument>{
   const runtime=this.pairs.get(path),revision=runtime?.revision,started=performance.now();
   const members=(doc:CompanionDocument)=>{if(runtime)runtime.members=new Set(Object.values(doc.files??{}));};
-  const stored=await (partial?readStoredForView(this.app,path,undefined,members):readStored(this.app,path,members)),doc=sessionThoughts(stored,runtime?.document);
+  const stored=await (partial?readStoredForView(this.app,path,undefined,members):readStored(this.app,path,members)),doc=this.decorateOutline(sessionThoughts(stored,runtime?.document),runtime);
   this.metrics.readCalls++;this.metrics.readMs+=performance.now()-started;if(runtime&&runtime.revision===revision){runtime.document=doc;runtime.documentRevision=revision;}return doc;
  }
- async readOutline(path:string):Promise<CompanionDocument>{const p=this.pairs.get(path);return p?.document&&p.documentRevision===p.revision?structuredClone(p.document):readStoredOutline(this.app,path);}
+ async readOutline(path:string):Promise<CompanionDocument>{const p=this.pairs.get(path);return p?.document&&p.documentRevision===p.revision?structuredClone(p.document):this.decorateOutline(await readStoredOutline(this.app,path),p);}
+ private decorateOutline(doc:CompanionDocument,p?:Runtime):CompanionDocument{
+  const file=this.app.vault.getFileByPath(doc.source),cache=file?this.app.metadataCache.getFileCache(file)?.headings:undefined;
+  const headings=p?.headings??cache?.map(h=>({title:h.heading,level:h.level,from:h.position.start.offset,line:h.position.start.line,parent:-1,body:''}))??doc.sections.filter(s=>s.base&&(s.state==='linked'||s.state==='excluded')).sort((a,b)=>a.base!.index-b.base!.index).map(s=>s.base!);
+  doc.outline=navigationOutline(doc,headings);return doc;
+ }
  async missingFiles(path:string):Promise<{title:string;path:string}[]>{
   const doc=parseCompanion(await readNote(this.app,path));readStorage(doc);if(doc.storage?.mode!=='sections')return [];
   return doc.sections.filter(section=>!doc.files?.[section.id]||!this.app.vault.getFileByPath(doc.files[section.id]!)).map(section=>({title:section.title,path:doc.files?.[section.id]??t('companion.noFileLink')}));
@@ -192,7 +210,7 @@ export class CompanionService extends Component {
   try{const writing=performance.now();await this.transactions.apply(p.path,plan);this.metrics.transactionMs+=performance.now()-writing;const unchanged=p.revision===revision&&!plan.some(item=>(this.writeEvents.get(item.path)??0)>(sourceEditor(this.app,item.path)?0:1));if(plan.length){this.metrics.writes+=plan.length;p.revision++;}
    // Successful writes already provide the exact stored bytes. Reparse those bytes
    // to retain serializer normalization, without another disk read of every chapter.
-   const reading=performance.now(),texts=new Map([[p.path,doc.original],...Object.entries(doc.fileOriginals??{}),...plan.map(w=>[w.path,w.after] as [string,string])]);p.document=sessionThoughts(await readStoredForView(this.app,p.path,texts),doc);p.members=new Set(Object.values(p.document.files??{}));p.documentRevision=current&&unchanged?p.revision:undefined;this.metrics.commitReadMs+=performance.now()-reading;p.source=doc.source;
+   const reading=performance.now(),texts=new Map([[p.path,doc.original],...Object.entries(doc.fileOriginals??{}),...plan.map(w=>[w.path,w.after] as [string,string])]);p.document=this.decorateOutline(sessionThoughts(await readStoredForView(this.app,p.path,texts),doc),p);p.members=new Set(Object.values(p.document.files??{}));p.documentRevision=current&&unchanged?p.revision:undefined;this.metrics.commitReadMs+=performance.now()-reading;p.source=doc.source;
   }finally{for(const item of plan){this.writing.delete(item.path);this.writeEvents.delete(item.path);}}
  }
  recoveryPlan(path:string):unknown{return structuredClone(this.transactions.pending.get(path));}
@@ -200,28 +218,31 @@ export class CompanionService extends Component {
  recover(path:string):Promise<void>{return this.enqueue(path,async p=>{await this.transactions.recover(path);p.revision++;});}
 
  sync(path:string):Promise<void>{const runtime=this.pairs.get(path);if(runtime?.relocation)return runtime.relocation;return this.enqueue(path,async p=>{
-  if(!this.enabled())return;const doc=await this.readForView(path);p.source=doc.source;
-  if(!this.app.vault.getFileByPath(doc.source)){p.missing=true;throw new Error(t('companion.sourceMissing'));}p.missing=false;
-  const source=await readNote(this.app,doc.source);this.metrics.sourceAnalyses++;
-  const cached=this.outlineCache.get(doc.source),native=liveOutline(this.app,doc.source,source),headings=native??(cached?.source===source?cached.headings:undefined);p.outlineSource=native?'editor':headings?'cache':'fallback';
-  const result=reconcile(doc,source,p.liveDoc?.toString()===source&&p.anchors.size?p.anchors:undefined,headings);p.anchorSource=source;p.anchorDoc=p.liveDoc?.toString()===source?p.liveDoc:undefined;p.anchors=new Map(result.document.sections.filter(s=>s.state==='linked'&&s.base).map(s=>[s.id,s.base!.from]));
-  const marked=markThoughts(result.document),newMarkers=marked.sections.some((s,i)=>s.raw!==result.document.sections[i]?.raw);
-  if(result.changed||newMarkers||needsCompanionCleanup(doc)||doc.storageDrift)await this.commit(p,doc.original,marked);else p.document=result.document;
-  p.outlineDirty=false;this.sourceSizeChanged(p.source);
+  await this.synchronize(p,await this.readForView(path));
  }).then(async()=>{
   const p=runtime;if(!p||!p.document?.storage||p.document.storage.location==='folder'||p.path.split('/').slice(0,-1).join('/')===targetFolder(p.source,p.document.storage))return;
   if(p.relocation)return p.relocation;
   p.relocation=this.relocate(p);try{await p.relocation;p.error=undefined;}catch(error){p.error=String(error);throw error;}finally{p.relocation=undefined;this.notify();}
  });}
- async create(source:string,options:StorageOptions=this.storageDefaults()):Promise<string>{
-  const previous=this.creating.get(source)??Promise.resolve(),run=previous.catch(()=>{}).then(()=>this.createDocument(source,options));this.creating.set(source,run);try{return await run;}finally{if(this.creating.get(source)===run)this.creating.delete(source);}
+ private async synchronize(p:Runtime,doc:CompanionDocument,force=false):Promise<void>{
+  if(!this.enabled())return;p.source=doc.source;
+  if(!this.app.vault.getFileByPath(doc.source)){p.missing=true;throw new Error(t('companion.sourceMissing'));}p.missing=false;
+  const source=await readNote(this.app,doc.source);this.metrics.sourceAnalyses++;
+  const cached=this.outlineCache.get(doc.source),native=liveOutline(this.app,doc.source,source),headings=native??(cached?.source===source?cached.headings:undefined)??sourceHeadings(source);p.outlineSource=native?'editor':cached?.source===source?'cache':'fallback';p.headings=headings;
+  const result=reconcile(doc,source,p.liveDoc?.toString()===source&&p.anchors.size?p.anchors:undefined,headings);p.anchorSource=source;p.anchorDoc=p.liveDoc?.toString()===source?p.liveDoc:undefined;p.anchors=new Map([...result.document.sections.filter(s=>s.base&&(s.state==='linked'||s.state==='excluded')).map(s=>[s.id,s.base!.from] as [string,number]),...documentOutline(result.document).map(h=>[h.key,h.from] as [string,number])]);
+  const marked=markThoughts(result.document),newMarkers=marked.sections.some((s,i)=>s.raw!==result.document.sections[i]?.raw);
+  if(force||result.changed||newMarkers||needsCompanionCleanup(doc)||doc.storageDrift)await this.commit(p,doc.original,marked);else p.document=result.document;
+  p.outlineDirty=false;this.sourceSizeChanged(p.source);
  }
- private async createDocument(source:string,options:StorageOptions):Promise<string>{
+ async create(source:string,options:StorageOptions=this.storageDefaults(),rules:OutlineRules=this.outlineDefaults()):Promise<string>{
+  const previous=this.creating.get(source)??Promise.resolve(),run=previous.catch(()=>{}).then(()=>this.createDocument(source,options,rules));this.creating.set(source,run);try{return await run;}finally{if(this.creating.get(source)===run)this.creating.delete(source);}
+ }
+ private async createDocument(source:string,options:StorageOptions,rules?:OutlineRules):Promise<string>{
   if(!validStorage(options))throw new Error(t('companion.invalidStorage'));
   const file=this.app.vault.getFileByPath(source);
   if(!validPath(source)||!file||this.pairs.has(source)||this.app.metadataCache.getFileCache(file)?.frontmatter?.['emergence-companion-id'])throw new Error(t('companion.invalidSource'));
-  const text=await readNote(this.app,source),doc=reconcile(emptyCompanion(source),text).document;for(const section of doc.sections)section.format=2;doc.storage=storageOptions(options);doc.files={};
-  if(!doc.sections.length)doc.sections.push({id:newId(),title:t('companion.general'),level:1,state:'general',raw:'\n',format:2});
+  const text=await readNote(this.app,source),initial=emptyCompanion(source),target=defaultCharacterTarget(this.settings()),configured=rules?withOutlineRules(initial,rules):initial,doc=reconcile(target===undefined?configured:withCharacterTarget(configured,target),text).document;for(const section of doc.sections)section.format=2;doc.storage=storageOptions(options);doc.files={};
+  if(!doc.sections.length&&!doc.outline?.length)doc.sections.push({id:newId(),title:t('companion.general'),level:1,state:'general',raw:'\n',format:2});
   const folder=targetFolder(source,doc.storage);await ensureFolder(this.app,folder);const path=freePath(this.app,folder,source.split('/').at(-1)!.replace(/\.md$/u,'')+' – '+t('companion.title'));
   if(this.pairs.has(path))this.forget(path);
   const plan=planStorage(this.app,path,doc).map(w=>w.path===path?{...w,before:null}:w);await this.transactions.apply(path,plan);this.registerPair(path,source);await this.persist();

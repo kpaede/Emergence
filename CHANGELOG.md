@@ -1,3 +1,19 @@
+# 0.0.8
+
+Dokumentbezogene Gliederungsregeln, proportionale Positionsmarken und eine aufgeräumte Graph-Konfiguration. Benötigt **Obsidian Desktop ab 1.15.0**.
+
+- **Gliederung konfigurieren:** Pro Begleitdokument lassen sich Überschriftentitel als ausgeschlossen oder als Positionsmarken festlegen. Ausgeschlossene Überschriften bleiben mit ihrer Hierarchie zur Navigation sichtbar, erzeugen aber keine neuen Begleitabschnitte oder Kapiteldateien. Vorhandene Notizen und Dateien bleiben erhalten; entfernte Ausschlüsse verbinden die bisherigen Abschnitte wieder.
+- **Positionsmarken:** Eine gewöhnliche Überschrift wie `###### Bin hier` erscheint in Emergence als anklickbare rote Linie ohne eigene Gliederungszeile. Die Linie folgt ihrer relativen Zeichenposition zwischen den umgebenden Überschriften und kann deren Text durchkreuzen. Änderungen aktualisieren die Position standardmäßig höchstens alle fünf Sekunden; im Leerlauf läuft keine Abfrageschleife.
+- **Marke am Cursor einfügen:** Bei konfigurierten Markennamen erscheint neben **Gliederung** eine kompakte Einfügeaktion. Ein Name wird direkt eingefügt, mehrere öffnen eine Auswahl. Die Einfügung im geöffneten Hauptdokument ist mit einem normalen Undo rückgängig zu machen. Codeblöcke und Dateieigenschaften werden vor der Einfügung geprüft. Der automatische Gliederungsabgleich verändert das Hauptdokument weiterhin nicht.
+- **Allgemeine Vorgaben:** Markennamen, ausgeschlossene Titel und eine optionale Zielzeichenzahl können für neue Begleitdokumente voreingestellt werden. Bestehende dokumentbezogene Regeln bleiben erhalten. Einfügeebene und Aktualisierungsintervall sind ebenfalls einstellbar. Schnelle Änderungen der Einstellungsfelder werden nacheinander gespeichert; fehlgeschlagene Speicherungen werden zurückgenommen.
+- **Graph konfigurieren:** Vorschau und dauerhaft sichtbares Formular bilden einen gemeinsamen Bereich auf der Graph-Seite, bei ausreichender Breite nebeneinander. Die Grafik und die Auswahl **Bereich** steuern dasselbe Formular. Feldzuordnung, **Anordnung** und **Anzeige** sind klar getrennt; zusätzliche Bearbeitungsfenster entfallen. Die Hierarchieebenen werden einmalig im Formular eingestellt und in der Vorschau angezeigt.
+- **Verständliche Reihenfolge:** Nur bei mehreren sichtbaren Bereichen an derselben Position erscheint die Auswahl **An erster Stelle** bzw. **Nach „…“**. Ausgeblendete Bereiche bleiben über die Bereichsauswahl bearbeitbar. Drag-and-drop, Tastaturfokus und laufende Vorschau bleiben erhalten.
+- **Kompakte Kopfzeile und Übersetzungen:** Der zusätzliche Emergence-Schriftzug und seine eigene Zeile entfallen. Der Betriebsstatus steht neben den einzeiligen Tabs und bleibt aufklappbar. Neue Einstellungen, Hilfen, Beispiele und Fehlermeldungen sind auf Deutsch und Englisch vorhanden; eigene Titel werden nicht übersetzt.
+
+Build, Lint und **1.209 automatisierte Tests** erfolgreich; sechs optionale Modelltests werden im Standardlauf übersprungen. Der Produktions-Audit meldet keine bekannten Schwachstellen. Zusätzlich direkt in Obsidian geprüft: proportionale Marken, Einfügen und Undo, externe Drops und interne Unterbäume, die gemeinsame Graph-Seite in beiden Sprachen und Themes sowie die kompakte Kopfzeile. Die Drag-and-drop-Regression verwendet eine synthetische Quelle mit **540.170 Zeichen**; sie ist keine neue Messung eines echten Zotero-Vorgangs.
+
+Zum Installieren `main.js`, `manifest.json` und `styles.css` aus diesem Release in den Emergence-Pluginordner legen und das Plugin neu laden. `SHA256SUMS.txt` enthält die Prüfsummen.
+
 # 0.0.7
 
 Begleitdokumente: optionale Größenanzeige, schnellere externe Drops und klarere Graph-Rückverweise. Benötigt **Obsidian Desktop ab 1.15.0**.
